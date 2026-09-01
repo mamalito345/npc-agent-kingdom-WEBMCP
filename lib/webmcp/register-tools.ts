@@ -125,7 +125,7 @@ export async function registerWebMCPTools(): Promise<boolean> {
       {
         name: "travel_to",
         description:
-          "Travel the player to a location using its location ID.",
+          "Travel the player through the canonical world simulation to a destination location. The world clock advances and intermediate scheduled events may occur or interrupt the journey.",
         inputSchema: locationInputSchema,
         execute: async ({ location_id }) => {
           return travelTo(location_id);

@@ -15,6 +15,13 @@ export const locations: Record<string, Location> = {
     type: "castle",
   },
 
+  riverhold: {
+    id: "riverhold",
+    name: "Riverhold",
+    kingdomId: "northreach",
+    type: "town",
+  },
+
   highcrest: {
     id: "highcrest",
     name: "Highcrest",

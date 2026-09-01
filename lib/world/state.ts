@@ -3,94 +3,216 @@ import {
   subscribeWorldState,
 } from "@/lib/world/runtime";
 
+import {
+  formatWorldTime,
+} from "@/lib/world/time";
+
 export function getWorldState() {
   return getRuntimeWorldState();
 }
 
-export function getKingdom(kingdomId: string) {
-  return getRuntimeWorldState().kingdoms[kingdomId];
+export function getKingdom(
+  kingdomId: string
+) {
+  return getRuntimeWorldState()
+    .kingdoms[kingdomId];
 }
 
-export function getCharacter(characterId: string) {
-  return getRuntimeWorldState().characters[characterId];
+export function getCharacter(
+  characterId: string
+) {
+  return getRuntimeWorldState()
+    .characters[characterId];
 }
 
-export function getLocation(locationId: string) {
-  return getRuntimeWorldState().locations[locationId];
+export function getLocation(
+  locationId: string
+) {
+  return getRuntimeWorldState()
+    .locations[locationId];
 }
 
 export function getLocations() {
-  return Object.values(getRuntimeWorldState().locations);
+  return Object.values(
+    getRuntimeWorldState().locations
+  );
 }
 
-export { subscribeWorldState };
-
 export function getPlayerVisibleWorld() {
-  const world = getRuntimeWorldState();
-  const playerCharacter = world.characters[world.player.characterId];
+  const world =
+    getRuntimeWorldState();
+
+  const playerCharacter =
+    world.characters[
+      world.player.characterId
+    ];
+
+  const position =
+    world.simulation
+      .entityPositions[
+      world.player.characterId
+    ] ?? null;
+
+  const movement =
+    world.simulation
+      .activeMovements[
+      world.player.characterId
+    ];
 
   return {
-    player: {
-      characterId: world.player.characterId,
-      locationId: world.player.locationId,
-      role: playerCharacter?.rank ?? null,
+    simulation: {
+      worldTimeMinutes:
+        world.simulation
+          .worldTimeMinutes,
+
+      worldTime:
+        formatWorldTime(
+          world.simulation
+            .worldTimeMinutes
+        ),
+
+      paused:
+        world.simulation.paused,
     },
 
-    kingdoms: Object.values(world.kingdoms).map((kingdom) => ({
+    player: {
+      characterId:
+        world.player.characterId,
+
+      locationId:
+        world.player.locationId,
+
+      role:
+        playerCharacter?.rank ??
+        null,
+
+      position,
+
+      movement: movement
+        ? {
+            destinationNodeId:
+              movement
+                .destinationNodeId,
+
+            routeNodeIds:
+              movement.routeNodeIds,
+
+            routeEdgeIds:
+              movement.routeEdgeIds,
+
+            startedAt:
+              movement.startedAt,
+
+            estimatedArrivalAt:
+              movement
+                .estimatedArrivalAt,
+          }
+        : null,
+    },
+
+    kingdoms: Object.values(
+      world.kingdoms
+    ).map((kingdom) => ({
       id: kingdom.id,
       name: kingdom.name,
     })),
 
-    locations: Object.values(world.locations).map((location) => ({
+    locations: Object.values(
+      world.locations
+    ).map((location) => ({
       id: location.id,
       name: location.name,
-      kingdomId: location.kingdomId,
+
+      kingdomId:
+        location.kingdomId,
+
       type: location.type,
     })),
+
+    recentEvents:
+      world.simulation
+        .resolvedEvents
+        .slice(-10)
+        .map((event) => ({
+          id: event.id,
+          type: event.type,
+
+          timestamp:
+            event.timestamp,
+
+          result:
+            event.result,
+        })),
   };
 }
 
-export function inspectLocation(locationId: string) {
-  const location = getLocation(locationId);
+export function inspectLocation(
+  locationId: string
+) {
+  const location =
+    getLocation(locationId);
 
   if (!location) {
     return {
       ok: false as const,
-      error: "LOCATION_NOT_FOUND" as const,
+      error:
+        "LOCATION_NOT_FOUND" as const,
     };
   }
 
   return {
     ok: true as const,
+
     location: {
       id: location.id,
       name: location.name,
-      kingdomId: location.kingdomId,
-      type: location.type,
+
+      kingdomId:
+        location.kingdomId,
+
+      type:
+        location.type,
     },
   };
 }
 
-export function inspectCharacter(characterId: string) {
-  const character = getCharacter(characterId);
+export function inspectCharacter(
+  characterId: string
+) {
+  const character =
+    getCharacter(characterId);
 
   if (!character) {
     return {
       ok: false as const,
-      error: "CHARACTER_NOT_FOUND" as const,
+      error:
+        "CHARACTER_NOT_FOUND" as const,
     };
   }
 
   return {
     ok: true as const,
+
     character: {
       id: character.id,
       name: character.name,
-      kingdomId: character.kingdomId,
-      rank: character.rank,
-      locationId: character.locationId,
-      army: character.army,
-      treasury: character.treasury,
+
+      kingdomId:
+        character.kingdomId,
+
+      rank:
+        character.rank,
+
+      locationId:
+        character.locationId,
+
+      army:
+        character.army,
+
+      treasury:
+        character.treasury,
     },
   };
 }
+
+export { subscribeWorldState };
