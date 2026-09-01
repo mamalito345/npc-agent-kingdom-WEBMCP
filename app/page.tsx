@@ -1,5 +1,6 @@
 import { getWorldState } from "@/lib/world/state";
 import TravelPanel from "./travel-panel";
+import WebMCPProvider from "./webmcp-provider";
 
 export default function Home() {
   const world = getWorldState();
@@ -27,6 +28,7 @@ export default function Home() {
       </div>
 
       <TravelPanel />
+      <WebMCPProvider />
     </main>
   );
 }
