@@ -10,9 +10,18 @@ import {
 } from "@/lib/world/movement";
 
 import {
+  processCourierArrivals,
+} from "@/lib/world/couriers";
+
+import {
   getWorldTime,
   setWorldTime,
 } from "@/lib/world/runtime";
+
+import {
+  getNextDailyBoundary,
+  processDailyBoundary,
+} from "@/lib/world/processors/daily-boundary";
 
 import type {
   AdvanceWorldResult,
@@ -23,7 +32,8 @@ function getEarliestRelevantMoment(
   currentTime: WorldMinute,
   targetTime: WorldMinute
 ): WorldMinute {
-  let nextMoment = targetTime;
+  let nextMoment =
+    targetTime;
 
   const nextEvent =
     getNextScheduledEvent();
@@ -31,7 +41,8 @@ function getEarliestRelevantMoment(
   if (
     nextEvent &&
     nextEvent.executeAt >= currentTime &&
-    nextEvent.executeAt < nextMoment
+    nextEvent.executeAt <
+      nextMoment
   ) {
     nextMoment =
       nextEvent.executeAt;
@@ -44,30 +55,78 @@ function getEarliestRelevantMoment(
 
   if (
     movementBoundary !== undefined &&
-    movementBoundary < nextMoment
+    movementBoundary <
+      nextMoment
   ) {
     nextMoment =
       movementBoundary;
   }
 
+  const dailyBoundary =
+    getNextDailyBoundary(
+      currentTime
+    );
+
+  if (
+    dailyBoundary >
+      currentTime &&
+    dailyBoundary <
+      nextMoment
+  ) {
+    nextMoment =
+      dailyBoundary;
+  }
+
   return nextMoment;
+}
+
+function processSimulationMoment(
+  worldTime: WorldMinute
+): {
+  interrupt?: AdvanceWorldResult["interrupt"];
+} {
+  const eventResult =
+    processDueEvents(worldTime);
+
+  resolveCompletedMovements(
+    worldTime
+  );
+
+  processCourierArrivals();
+
+  processDailyBoundary(
+    worldTime
+  );
+
+  return {
+    interrupt:
+      eventResult.interrupt,
+  };
 }
 
 export function advanceWorldUntil(
   targetTime: WorldMinute
 ): AdvanceWorldResult {
-  let currentTime = getWorldTime();
+  let currentTime =
+    getWorldTime();
 
-  if (targetTime <= currentTime) {
+  if (
+    targetTime <= currentTime
+  ) {
     return {
       reachedTarget: true,
       currentTime,
     };
   }
 
-  while (currentTime < targetTime) {
+  while (
+    currentTime <
+    targetTime
+  ) {
     const dueAtCurrentTime =
-      processDueEvents(currentTime);
+      processDueEvents(
+        currentTime
+      );
 
     if (
       dueAtCurrentTime.interrupt
@@ -87,7 +146,10 @@ export function advanceWorldUntil(
         targetTime
       );
 
-    if (nextMoment <= currentTime) {
+    if (
+      nextMoment <=
+      currentTime
+    ) {
       throw new Error(
         "Simulation failed to advance time."
       );
@@ -97,25 +159,27 @@ export function advanceWorldUntil(
       nextMoment
     );
 
-    setWorldTime(nextMoment);
-
-    currentTime = nextMoment;
-
-    const eventResult =
-      processDueEvents(currentTime);
-
-    resolveCompletedMovements(
-      currentTime
+    setWorldTime(
+      nextMoment
     );
 
-    if (eventResult.interrupt) {
+    currentTime =
+      nextMoment;
+
+    const processed =
+      processSimulationMoment(
+        currentTime
+      );
+
+    if (
+      processed.interrupt
+    ) {
       return {
         reachedTarget: false,
-
         currentTime,
 
         interrupt:
-          eventResult.interrupt,
+          processed.interrupt,
       };
     }
   }
@@ -136,6 +200,7 @@ export function advanceWorldBy(
   }
 
   return advanceWorldUntil(
-    getWorldTime() + minutes
+    getWorldTime() +
+      minutes
   );
 }

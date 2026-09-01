@@ -38,6 +38,19 @@ export function getLocations() {
   );
 }
 
+export function getSettlement(
+  settlementId: string
+) {
+  return getRuntimeWorldState()
+    .settlements[settlementId];
+}
+
+export function getSettlements() {
+  return Object.values(
+    getRuntimeWorldState().settlements
+  );
+}
+
 export function getPlayerVisibleWorld() {
   const world =
     getRuntimeWorldState();
@@ -160,18 +173,48 @@ export function inspectLocation(
     };
   }
 
+  const world =
+    getRuntimeWorldState();
+
+  const settlement =
+    world.settlements[
+      locationId
+    ];
+
+  const kingdom =
+    world.kingdoms[
+      location.kingdomId
+    ];
+
   return {
     ok: true as const,
 
     location: {
       id: location.id,
+
       name: location.name,
 
       kingdomId:
         location.kingdomId,
 
-      type:
-        location.type,
+      kingdomName:
+        kingdom?.name ?? null,
+
+      type: location.type,
+
+      settlement: settlement
+        ? {
+            ownerId:
+              settlement.ownerId ??
+              null,
+
+            resources:
+              settlement.resources,
+
+            dailyProduction:
+              settlement.dailyProduction,
+          }
+        : null,
     },
   };
 }

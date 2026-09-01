@@ -6,13 +6,35 @@ import type {
   WorldMinute,
 } from "@/types/simulation";
 
-export type CharacterRank = "king" | "lord";
+import type {
+  Settlement,
+} from "@/types/settlement";
+
+import type {
+  Courier,
+  WorldMessage,
+} from "@/types/courier";
+
+export type CharacterRank =
+  | "king"
+  | "lord";
 
 export interface Kingdom {
   id: string;
+
   name: string;
+
   rulerId: string;
+
   lordIds: string[];
+
+  settlementIds: string[];
+
+  /**
+   * Package 3 will activate real army entities.
+   * Keep the canonical relation now.
+   */
+  armyIds: string[];
 
   treasury: number;
   army: number;
@@ -24,46 +46,48 @@ export interface Kingdom {
 
 export interface Character {
   id: string;
+
   name: string;
 
   kingdomId: string;
+
   rank: CharacterRank;
 
   /**
-   * Last settled location.
+   * Last/current settled location.
    *
-   * While an entity is travelling, its precise physical position is stored
-   * inside WorldState.entityPositions.
+   * Precise travelling position lives inside:
+   * WorldState.simulation.entityPositions
    */
   locationId: string;
 
   treasury: number;
+
   army: number;
 
   relationships: Record<string, number>;
 }
 
+export type LocationType =
+  | "capital"
+  | "castle"
+  | "town"
+  | "village"
+  | "strategic_location";
+
 export interface Location {
   id: string;
+
   name: string;
+
   kingdomId: string;
 
-  type:
-    | "capital"
-    | "castle"
-    | "town"
-    | "village"
-    | "crossroads";
+  type: LocationType;
 }
 
 export interface PlayerState {
   characterId: string;
 
-  /**
-   * Compatibility field representing the player's last/current settled node.
-   *
-   * Precise travelling position belongs to entityPositions.
-   */
   locationId: string;
 }
 
@@ -72,9 +96,15 @@ export interface SimulationState {
 
   paused: boolean;
 
-  entityPositions: Record<string, Position>;
+  entityPositions: Record<
+    string,
+    Position
+  >;
 
-  activeMovements: Record<string, ActiveMovement>;
+  activeMovements: Record<
+    string,
+    ActiveMovement
+  >;
 
   scheduledEvents: ScheduledEvent[];
 
@@ -84,11 +114,35 @@ export interface SimulationState {
 }
 
 export interface WorldState {
-  kingdoms: Record<string, Kingdom>;
+  kingdoms: Record<
+    string,
+    Kingdom
+  >;
 
-  characters: Record<string, Character>;
+  characters: Record<
+    string,
+    Character
+  >;
 
-  locations: Record<string, Location>;
+  locations: Record<
+    string,
+    Location
+  >;
+
+  settlements: Record<
+    string,
+    Settlement
+  >;
+
+  couriers: Record<
+    string,
+    Courier
+  >;
+
+  messages: Record<
+    string,
+    WorldMessage
+  >;
 
   player: PlayerState;
 

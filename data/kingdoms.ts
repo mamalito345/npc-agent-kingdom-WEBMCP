@@ -1,11 +1,31 @@
-import type { Kingdom } from "@/types/world";
+import type {
+  Kingdom,
+} from "@/types/world";
 
-export const kingdoms: Record<string, Kingdom> = {
+export const kingdoms: Record<
+  string,
+  Kingdom
+> = {
   northreach: {
     id: "northreach",
     name: "Northreach",
+
     rulerId: "king_aldric",
-    lordIds: ["lord_edwyn", "lord_merek"],
+
+    lordIds: [
+      "lord_edwyn",
+      "lord_merek",
+    ],
+
+    settlementIds: [
+      "northwatch",
+      "stoneford",
+      "riverhold",
+      "highcrest",
+      "frostmere",
+    ],
+
+    armyIds: [],
 
     treasury: 24000,
     army: 5200,
@@ -23,8 +43,22 @@ export const kingdoms: Record<string, Kingdom> = {
   eastvale: {
     id: "eastvale",
     name: "Eastvale",
+
     rulerId: "king_roderic",
-    lordIds: [],
+
+    lordIds: [
+      "lord_theon",
+      "lord_beric",
+    ],
+
+    settlementIds: [
+      "eastkeep",
+      "greenharbor",
+      "elmstead",
+      "dawnfort",
+    ],
+
+    armyIds: [],
 
     treasury: 19500,
     army: 4100,
@@ -42,8 +76,22 @@ export const kingdoms: Record<string, Kingdom> = {
   westmoor: {
     id: "westmoor",
     name: "Westmoor",
+
     rulerId: "king_garran",
-    lordIds: [],
+
+    lordIds: [
+      "lord_corvin",
+      "lord_harlan",
+    ],
+
+    settlementIds: [
+      "moorhall",
+      "blackfen",
+      "greywatch",
+      "reedmere",
+    ],
+
+    armyIds: [],
 
     treasury: 17000,
     army: 4600,
@@ -61,8 +109,22 @@ export const kingdoms: Record<string, Kingdom> = {
   southmark: {
     id: "southmark",
     name: "Southmark",
+
     rulerId: "king_osric",
-    lordIds: [],
+
+    lordIds: [
+      "lord_cedric",
+      "lord_tavian",
+    ],
+
+    settlementIds: [
+      "sunspire",
+      "goldmeadow",
+      "redfield",
+      "southgate",
+    ],
+
+    armyIds: [],
 
     treasury: 21500,
     army: 3900,
@@ -80,8 +142,22 @@ export const kingdoms: Record<string, Kingdom> = {
   ironhollow: {
     id: "ironhollow",
     name: "Ironhollow",
+
     rulerId: "king_varren",
-    lordIds: [],
+
+    lordIds: [
+      "lord_durand",
+      "lord_malric",
+    ],
+
+    settlementIds: [
+      "ironhold",
+      "emberfall",
+      "stonevein",
+      "ashguard",
+    ],
+
+    armyIds: [],
 
     treasury: 29000,
     army: 6100,

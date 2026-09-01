@@ -1,6 +1,7 @@
 import { characters } from "@/data/characters";
 import { kingdoms } from "@/data/kingdoms";
 import { locations } from "@/data/locations";
+import { settlements } from "@/data/settlements";
 
 import type {
   ActiveMovement,
@@ -20,6 +21,10 @@ let worldState: WorldState = {
   kingdoms,
   characters,
   locations,
+  settlements,
+
+  couriers: {},
+  messages: {},
 
   player: {
     characterId: "lord_edwyn",
