@@ -8,6 +8,7 @@ import type {
 } from "@/types/conversation";
 import type { LlmPlayerRuntimeState } from "@/types/actors";
 import type { LordRuntimeState } from "@/types/lords";
+import type { PoliticsRuntimeState } from "@/types/politics";
 
 export type PlayerControllerType = "human" | "webmcp_llm";
 
@@ -169,5 +170,6 @@ export interface GameSessionState {
 
   llmPlayers: LlmPlayerRuntimeState;
   lords: LordRuntimeState;
+  politics: PoliticsRuntimeState;
   director: DirectorState;
 }

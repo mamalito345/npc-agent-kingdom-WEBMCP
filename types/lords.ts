@@ -39,7 +39,16 @@ export type LordOrderResponseType =
 export type LordOrderStatus =
   | "pending"
   | "resolved"
-  | "cancelled";
+  | "cancelled"
+  | "IN_TRANSIT"
+  | "RECEIVED"
+  | "ACCEPTED"
+  | "REFUSED"
+  | "NEGOTIATING"
+  | "DELAYED"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "FAILED";
 
 export interface LordOrderRequest {
   id: string;
@@ -53,8 +62,11 @@ export interface LordOrderRequest {
   note?: string;
   issuedAt: WorldMinute;
   status: LordOrderStatus;
+  deliveryMessageId?: string;
+  receivedAt?: WorldMinute;
   response?: LordOrderResponseType;
   responseSummary?: string;
+  requestedCondition?: string;
   resolvedAt?: WorldMinute;
   canonicalEffect?: {
     applied: boolean;
@@ -94,10 +106,13 @@ export interface GmLordOrderContext {
 export interface GmLordOrderDecision {
   response: LordOrderResponseType;
   summary: string;
+  requestedCondition?: string;
 }
 
 export interface GmLordOrderModelAdapter {
   decideOrder(
     context: GmLordOrderContext
-  ): Promise<GmLordOrderDecision>;
+  ):
+    | GmLordOrderDecision
+    | Promise<GmLordOrderDecision>;
 }

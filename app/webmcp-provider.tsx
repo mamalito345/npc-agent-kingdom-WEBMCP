@@ -19,6 +19,11 @@ import {
   unregisterLordWebMCPTools,
 } from "@/lib/webmcp/register-lord-tools";
 
+import {
+  registerPoliticsWebMCPTools,
+  unregisterPoliticsWebMCPTools,
+} from "@/lib/webmcp/register-politics-tools";
+
 export default function WebMCPProvider() {
   useEffect(() => {
     let disposed =
@@ -28,12 +33,14 @@ export default function WebMCPProvider() {
       registerWebMCPTools(),
       registerConversationWebMCPTools(),
       registerLordWebMCPTools(),
+      registerPoliticsWebMCPTools(),
     ])
       .then(
         ([
           coreRegistered,
           conversationRegistered,
           lordRegistered,
+          politicsRegistered,
         ]) => {
           console.log(
             "[WebMCP] core registration:",
@@ -46,6 +53,10 @@ export default function WebMCPProvider() {
           console.log(
             "[WebMCP] lord registration:",
             lordRegistered
+          );
+          console.log(
+            "[WebMCP] politics registration:",
+            politicsRegistered
           );
         }
       )
@@ -70,6 +81,7 @@ export default function WebMCPProvider() {
 
     return () => {
       disposed = true;
+      unregisterPoliticsWebMCPTools();
       unregisterLordWebMCPTools();
       unregisterConversationWebMCPTools();
       unregisterWebMCPTools();

@@ -22,7 +22,15 @@ import {
 
 import {
   inspectKingdomLords,
+  inspectLordOrders,
 } from "@/lib/lords/service";
+
+import {
+  inspectAgreements,
+  inspectDiplomaticProposals,
+  inspectPromises,
+  inspectRelationships,
+} from "@/lib/politics/service";
 
 import type {
   LlmPlayerActivationReason,
@@ -43,6 +51,11 @@ const AVAILABLE_ACTIONS: LlmPlayerToolName[] = [
   "inspect_economy",
   "inspect_present_characters",
   "inspect_kingdom_lords",
+  "inspect_lord_orders",
+  "inspect_relationships",
+  "inspect_agreements",
+  "inspect_diplomatic_proposals",
+  "inspect_promises",
   "issue_character_order",
   "issue_army_move",
   "issue_intercept",
@@ -56,6 +69,10 @@ const AVAILABLE_ACTIONS: LlmPlayerToolName[] = [
   "send_envoy",
   "talk_to_character",
   "end_conversation",
+  "propose_agreement",
+  "respond_to_agreement",
+  "create_promise",
+  "resolve_promise",
   "pass_command_window",
 ];
 
@@ -77,7 +94,9 @@ function getActivePlan(
 
   return (
     world.session.llmPlayers
-      .plans[planId] ??
+      .plans[
+        planId
+      ] ??
     null
   );
 }
@@ -164,6 +183,31 @@ export function buildLlmPlayerContext(
         world.session.id,
         playerId
       ),
+    lordOrders:
+      inspectLordOrders(
+        world.session.id,
+        playerId
+      ),
+    relationships:
+      inspectRelationships(
+        world.session.id,
+        playerId
+      ),
+    agreements:
+      inspectAgreements(
+        world.session.id,
+        playerId
+      ),
+    diplomaticProposals:
+      inspectDiplomaticProposals(
+        world.session.id,
+        playerId
+      ),
+    promises:
+      inspectPromises(
+        world.session.id,
+        playerId
+      ),
     activePlan:
       getActivePlan(
         playerId
@@ -174,10 +218,11 @@ export function buildLlmPlayerContext(
     rules: [
       "You are a player, not the World Director.",
       "Use only player-safe information in this context and gameplay tools.",
-      "Never assume hidden canonical enemy state.",
+      "Never assume hidden canonical enemy or political state.",
       "All mutations must go through normal player action services.",
-      "You may inspect your own kingdom's major lords, including loyalty information available to your court.",
-      "Direct character orders require physical/council presence; distant lords require courier messaging.",
+      "Remote diplomacy and remote lord orders use physical couriers.",
+      "Do not assume an undelivered proposal exists.",
+      "An accepted military-support agreement never teleports armies.",
       "Do not act outside your command window.",
       "Keep actions bounded and pass the command window when finished.",
     ],

@@ -23,6 +23,18 @@ export type StartWarResult =
       error: StartWarError;
     };
 
+export type EndWarResult =
+  | {
+      ok: true;
+      war: War;
+    }
+  | {
+      ok: false;
+      error:
+        | "WAR_NOT_FOUND"
+        | "WAR_NOT_ACTIVE";
+    };
+
 export function getWar(
   warId: string
 ): War | undefined {
@@ -93,6 +105,59 @@ export function findActiveWarBetweenRealms(
   );
 }
 
+export function endWar(
+  warId: string
+): EndWarResult {
+  const war =
+    getRuntimeWorldState()
+      .wars[
+        warId
+      ];
+
+  if (!war) {
+    return {
+      ok: false,
+      error:
+        "WAR_NOT_FOUND",
+    };
+  }
+
+  if (
+    war.status !==
+    "active"
+  ) {
+    return {
+      ok: false,
+      error:
+        "WAR_NOT_ACTIVE",
+    };
+  }
+
+  const ended:
+    War = {
+    ...war,
+    status:
+      "ended",
+  };
+
+  updateRuntimeWorldState(
+    (current) => ({
+      ...current,
+      wars: {
+        ...current.wars,
+        [warId]:
+          ended,
+      },
+    })
+  );
+
+  return {
+    ok: true,
+    war:
+      ended,
+  };
+}
+
 export function startWar(
   attackerRealmId: string,
   defenderRealmId: string
@@ -103,7 +168,8 @@ export function startWar(
   ) {
     return {
       ok: false,
-      error: "SAME_REALM",
+      error:
+        "SAME_REALM",
     };
   }
 
@@ -134,8 +200,10 @@ export function startWar(
   if (existing) {
     return {
       ok: true,
-      war: existing,
-      created: false,
+      war:
+        existing,
+      created:
+        false,
     };
   }
 
@@ -145,7 +213,8 @@ export function startWar(
   const current =
     getRuntimeWorldState();
 
-  const war: War = {
+  const war:
+    War = {
     id:
       `war-${sequence
         .toString()
@@ -153,19 +222,15 @@ export function startWar(
           6,
           "0"
         )}`,
-
     attackerRealmIds: [
       attackerRealmId,
     ],
-
     defenderRealmIds: [
       defenderRealmId,
     ],
-
     startedAt:
       current.simulation
         .worldTimeMinutes,
-
     status:
       "active",
   };
@@ -173,10 +238,8 @@ export function startWar(
   updateRuntimeWorldState(
     (state) => ({
       ...state,
-
       wars: {
         ...state.wars,
-
         [war.id]:
           war,
       },
@@ -210,7 +273,10 @@ export function ensureActiveWarBetweenRealms(
       defenderRealmId
     );
 
-  if (!result.ok) {
+  if (
+    result.ok ===
+    false
+  ) {
     throw new Error(
       `Could not create war: ${result.error}`
     );

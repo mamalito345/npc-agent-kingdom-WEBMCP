@@ -4,47 +4,90 @@ import type {
   GmLordOrderModelAdapter,
 } from "@/types/lords";
 
-function clamp(value: number): number {
-  return Math.max(0, Math.min(100, value));
+function clamp(
+  value: number
+): number {
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      value
+    )
+  );
 }
 
 function defaultDecision(
-  context: GmLordOrderContext
+  context:
+    GmLordOrderContext
 ): GmLordOrderDecision {
-  const { lord, order, ruler } = context;
-  const traits = lord.basicTraits;
+  const {
+    lord,
+    order,
+    ruler,
+  } = context;
 
-  const relationshipScore = clamp((ruler.relationship + 100) / 2);
+  const traits =
+    lord.basicTraits;
+
+  const relationshipScore =
+    clamp(
+      (
+        ruler.relationship +
+        100
+      ) /
+        2
+    );
 
   let score =
-    lord.loyalty * 0.45 +
-    relationshipScore * 0.22 +
-    traits.honor * 0.12 +
-    traits.diplomacy * 0.06 -
-    traits.ambition * 0.06;
+    lord.loyalty *
+      0.45 +
+    relationshipScore *
+      0.22 +
+    traits.honor *
+      0.12 +
+    traits.diplomacy *
+      0.06 -
+    traits.ambition *
+      0.06;
 
-  const risk = clamp(order.risk);
+  const risk =
+    clamp(
+      order.risk
+    );
 
   score -=
     risk *
-    (traits.caution / 100) *
+    (
+      traits.caution /
+      100
+    ) *
     0.22;
 
   if (
-    order.type === "DEFEND_SETTLEMENT" &&
+    order.type ===
+      "DEFEND_SETTLEMENT" &&
     order.targetSettlementId &&
-    lord.controlledSettlementIds.includes(order.targetSettlementId)
+    lord
+      .controlledSettlementIds
+      .includes(
+        order
+          .targetSettlementId
+      )
   ) {
     score += 12;
   }
 
   if (
-    order.type === "RAISE_TROOPS" &&
-    lord.loyalty < 35 &&
-    risk >= 70
+    order.type ===
+      "RAISE_TROOPS" &&
+    lord.loyalty <
+      35 &&
+    risk >=
+      70
   ) {
     return {
-      response: "REFUSE",
+      response:
+        "REFUSE",
       summary:
         `${lord.title} refuses a costly levy while loyalty is dangerously low.`,
     };
@@ -52,7 +95,8 @@ function defaultDecision(
 
   if (score >= 68) {
     return {
-      response: "ACCEPT",
+      response:
+        "ACCEPT",
       summary:
         `${lord.title} accepts the ruler's order.`,
     };
@@ -60,57 +104,87 @@ function defaultDecision(
 
   if (score >= 58) {
     return {
-      response: "PARTIAL_COMPLIANCE",
+      response:
+        "PARTIAL_COMPLIANCE",
       summary:
         `${lord.title} agrees in principle but limits the commitment.`,
+      requestedCondition:
+        "Limit the cost and duration of the commitment.",
     };
   }
 
   if (score >= 48) {
+    if (
+      risk >= 60
+    ) {
+      return {
+        response:
+          "DELAY",
+        summary:
+          `${lord.title} delays while assessing the danger.`,
+      };
+    }
+
     return {
-      response: risk >= 60 ? "DELAY" : "NEGOTIATE",
+      response:
+        "NEGOTIATE",
       summary:
-        risk >= 60
-          ? `${lord.title} delays while assessing the danger.`
-          : `${lord.title} asks for terms before committing fully.`,
+        `${lord.title} asks for terms before committing fully.`,
+      requestedCondition:
+        "Clarify the crown's support and risk sharing.",
     };
   }
 
   if (score >= 36) {
     return {
-      response: "NEGOTIATE",
+      response:
+        "NEGOTIATE",
       summary:
         `${lord.title} will not comply without concessions.`,
+      requestedCondition:
+        "Political or material concessions are required.",
     };
   }
 
   return {
-    response: "REFUSE",
+    response:
+      "REFUSE",
     summary:
       `${lord.title} refuses the order.`,
   };
 }
 
-const defaultAdapter: GmLordOrderModelAdapter = {
-  async decideOrder(
-    context: GmLordOrderContext
-  ): Promise<GmLordOrderDecision> {
-    return defaultDecision(context);
+const defaultAdapter:
+  GmLordOrderModelAdapter = {
+  decideOrder(
+    context:
+      GmLordOrderContext
+  ): GmLordOrderDecision {
+    return defaultDecision(
+      context
+    );
   },
 };
 
-let adapter: GmLordOrderModelAdapter = defaultAdapter;
+let adapter:
+  GmLordOrderModelAdapter =
+    defaultAdapter;
 
-export function getGmLordOrderModelAdapter(): GmLordOrderModelAdapter {
+export function getGmLordOrderModelAdapter():
+  GmLordOrderModelAdapter {
   return adapter;
 }
 
 export function setGmLordOrderModelAdapter(
-  nextAdapter: GmLordOrderModelAdapter
+  nextAdapter:
+    GmLordOrderModelAdapter
 ): void {
-  adapter = nextAdapter;
+  adapter =
+    nextAdapter;
 }
 
-export function resetGmLordOrderModelAdapter(): void {
-  adapter = defaultAdapter;
+export function resetGmLordOrderModelAdapter():
+  void {
+  adapter =
+    defaultAdapter;
 }

@@ -1,0 +1,419 @@
+import type {
+  JsonSchemaForInference,
+} from "@mcp-b/webmcp-types";
+
+import {
+  isWebMCPAvailable,
+} from "@/lib/webmcp/support";
+
+import {
+  createPromise,
+  inspectAgreements,
+  inspectDiplomaticProposals,
+  inspectPromises,
+  inspectRelationships,
+  proposeAgreement,
+  respondToAgreement,
+  resolvePromise,
+} from "@/lib/politics/service";
+
+import type {
+  AgreementType,
+  PromiseStatus,
+} from "@/types/politics";
+
+const baseReadSchema = {
+  type: "object",
+  properties: {
+    session_id: {
+      type: "string",
+    },
+    player_id: {
+      type: "string",
+    },
+  },
+  required: [
+    "session_id",
+    "player_id",
+  ],
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const proposeSchema = {
+  type: "object",
+  properties: {
+    session_id: {
+      type: "string",
+    },
+    player_id: {
+      type: "string",
+    },
+    agreement_type: {
+      type: "string",
+      enum: [
+        "ALLIANCE",
+        "NON_AGGRESSION",
+        "MILITARY_SUPPORT",
+        "PEACE",
+      ],
+    },
+    target_kingdom_id: {
+      type: "string",
+    },
+    terms: {
+      type: "string",
+    },
+    expires_at: {
+      type: "number",
+    },
+    secret: {
+      type: "boolean",
+    },
+  },
+  required: [
+    "session_id",
+    "player_id",
+    "agreement_type",
+    "target_kingdom_id",
+  ],
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const respondSchema = {
+  type: "object",
+  properties: {
+    session_id: {
+      type: "string",
+    },
+    player_id: {
+      type: "string",
+    },
+    agreement_id: {
+      type: "string",
+    },
+    accept: {
+      type: "boolean",
+    },
+  },
+  required: [
+    "session_id",
+    "player_id",
+    "agreement_id",
+    "accept",
+  ],
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const createPromiseSchema = {
+  type: "object",
+  properties: {
+    session_id: {
+      type: "string",
+    },
+    player_id: {
+      type: "string",
+    },
+    promisee_character_id: {
+      type: "string",
+    },
+    summary: {
+      type: "string",
+    },
+    target_id: {
+      type: "string",
+    },
+  },
+  required: [
+    "session_id",
+    "player_id",
+    "promisee_character_id",
+    "summary",
+  ],
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const resolvePromiseSchema = {
+  type: "object",
+  properties: {
+    session_id: {
+      type: "string",
+    },
+    player_id: {
+      type: "string",
+    },
+    promise_id: {
+      type: "string",
+    },
+    status: {
+      type: "string",
+      enum: [
+        "FULFILLED",
+        "BROKEN",
+        "CANCELLED",
+      ],
+    },
+  },
+  required: [
+    "session_id",
+    "player_id",
+    "promise_id",
+    "status",
+  ],
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+let registrationController:
+  AbortController |
+  null = null;
+
+export async function registerPoliticsWebMCPTools():
+  Promise<boolean> {
+  if (
+    !isWebMCPAvailable()
+  ) {
+    return false;
+  }
+
+  const modelContext =
+    document.modelContext;
+
+  if (!modelContext) {
+    return false;
+  }
+
+  if (
+    registrationController
+  ) {
+    return true;
+  }
+
+  const controller =
+    new AbortController();
+
+  registrationController =
+    controller;
+
+  const readTools = [
+    {
+      name:
+        "inspect_relationships",
+      description:
+        "Inspect relationships involving your player character.",
+      execute:
+        inspectRelationships,
+    },
+    {
+      name:
+        "inspect_agreements",
+      description:
+        "Inspect agreements your kingdom is party to. Undelivered incoming proposals are hidden.",
+      execute:
+        inspectAgreements,
+    },
+    {
+      name:
+        "inspect_diplomatic_proposals",
+      description:
+        "Inspect diplomatic proposals visible to your kingdom.",
+      execute:
+        inspectDiplomaticProposals,
+    },
+    {
+      name:
+        "inspect_promises",
+      description:
+        "Inspect explicit promises involving your player character.",
+      execute:
+        inspectPromises,
+    },
+  ] as const;
+
+  try {
+    for (
+      const tool
+      of readTools
+    ) {
+      await modelContext.registerTool(
+        {
+          name:
+            tool.name,
+          description:
+            tool.description,
+          inputSchema:
+            baseReadSchema,
+          annotations: {
+            readOnlyHint:
+              true,
+          },
+          execute: async ({
+            session_id,
+            player_id,
+          }) =>
+            tool.execute(
+              session_id,
+              player_id
+            ),
+        },
+        {
+          signal:
+            controller.signal,
+        }
+      );
+    }
+
+    await modelContext.registerTool(
+      {
+        name:
+          "propose_agreement",
+        description:
+          "Send an alliance, non-aggression, military-support, or peace proposal through a physical diplomatic courier.",
+        inputSchema:
+          proposeSchema,
+        execute: async ({
+          session_id,
+          player_id,
+          agreement_type,
+          target_kingdom_id,
+          terms,
+          expires_at,
+          secret,
+        }) =>
+          proposeAgreement(
+            session_id,
+            player_id,
+            agreement_type as AgreementType,
+            target_kingdom_id,
+            {
+              terms,
+              expiresAt:
+                expires_at,
+              secret,
+            }
+          ),
+      },
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "respond_to_agreement",
+        description:
+          "Accept or reject a delivered diplomatic proposal.",
+        inputSchema:
+          respondSchema,
+        execute: async ({
+          session_id,
+          player_id,
+          agreement_id,
+          accept,
+        }) =>
+          respondToAgreement(
+            session_id,
+            player_id,
+            agreement_id,
+            accept
+          ),
+      },
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "create_promise",
+        description:
+          "Create an explicit political promise. Conversation text alone does not create promises.",
+        inputSchema:
+          createPromiseSchema,
+        execute: async ({
+          session_id,
+          player_id,
+          promisee_character_id,
+          summary,
+          target_id,
+        }) =>
+          createPromise(
+            session_id,
+            player_id,
+            promisee_character_id,
+            summary,
+            target_id
+          ),
+      },
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "resolve_promise",
+        description:
+          "Mark your explicit promise as fulfilled, broken, or cancelled.",
+        inputSchema:
+          resolvePromiseSchema,
+        execute: async ({
+          session_id,
+          player_id,
+          promise_id,
+          status,
+        }) =>
+          resolvePromise(
+            session_id,
+            player_id,
+            promise_id,
+            status as Exclude<
+              PromiseStatus,
+              "ACTIVE"
+            >
+          ),
+      },
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    console.log(
+      "[WebMCP] politics tools registered"
+    );
+
+    return true;
+  } catch (error) {
+    controller.abort();
+    registrationController =
+      null;
+    throw error;
+  }
+}
+
+export function unregisterPoliticsWebMCPTools():
+  void {
+  if (
+    !registrationController
+  ) {
+    return;
+  }
+
+  registrationController.abort();
+  registrationController =
+    null;
+
+  console.log(
+    "[WebMCP] politics tools unregistered"
+  );
+}

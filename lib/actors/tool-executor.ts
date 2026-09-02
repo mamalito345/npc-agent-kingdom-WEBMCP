@@ -34,8 +34,20 @@ import {
 
 import {
   inspectKingdomLords,
+  inspectLordOrders,
   issueCharacterOrder,
 } from "@/lib/lords/service";
+
+import {
+  createPromise,
+  inspectAgreements,
+  inspectDiplomaticProposals,
+  inspectPromises,
+  inspectRelationships,
+  proposeAgreement,
+  respondToAgreement,
+  resolvePromise,
+} from "@/lib/politics/service";
 
 import type {
   BattleOrderType,
@@ -48,6 +60,11 @@ import type {
 } from "@/types/lords";
 
 import type {
+  AgreementType,
+  PromiseStatus,
+} from "@/types/politics";
+
+import type {
   LlmActionExecutionResult,
   LlmPlayerAction,
 } from "@/types/actors";
@@ -57,7 +74,9 @@ function stringArg(
   key: string
 ): string | undefined {
   const value =
-    action.args[key];
+    action.args[
+      key
+    ];
 
   return typeof value ===
     "string"
@@ -70,10 +89,27 @@ function numberArg(
   key: string
 ): number | undefined {
   const value =
-    action.args[key];
+    action.args[
+      key
+    ];
 
   return typeof value ===
     "number"
+    ? value
+    : undefined;
+}
+
+function booleanArg(
+  action: LlmPlayerAction,
+  key: string
+): boolean | undefined {
+  const value =
+    action.args[
+      key
+    ];
+
+  return typeof value ===
+    "boolean"
     ? value
     : undefined;
 }
@@ -228,13 +264,52 @@ export async function executeLlmPlayerAction(
           );
         break;
 
+      case "inspect_lord_orders":
+        result =
+          inspectLordOrders(
+            sessionId,
+            playerId
+          );
+        break;
+
+      case "inspect_relationships":
+        result =
+          inspectRelationships(
+            sessionId,
+            playerId
+          );
+        break;
+
+      case "inspect_agreements":
+        result =
+          inspectAgreements(
+            sessionId,
+            playerId
+          );
+        break;
+
+      case "inspect_diplomatic_proposals":
+        result =
+          inspectDiplomaticProposals(
+            sessionId,
+            playerId
+          );
+        break;
+
+      case "inspect_promises":
+        result =
+          inspectPromises(
+            sessionId,
+            playerId
+          );
+        break;
+
       case "issue_character_order": {
         const lordCharacterId =
           stringArg(
             action,
             "lord_character_id"
           );
-
         const orderType =
           stringArg(
             action,
@@ -633,6 +708,146 @@ export async function executeLlmPlayerAction(
             : invalidArgs(
                 action.tool,
                 "conversation_id required"
+              );
+        break;
+      }
+
+      case "propose_agreement": {
+        const type =
+          stringArg(
+            action,
+            "agreement_type"
+          ) as
+            | AgreementType
+            | undefined;
+        const targetKingdomId =
+          stringArg(
+            action,
+            "target_kingdom_id"
+          );
+
+        result =
+          type &&
+          targetKingdomId
+            ? proposeAgreement(
+                sessionId,
+                playerId,
+                type,
+                targetKingdomId,
+                {
+                  terms:
+                    stringArg(
+                      action,
+                      "terms"
+                    ),
+                  expiresAt:
+                    numberArg(
+                      action,
+                      "expires_at"
+                    ),
+                  secret:
+                    booleanArg(
+                      action,
+                      "secret"
+                    ),
+                }
+              )
+            : invalidArgs(
+                action.tool,
+                "agreement_type and target_kingdom_id required"
+              );
+        break;
+      }
+
+      case "respond_to_agreement": {
+        const agreementId =
+          stringArg(
+            action,
+            "agreement_id"
+          );
+        const accept =
+          booleanArg(
+            action,
+            "accept"
+          );
+
+        result =
+          agreementId &&
+          accept !== undefined
+            ? respondToAgreement(
+                sessionId,
+                playerId,
+                agreementId,
+                accept
+              )
+            : invalidArgs(
+                action.tool,
+                "agreement_id and accept required"
+              );
+        break;
+      }
+
+      case "create_promise": {
+        const promiseeCharacterId =
+          stringArg(
+            action,
+            "promisee_character_id"
+          );
+        const summary =
+          stringArg(
+            action,
+            "summary"
+          );
+
+        result =
+          promiseeCharacterId &&
+          summary
+            ? createPromise(
+                sessionId,
+                playerId,
+                promiseeCharacterId,
+                summary,
+                stringArg(
+                  action,
+                  "target_id"
+                )
+              )
+            : invalidArgs(
+                action.tool,
+                "promisee_character_id and summary required"
+              );
+        break;
+      }
+
+      case "resolve_promise": {
+        const promiseId =
+          stringArg(
+            action,
+            "promise_id"
+          );
+        const status =
+          stringArg(
+            action,
+            "status"
+          ) as
+            | Exclude<
+                PromiseStatus,
+                "ACTIVE"
+              >
+            | undefined;
+
+        result =
+          promiseId &&
+          status
+            ? resolvePromise(
+                sessionId,
+                playerId,
+                promiseId,
+                status
+              )
+            : invalidArgs(
+                action.tool,
+                "promise_id and status required"
               );
         break;
       }

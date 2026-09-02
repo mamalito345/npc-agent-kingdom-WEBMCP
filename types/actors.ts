@@ -47,6 +47,11 @@ export type LlmPlayerToolName =
   | "inspect_economy"
   | "inspect_present_characters"
   | "inspect_kingdom_lords"
+  | "inspect_lord_orders"
+  | "inspect_relationships"
+  | "inspect_agreements"
+  | "inspect_diplomatic_proposals"
+  | "inspect_promises"
   | "issue_character_order"
   | "issue_army_move"
   | "issue_intercept"
@@ -60,6 +65,10 @@ export type LlmPlayerToolName =
   | "send_envoy"
   | "talk_to_character"
   | "end_conversation"
+  | "propose_agreement"
+  | "respond_to_agreement"
+  | "create_promise"
+  | "resolve_promise"
   | "pass_command_window";
 
 export interface LlmPlayerAction {
@@ -122,6 +131,11 @@ export interface LlmPlayerContext {
   economy: unknown;
   presentCharacters: unknown;
   lords: unknown;
+  lordOrders: unknown;
+  relationships: unknown;
+  agreements: unknown;
+  diplomaticProposals: unknown;
+  promises: unknown;
   activePlan: StrategicPlan | null;
   availableActions: LlmPlayerToolName[];
   rules: string[];

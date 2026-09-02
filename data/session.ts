@@ -8,6 +8,10 @@ import {
   createInitialLordRuntimeState,
 } from "@/data/lords";
 
+import {
+  createInitialPoliticsRuntimeState,
+} from "@/data/politics";
+
 export const STRATEGIC_BRIEFING_INTERVAL_MINUTES = 3 * 24 * 60;
 
 export function createInitialSession(
@@ -107,6 +111,7 @@ export function createInitialSession(
     },
 
     lords: createInitialLordRuntimeState(),
+    politics: createInitialPoliticsRuntimeState(),
 
     director: {
       proposals: {},
