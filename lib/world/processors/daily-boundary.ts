@@ -7,6 +7,10 @@ import {
 } from "@/lib/economy/production";
 
 import {
+  processDailyTradeIncome,
+} from "@/lib/economy/trade";
+
+import {
   processDailyMilitaryEconomy,
 } from "@/lib/military/daily";
 
@@ -42,14 +46,20 @@ export function processDailyBoundary(
     return;
   }
 
-  /**
-   * Settlement economy resolves first.
-   */
+  //
+  // 1. Physical settlement production.
+  //
   processDailySettlementProduction();
 
-  /**
-   * Then armies pay campaign /
-   * garrison upkeep.
-   */
+  //
+  // 2. Road/trade income enters
+  //    central kingdom treasury.
+  //
+  processDailyTradeIncome();
+
+  //
+  // 3. Army campaign/garrison costs
+  //    are paid from central treasury.
+  //
   processDailyMilitaryEconomy();
 }
