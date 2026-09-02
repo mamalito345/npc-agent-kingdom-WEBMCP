@@ -26,8 +26,11 @@ export function createInitialSession(
       characterId:
         "lord_edwyn",
 
+      /*
+       * Actual canonical realm ID.
+       */
       kingdomId:
-        "kingdom_arden",
+        "northreach",
 
       displayName:
         "Lord Edwyn",

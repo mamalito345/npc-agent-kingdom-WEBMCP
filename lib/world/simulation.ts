@@ -61,10 +61,48 @@ import {
   processRecruitmentCompletions,
 } from "@/lib/military/recruitment-completion";
 
+import {
+  getNextRoadEncounterBoundary,
+  processRoadEncountersAt,
+} from "@/lib/military/road-encounters";
+
+import {
+  executeQueuedStrategicOrders,
+} from "@/lib/session/executor";
+
+import {
+  processStrategicOrderLifecycle,
+} from "@/lib/session/order-lifecycle";
+
+import {
+  getNextStrategicBriefingBoundary,
+  processStrategicBriefings,
+} from "@/lib/session/intelligence";
+
 import type {
   AdvanceWorldResult,
+  SimulationInterrupt,
   WorldMinute,
 } from "@/types/simulation";
+
+function chooseEarlierMoment(
+  currentTime:
+    WorldMinute,
+  currentCandidate:
+    WorldMinute,
+  candidate:
+    WorldMinute | undefined
+): WorldMinute {
+  if (
+    candidate === undefined ||
+    candidate <= currentTime ||
+    candidate >= currentCandidate
+  ) {
+    return currentCandidate;
+  }
+
+  return candidate;
+}
 
 function getEarliestRelevantMoment(
   currentTime:
@@ -76,150 +114,164 @@ function getEarliestRelevantMoment(
     targetTime;
 
   //
-  // 1. Scheduled events
+  // =====================================================
+  // SCHEDULED WORLD EVENT
+  // =====================================================
   //
+
   const nextEvent =
     getNextScheduledEvent();
 
   if (
-    nextEvent &&
-    nextEvent.executeAt >
-      currentTime &&
-    nextEvent.executeAt <
-      nextMoment
+    nextEvent
   ) {
     nextMoment =
-      nextEvent.executeAt;
+      chooseEarlierMoment(
+        currentTime,
+        nextMoment,
+        nextEvent.executeAt
+      );
   }
 
   //
-  // 2. Generic movement
+  // =====================================================
+  // EXACT ROAD ENCOUNTER
+  // =====================================================
   //
-  const movementBoundary =
-    getNextWorldMovementBoundaryTime(
-      currentTime
+  // This must be considered before ordinary
+  // movement completion because two moving
+  // armies can meet halfway along an edge.
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextRoadEncounterBoundary(
+        currentTime
+      )
     );
 
-  if (
-    movementBoundary !==
-      undefined &&
-    movementBoundary >
-      currentTime &&
-    movementBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      movementBoundary;
-  }
-
   //
-  // 3. Recruitment completion
+  // =====================================================
+  // GENERIC MOVEMENT
+  // =====================================================
   //
-  const recruitmentBoundary =
-    getNextRecruitmentCompletionBoundary();
 
-  if (
-    recruitmentBoundary !==
-      undefined &&
-    recruitmentBoundary >
-      currentTime &&
-    recruitmentBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      recruitmentBoundary;
-  }
-
-  //
-  // 4. Raid / settlement operations
-  //
-  const settlementOperationBoundary =
-    getNextSettlementOperationBoundary();
-
-  if (
-    settlementOperationBoundary !==
-      undefined &&
-    settlementOperationBoundary >
-      currentTime &&
-    settlementOperationBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      settlementOperationBoundary;
-  }
-  const fortificationBoundary =
-    getNextFortificationCompletionBoundary();
-
-  if (
-    fortificationBoundary !==
-      undefined &&
-    fortificationBoundary >
-      currentTime &&
-    fortificationBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      fortificationBoundary;
-  }
-  const fortificationRepairBoundary =
-    getNextFortificationRepairBoundary();
-
-  if (
-    fortificationRepairBoundary !==
-      undefined &&
-    fortificationRepairBoundary >
-      currentTime &&
-    fortificationRepairBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      fortificationRepairBoundary;
-  }
-  //
-  // 5. Daily economy
-  //
-  const battleBoundary =
-    getNextBattleBoundary();
-
-  if (
-    battleBoundary !==
-      undefined &&
-    battleBoundary >
-      currentTime &&
-    battleBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      battleBoundary;
-  }
-  const siegeBoundary =
-    getNextSiegeBoundary();
-
-  if (
-    siegeBoundary !==
-      undefined &&
-    siegeBoundary >
-      currentTime &&
-    siegeBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      siegeBoundary;
-  }
-  const dailyBoundary =
-    getNextDailyBoundary(
-      currentTime
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextWorldMovementBoundaryTime(
+        currentTime
+      )
     );
 
-  if (
-    dailyBoundary >
-      currentTime &&
-    dailyBoundary <
-      nextMoment
-  ) {
-    nextMoment =
-      dailyBoundary;
-  }
+  //
+  // =====================================================
+  // RECRUITMENT
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextRecruitmentCompletionBoundary()
+    );
+
+  //
+  // =====================================================
+  // SETTLEMENT OPERATIONS
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextSettlementOperationBoundary()
+    );
+
+  //
+  // =====================================================
+  // FORTIFICATION BUILD
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextFortificationCompletionBoundary()
+    );
+
+  //
+  // =====================================================
+  // FORTIFICATION REPAIR
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextFortificationRepairBoundary()
+    );
+
+  //
+  // =====================================================
+  // PERSISTENT BATTLE
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextBattleBoundary()
+    );
+
+  //
+  // =====================================================
+  // SIEGE
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextSiegeBoundary()
+    );
+
+  //
+  // =====================================================
+  // STRATEGIC INTELLIGENCE
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextStrategicBriefingBoundary()
+    );
+
+  //
+  // =====================================================
+  // DAILY ECONOMY
+  // =====================================================
+  //
+
+  nextMoment =
+    chooseEarlierMoment(
+      currentTime,
+      nextMoment,
+      getNextDailyBoundary(
+        currentTime
+      )
+    );
 
   return nextMoment;
 }
@@ -229,13 +281,18 @@ function processSimulationMoment(
     WorldMinute
 ): {
   interrupt?:
-    AdvanceWorldResult[
-      "interrupt"
-    ];
+    SimulationInterrupt;
 } {
+  let interrupt:
+    SimulationInterrupt |
+    undefined;
+
   //
-  // Scheduled world events
+  // =====================================================
+  // SCHEDULED EVENTS
+  // =====================================================
   //
+
   const eventResult =
     processDueEvents(
       worldTime
@@ -244,38 +301,87 @@ function processSimulationMoment(
   if (
     eventResult.interrupt
   ) {
-    return {
-      interrupt:
-        eventResult
-          .interrupt,
-    };
+    interrupt =
+      eventResult.interrupt;
   }
 
   //
-  // Resolve generic movement
+  // =====================================================
+  // ROAD ENCOUNTERS
+  // =====================================================
   //
+  // Positions were already advanced to this exact
+  // world minute.
+  //
+  // We intentionally process road encounters BEFORE
+  // completed movement removal.
+  //
+
+  const roadInterrupt =
+    processRoadEncountersAt(
+      worldTime
+    );
+
+  if (
+    !interrupt &&
+    roadInterrupt
+  ) {
+    interrupt =
+      roadInterrupt;
+  }
+
+  //
+  // An interception may have stopped movement and
+  // created battle.
+  //
+
+  processStrategicOrderLifecycle(
+    worldTime
+  );
+
+  //
+  // =====================================================
+  // NORMAL MOVEMENT ARRIVALS
+  // =====================================================
+  //
+
   resolveCompletedMovements(
     worldTime
   );
 
   //
-  // Courier delivery
+  // =====================================================
+  // COURIERS
+  // =====================================================
   //
+
   processCourierArrivals();
 
   //
-  // Recruitment completion
+  // =====================================================
+  // RECRUITMENT
+  // =====================================================
   //
+
   processRecruitmentCompletions(
     worldTime
   );
 
   //
-  // Raid / settlement operation completion
+  // =====================================================
+  // SETTLEMENT OPERATIONS
+  // =====================================================
   //
+
   processSettlementOperations(
     worldTime
   );
+
+  //
+  // =====================================================
+  // FORTIFICATIONS
+  // =====================================================
+  //
 
   processFortificationCompletions(
     worldTime
@@ -284,46 +390,115 @@ function processSimulationMoment(
   processFortificationRepairs(
     worldTime
   );
+
+  //
+  // =====================================================
+  // SIEGES
+  // =====================================================
+  //
+
   processSieges(
     worldTime
   );
+
+  //
+  // =====================================================
+  // STRATEGIC ORDER COMPLETION
+  // =====================================================
+  //
+  // Normal movement has now resolved, therefore
+  // arrival orders may become completed.
+  //
+
+  const lifecycleInterrupt =
+    processStrategicOrderLifecycle(
+      worldTime
+    );
+
+  if (
+    !interrupt &&
+    lifecycleInterrupt
+  ) {
+    interrupt =
+      lifecycleInterrupt;
+  }
+
+  //
+  // =====================================================
+  // PERSISTENT BATTLES
+  // =====================================================
+  //
+
   const battleInterrupt =
     processBattlePhases(
       worldTime
     );
 
   if (
+    !interrupt &&
     battleInterrupt
   ) {
-    return {
-      interrupt:
-        battleInterrupt,
-    };
+    interrupt =
+      battleInterrupt;
   }
-   //
-  // Army contact occurs after
-  // movement has resolved.
+
   //
-  const armyContact =
+  // =====================================================
+  // NODE ARMY CONTACT
+  // =====================================================
+  //
+  // Old node-based contact remains supported.
+  // Road encounters are an additional system,
+  // not a replacement.
+  //
+
+  const armyContactInterrupt =
     processArmyContactInterrupt();
 
   if (
-    armyContact
+    !interrupt &&
+    armyContactInterrupt
   ) {
-    return {
-      interrupt:
-        armyContact,
-    };
+    interrupt =
+      armyContactInterrupt;
   }
 
   //
-  // Daily economy + military upkeep
+  // =====================================================
+  // DAILY WORLD PROCESSING
+  // =====================================================
   //
+  // This still runs even if another event occurred on
+  // the same minute. Otherwise an interrupt could
+  // swallow economy/upkeep boundaries.
+  //
+
   processDailyBoundary(
     worldTime
   );
 
-  return {};
+  //
+  // =====================================================
+  // STRATEGIC INTELLIGENCE
+  // =====================================================
+  //
+
+  const briefingInterrupt =
+    processStrategicBriefings(
+      worldTime
+    );
+
+  if (
+    !interrupt &&
+    briefingInterrupt
+  ) {
+    interrupt =
+      briefingInterrupt;
+  }
+
+  return {
+    interrupt,
+  };
 }
 
 export function advanceWorldUntil(
@@ -345,10 +520,23 @@ export function advanceWorldUntil(
     };
   }
 
+  //
+  // Orders issued during planning become physical
+  // actions when execution begins.
+  //
+
+  executeQueuedStrategicOrders();
+
   while (
     currentTime <
     targetTime
   ) {
+    //
+    // ===================================================
+    // BATTLE DECISION PAUSE
+    // ===================================================
+    //
+
     const pendingBattleDecision =
       getPendingBattleDecisionInterrupt();
 
@@ -364,11 +552,21 @@ export function advanceWorldUntil(
         interrupt:
           pendingBattleDecision,
       };
- }
+    }
+
     //
-    // Resolve events that are
-    // already due now.
+    // New human orders may have been queued while
+    // simulation was already executing.
     //
+
+    executeQueuedStrategicOrders();
+
+    //
+    // ===================================================
+    // EVENTS ALREADY DUE NOW
+    // ===================================================
+    //
+
     const dueAtCurrentTime =
       processDueEvents(
         currentTime
@@ -391,9 +589,11 @@ export function advanceWorldUntil(
     }
 
     //
-    // Choose nearest important
-    // simulation moment.
+    // ===================================================
+    // CHOOSE NEXT CANONICAL MOMENT
+    // ===================================================
     //
+
     const nextMoment =
       getEarliestRelevantMoment(
         currentTime,
@@ -410,16 +610,21 @@ export function advanceWorldUntil(
     }
 
     //
-    // Move all moving entities
-    // forward to that exact time.
+    // ===================================================
+    // PHYSICAL MOVEMENT
+    // ===================================================
     //
+
     advanceMovementPositionsTo(
       nextMoment
     );
 
     //
-    // Advance canonical clock.
+    // ===================================================
+    // CANONICAL CLOCK
+    // ===================================================
     //
+
     setWorldTime(
       nextMoment
     );
@@ -428,9 +633,11 @@ export function advanceWorldUntil(
       nextMoment;
 
     //
-    // Resolve everything that
-    // happens now.
+    // ===================================================
+    // PROCESS WORLD STATE AT THIS MOMENT
+    // ===================================================
     //
+
     const processed =
       processSimulationMoment(
         currentTime
@@ -446,8 +653,7 @@ export function advanceWorldUntil(
         currentTime,
 
         interrupt:
-          processed
-            .interrupt,
+          processed.interrupt,
       };
     }
   }
@@ -465,7 +671,8 @@ export function advanceWorldBy(
     number
 ): AdvanceWorldResult {
   if (
-    minutes < 0
+    minutes <
+    0
   ) {
     throw new Error(
       "Cannot advance world by a negative duration."

@@ -24,15 +24,30 @@ import type {
   StrategicOrder,
 } from "@/types/session";
 
-function markOrder(
-  orderId:
-    string,
-  status:
+interface OrderPatch {
+  status?:
     StrategicOrder[
       "status"
-    ],
+    ];
+
+  movementId?:
+    string;
+
+  startedAt?:
+    number;
+
+  completedAt?:
+    number;
+
   failureReason?:
-    string
+    string;
+}
+
+function patchOrder(
+  orderId:
+    string,
+  patch:
+    OrderPatch
 ): void {
   updateRuntimeWorldState(
     (world) => {
@@ -60,13 +75,11 @@ function markOrder(
             [orderId]: {
               ...order,
 
-              status,
+              ...patch,
 
               updatedAt:
                 world.simulation
                   .worldTimeMinutes,
-
-              failureReason,
             },
           },
         },
@@ -75,10 +88,38 @@ function markOrder(
   );
 }
 
+function failOrder(
+  orderId:
+    string,
+  reason:
+    string
+): void {
+  patchOrder(
+    orderId,
+    {
+      status:
+        "failed",
+
+      failureReason:
+        reason,
+
+      completedAt:
+        getRuntimeWorldState()
+          .simulation
+          .worldTimeMinutes,
+    }
+  );
+}
+
 function executeOrder(
   order:
     StrategicOrder
 ): void {
+  const now =
+    getRuntimeWorldState()
+      .simulation
+      .worldTimeMinutes;
+
   switch (
     order.type
   ) {
@@ -91,9 +132,8 @@ function executeOrder(
             order.payload
         )
       ) {
-        markOrder(
+        failOrder(
           order.id,
-          "failed",
           "INVALID_PAYLOAD"
         );
 
@@ -113,18 +153,28 @@ function executeOrder(
         result.ok ===
         false
       ) {
-        markOrder(
+        failOrder(
           order.id,
-          "failed",
           result.error
         );
 
         return;
       }
 
-      markOrder(
+      patchOrder(
         order.id,
-        "executing"
+        {
+          status:
+            "executing",
+
+          movementId:
+            result
+              .movement
+              .id,
+
+          startedAt:
+            now,
+        }
       );
 
       return;
@@ -139,9 +189,8 @@ function executeOrder(
             order.payload
         )
       ) {
-        markOrder(
+        failOrder(
           order.id,
-          "failed",
           "INVALID_PAYLOAD"
         );
 
@@ -161,18 +210,27 @@ function executeOrder(
         result.ok ===
         false
       ) {
-        markOrder(
+        failOrder(
           order.id,
-          "failed",
           result.error
         );
 
         return;
       }
 
-      markOrder(
+      patchOrder(
         order.id,
-        "executing"
+        {
+          status:
+            "executing",
+
+          movementId:
+            result
+              .movementId,
+
+          startedAt:
+            now,
+        }
       );
 
       return;
@@ -187,9 +245,8 @@ function executeOrder(
             order.payload
         )
       ) {
-        markOrder(
+        failOrder(
           order.id,
-          "failed",
           "INVALID_PAYLOAD"
         );
 
@@ -209,9 +266,8 @@ function executeOrder(
         result.ok ===
         false
       ) {
-        markOrder(
+        failOrder(
           order.id,
-          "failed",
           result.reason ??
             result.error
         );
@@ -219,9 +275,19 @@ function executeOrder(
         return;
       }
 
-      markOrder(
+      patchOrder(
         order.id,
-        "executing"
+        {
+          status:
+            "executing",
+
+          movementId:
+            result
+              .movementId,
+
+          startedAt:
+            now,
+        }
       );
 
       return;
@@ -234,9 +300,8 @@ function executeOrder(
           order.payload
         )
       ) {
-        markOrder(
+        failOrder(
           order.id,
-          "failed",
           "INVALID_PAYLOAD"
         );
 
@@ -248,9 +313,18 @@ function executeOrder(
           .armyId
       );
 
-      markOrder(
+      patchOrder(
         order.id,
-        "completed"
+        {
+          status:
+            "completed",
+
+          startedAt:
+            now,
+
+          completedAt:
+            now,
+        }
       );
 
       return;

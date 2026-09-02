@@ -11,7 +11,8 @@ import type {
 
 export type PassCommandWindowResult =
   | {
-      ok: false;
+      ok:
+        false;
 
       error:
         | "PLAYER_NOT_REQUIRED"
@@ -19,10 +20,11 @@ export type PassCommandWindowResult =
         | "ALREADY_READY";
     }
   | {
-      ok: true;
+      ok:
+        true;
 
       phase:
-        "planning"
+        | "planning"
         | "executing"
         | "interrupted";
 
@@ -63,7 +65,8 @@ export function passCommandWindow(
       )
   ) {
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "PLAYER_NOT_REQUIRED",
@@ -75,7 +78,8 @@ export function passCommandWindow(
     playerId
   ) {
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "NOT_CURRENT_PLAYER",
@@ -89,7 +93,8 @@ export function passCommandWindow(
       )
   ) {
     return {
-      ok: false,
+      ok:
+        false,
 
       error:
         "ALREADY_READY",
@@ -133,7 +138,8 @@ export function passCommandWindow(
     );
 
     return {
-      ok: true,
+      ok:
+        true,
 
       phase:
         cycle.phase,
@@ -142,12 +148,6 @@ export function passCommandWindow(
     };
   }
 
-  /*
-   * Everyone required by this command
-   * window has passed.
-   *
-   * World execution may now begin.
-   */
   const now =
     world.simulation
       .worldTimeMinutes;
@@ -184,7 +184,8 @@ export function passCommandWindow(
   );
 
   return {
-    ok: true,
+    ok:
+      true,
 
     phase:
       "executing",
@@ -209,20 +210,115 @@ export function openCommandInterrupt(
   const world =
     getRuntimeWorldState();
 
+  const orderedPlayerIds =
+    world.session
+      .commandCycle
+      .playerOrder;
+
   const uniquePlayers =
     [
       ...new Set(
         input
           .affectedPlayerIds
       ),
-    ].filter(
-      (playerId) =>
-        world.session
-          .players[
-            playerId
-          ]?.active ===
-        true
+    ]
+      .filter(
+        (playerId) =>
+          world.session
+            .players[
+              playerId
+            ]?.active ===
+          true
+      )
+      .sort(
+        (a, b) =>
+          orderedPlayerIds.indexOf(
+            a
+          ) -
+          orderedPlayerIds.indexOf(
+            b
+          )
+      );
+
+  const existing =
+    world.session
+      .commandCycle
+      .interrupt;
+
+  if (
+    world.session
+      .commandCycle
+      .phase ===
+      "interrupted" &&
+    existing
+  ) {
+    const mergedPlayers =
+      [
+        ...new Set([
+          ...existing
+            .affectedPlayerIds,
+
+          ...uniquePlayers,
+        ]),
+      ].sort(
+        (a, b) =>
+          orderedPlayerIds.indexOf(
+            a
+          ) -
+          orderedPlayerIds.indexOf(
+            b
+          )
+      );
+
+    const mergedMessage =
+      existing.message.includes(
+        input.message
+      )
+        ? existing.message
+        : `${existing.message} ${input.message}`;
+
+    const merged:
+      CommandInterrupt = {
+      ...existing,
+
+      affectedPlayerIds:
+        mergedPlayers,
+
+      message:
+        mergedMessage,
+    };
+
+    updateRuntimeWorldState(
+      (current) => ({
+        ...current,
+
+        session: {
+          ...current.session,
+
+          commandCycle: {
+            ...current
+              .session
+              .commandCycle,
+
+            requiredPlayerIds:
+              mergedPlayers,
+
+            interrupt:
+              merged,
+
+            currentPlayerId:
+              current
+                .session
+                .commandCycle
+                .currentPlayerId ??
+              mergedPlayers[0],
+          },
+        },
+      })
     );
+
+    return merged;
+  }
 
   const sequence =
     allocateSimulationSequence();

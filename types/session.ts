@@ -7,18 +7,23 @@ export type PlayerControllerType =
   | "webmcp_llm";
 
 export interface PlayerSlot {
-  id: string;
+  id:
+    string;
 
   controllerType:
     PlayerControllerType;
 
-  characterId: string;
+  characterId:
+    string;
 
-  kingdomId: string;
+  kingdomId:
+    string;
 
-  displayName: string;
+  displayName:
+    string;
 
-  active: boolean;
+  active:
+    boolean;
 }
 
 export type CommandCyclePhase =
@@ -40,28 +45,32 @@ export type StrategicOrderStatus =
   | "failed";
 
 export interface MoveCharacterOrderPayload {
-  characterId: string;
+  characterId:
+    string;
 
   destinationNodeId:
     string;
 }
 
 export interface MoveArmyOrderPayload {
-  armyId: string;
+  armyId:
+    string;
 
   destinationNodeId:
     string;
 }
 
 export interface InterceptArmyOrderPayload {
-  armyId: string;
+  armyId:
+    string;
 
   targetArmyId:
     string;
 }
 
 export interface HoldArmyOrderPayload {
-  armyId: string;
+  armyId:
+    string;
 }
 
 export type StrategicOrderPayload =
@@ -71,9 +80,11 @@ export type StrategicOrderPayload =
   | HoldArmyOrderPayload;
 
 export interface StrategicOrder {
-  id: string;
+  id:
+    string;
 
-  playerId: string;
+  playerId:
+    string;
 
   type:
     StrategicOrderType;
@@ -90,6 +101,19 @@ export interface StrategicOrder {
   status:
     StrategicOrderStatus;
 
+  /*
+   * Populated once the strategic
+   * order starts a physical movement.
+   */
+  movementId?:
+    string;
+
+  startedAt?:
+    WorldMinute;
+
+  completedAt?:
+    WorldMinute;
+
   failureReason?:
     string;
 }
@@ -102,6 +126,7 @@ export type CommandInterruptType =
   | "CHARACTER_ARRIVED"
   | "ENEMY_SIGHTED"
   | "INTERCEPTION"
+  | "STRATEGIC_BRIEFING"
   | "SIEGE_STARTED"
   | "SIEGE_ENDED"
   | "IMPORTANT_MESSAGE"
@@ -109,7 +134,8 @@ export type CommandInterruptType =
   | "MAJOR_WORLD_EVENT";
 
 export interface CommandInterrupt {
-  id: string;
+  id:
+    string;
 
   type:
     CommandInterruptType;
@@ -120,7 +146,8 @@ export interface CommandInterrupt {
   affectedPlayerIds:
     string[];
 
-  message: string;
+  message:
+    string;
 
   resolvedPlayerIds:
     string[];
@@ -130,23 +157,12 @@ export interface CommandCycleState {
   phase:
     CommandCyclePhase;
 
-  /*
-   * Order in which players receive
-   * planning / interrupt windows.
-   */
   playerOrder:
     string[];
 
-  /*
-   * Players required to respond in
-   * the current command window.
-   */
   requiredPlayerIds:
     string[];
 
-  /*
-   * Players who already pressed PASS.
-   */
   readyPlayerIds:
     string[];
 
@@ -178,9 +194,11 @@ export type KnowledgeConfidence =
   | "rumor";
 
 export interface KnownWorldFact {
-  id: string;
+  id:
+    string;
 
-  subjectId: string;
+  subjectId:
+    string;
 
   kind:
     | "army"
@@ -203,14 +221,14 @@ export interface KnownWorldFact {
   confidence:
     KnowledgeConfidence;
 
-  summary: string;
+  summary:
+    string;
 
   /*
-   * Structured but intentionally
-   * incomplete information.
+   * Player-facing knowledge.
    *
-   * Never assume this equals the
-   * canonical world's exact state.
+   * This must NOT automatically equal
+   * canonical world state.
    */
   data:
     Record<
@@ -220,7 +238,8 @@ export interface KnownWorldFact {
 }
 
 export interface PlayerKnowledgeState {
-  playerId: string;
+  playerId:
+    string;
 
   facts:
     KnownWorldFact[];
@@ -233,11 +252,14 @@ export interface PlayerKnowledgeState {
 }
 
 export interface GameSessionState {
-  id: string;
+  id:
+    string;
 
-  name: string;
+  name:
+    string;
 
-  mapId: string;
+  mapId:
+    string;
 
   startedAt:
     WorldMinute;

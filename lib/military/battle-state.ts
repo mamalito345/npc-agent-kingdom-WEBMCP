@@ -5,8 +5,13 @@ import {
 } from "@/lib/world/runtime";
 
 import {
+  getBattleTerrainForEdge,
   getBattleTerrainForNode,
 } from "@/data/battle-terrain";
+
+import {
+  getMapEdge,
+} from "@/lib/map/graph";
 
 import {
   ensureActiveWarBetweenRealms,
@@ -16,12 +21,31 @@ import type {
   PersistentBattle,
 } from "@/types/military";
 
+export interface RoadBattlePosition {
+  edgeId:
+    string;
+
+  progress:
+    number;
+}
+
 export interface StartBattleInput {
-  attackerArmyId: string;
+  attackerArmyId:
+    string;
 
-  defenderArmyId: string;
+  defenderArmyId:
+    string;
 
-  contactId?: string;
+  contactId?:
+    string;
+
+  /*
+   * When supplied, armies are allowed
+   * to start battle on an exact road
+   * position rather than a graph node.
+   */
+  roadPosition?:
+    RoadBattlePosition;
 }
 
 export type StartBattleError =
@@ -30,22 +54,30 @@ export type StartBattleError =
   | "SAME_OWNER"
   | "ARMY_DESTROYED"
   | "ARMIES_NOT_AT_SAME_NODE"
+  | "ARMIES_NOT_AT_SAME_ROAD_POSITION"
   | "ARMY_ALREADY_IN_BATTLE"
-  | "INVALID_CONTACT";
+  | "INVALID_CONTACT"
+  | "INVALID_ROAD_POSITION";
 
 export type StartBattleResult =
   | {
-      ok: false;
-      error: StartBattleError;
+      ok:
+        false;
+
+      error:
+        StartBattleError;
     }
   | {
-      ok: true;
+      ok:
+        true;
+
       battle:
         PersistentBattle;
     };
 
 function armyIsAlreadyInBattle(
-  armyId: string
+  armyId:
+    string
 ): boolean {
   const world =
     getRuntimeWorldState();
@@ -72,7 +104,8 @@ function armyIsAlreadyInBattle(
 }
 
 export function getBattle(
-  battleId: string
+  battleId:
+    string
 ): PersistentBattle | undefined {
   return getRuntimeWorldState()
     .battles[
@@ -102,15 +135,19 @@ export function getActiveBattles():
 }
 
 export function startBattle(
-  input: StartBattleInput
+  input:
+    StartBattleInput
 ): StartBattleResult {
   if (
     input.attackerArmyId ===
     input.defenderArmyId
   ) {
     return {
-      ok: false,
-      error: "SAME_ARMY",
+      ok:
+        false,
+
+      error:
+        "SAME_ARMY",
     };
   }
 
@@ -132,7 +169,9 @@ export function startBattle(
     !defender
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       error:
         "ARMY_NOT_FOUND",
     };
@@ -145,7 +184,9 @@ export function startBattle(
       "destroyed"
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       error:
         "ARMY_DESTROYED",
     };
@@ -156,9 +197,28 @@ export function startBattle(
     defender.ownerId
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       error:
         "SAME_OWNER",
+    };
+  }
+
+  if (
+    armyIsAlreadyInBattle(
+      attacker.id
+    ) ||
+    armyIsAlreadyInBattle(
+      defender.id
+    )
+  ) {
+    return {
+      ok:
+        false,
+
+      error:
+        "ARMY_ALREADY_IN_BATTLE",
     };
   }
 
@@ -174,39 +234,118 @@ export function startBattle(
         defender.id
       ];
 
+  let battleNodeId:
+    string;
+
+  let terrain =
+    getBattleTerrainForNode(
+      ""
+    );
+
   if (
-    !attackerPosition ||
-    !defenderPosition ||
-    attackerPosition.kind !==
-      "node" ||
-    defenderPosition.kind !==
-      "node" ||
-    attackerPosition.nodeId !==
-      defenderPosition.nodeId
+    input.roadPosition
   ) {
-    return {
-      ok: false,
-      error:
-        "ARMIES_NOT_AT_SAME_NODE",
-    };
+    const edge =
+      getMapEdge(
+        input
+          .roadPosition
+          .edgeId
+      );
+
+    if (!edge) {
+      return {
+        ok:
+          false,
+
+        error:
+          "INVALID_ROAD_POSITION",
+      };
+    }
+
+    if (
+      !attackerPosition ||
+      !defenderPosition ||
+      attackerPosition.kind !==
+        "edge" ||
+      defenderPosition.kind !==
+        "edge" ||
+      attackerPosition.edgeId !==
+        input
+          .roadPosition
+          .edgeId ||
+      defenderPosition.edgeId !==
+        input
+          .roadPosition
+          .edgeId ||
+      Math.abs(
+        attackerPosition.progress -
+          input
+            .roadPosition
+            .progress
+      ) >
+        0.001 ||
+      Math.abs(
+        defenderPosition.progress -
+          input
+            .roadPosition
+            .progress
+      ) >
+        0.001
+    ) {
+      return {
+        ok:
+          false,
+
+        error:
+          "ARMIES_NOT_AT_SAME_ROAD_POSITION",
+      };
+    }
+
+    battleNodeId =
+      input
+        .roadPosition
+        .progress <
+      0.5
+        ? edge.fromNodeId
+        : edge.toNodeId;
+
+    terrain =
+      getBattleTerrainForEdge(
+        edge.id
+      );
+  } else {
+    if (
+      !attackerPosition ||
+      !defenderPosition ||
+      attackerPosition.kind !==
+        "node" ||
+      defenderPosition.kind !==
+        "node" ||
+      attackerPosition.nodeId !==
+        defenderPosition.nodeId
+    ) {
+      return {
+        ok:
+          false,
+
+        error:
+          "ARMIES_NOT_AT_SAME_NODE",
+      };
+    }
+
+    battleNodeId =
+      attackerPosition
+        .nodeId;
+
+    terrain =
+      getBattleTerrainForNode(
+        battleNodeId
+      );
   }
 
   if (
-    armyIsAlreadyInBattle(
-      attacker.id
-    ) ||
-    armyIsAlreadyInBattle(
-      defender.id
-    )
+    input.contactId
   ) {
-    return {
-      ok: false,
-      error:
-        "ARMY_ALREADY_IN_BATTLE",
-    };
-  }
-
-  if (input.contactId) {
     const contact =
       world.armyContacts[
         input.contactId
@@ -218,19 +357,15 @@ export function startBattle(
         "pending"
     ) {
       return {
-        ok: false,
+        ok:
+          false,
+
         error:
           "INVALID_CONTACT",
       };
     }
   }
 
-  //
-  // C2.5
-  //
-  // Battles are operational events
-  // inside a longer-lived War.
-  //
   const war =
     ensureActiveWarBetweenRealms(
       attacker.ownerId,
@@ -262,10 +397,16 @@ export function startBattle(
         6,
         "0"
       )}-001`;
-  const terrain =
-    getBattleTerrainForNode(
-      attackerPosition.nodeId
-    );
+
+  const locationText =
+    input.roadPosition
+      ? `road ${input.roadPosition.edgeId} at ${(
+          input.roadPosition.progress *
+          100
+        ).toFixed(
+          1
+        )}%`
+      : battleNodeId;
 
   const battle:
     PersistentBattle = {
@@ -278,8 +419,16 @@ export function startBattle(
     contactId:
       input.contactId,
 
+    /*
+     * nodeId remains the operational
+     * anchor used by existing combat
+     * and retreat systems.
+     *
+     * Exact army physical positions
+     * remain in entityPositions.
+     */
     nodeId:
-      attackerPosition.nodeId,
+      battleNodeId,
 
     attackerArmyIds: [
       attacker.id,
@@ -296,7 +445,8 @@ export function startBattle(
       "contact",
 
     nextPhaseAt:
-      now + 60,
+      now +
+      60,
 
     status:
       "active",
@@ -332,9 +482,11 @@ export function startBattle(
       ...terrain.features,
     ],
 
-    rounds: [],
+    rounds:
+      [],
 
-    activeOrders: [],
+    activeOrders:
+      [],
 
     history: [
       {
@@ -348,7 +500,7 @@ export function startBattle(
           "battle_started",
 
         summary:
-          `Battle started between ${attacker.id} and ${defender.id} at ${attackerPosition.nodeId} during war ${war.id}.`,
+          `Battle started between ${attacker.id} and ${defender.id} at ${locationText} during war ${war.id}.`,
       },
     ],
   };
@@ -389,7 +541,8 @@ export function startBattle(
       armyContacts:
         input.contactId
           ? {
-              ...state.armyContacts,
+              ...state
+                .armyContacts,
 
               [input.contactId]: {
                 ...state
@@ -401,12 +554,15 @@ export function startBattle(
                   "resolved",
               },
             }
-          : state.armyContacts,
+          : state
+              .armyContacts,
     })
   );
 
   return {
-    ok: true,
+    ok:
+      true,
+
     battle,
   };
 }

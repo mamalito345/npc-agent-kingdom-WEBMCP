@@ -20,15 +20,19 @@ const DEFAULT_TERRAIN:
   terrain:
     "plains",
 
-  features: [],
+  features:
+    [],
 };
 
 export function getBattleTerrainForNode(
-  nodeId: string
+  nodeId:
+    string
 ): BattleTerrainDefinition {
   const node =
     getActiveGameMap()
-      .nodes[nodeId];
+      .nodes[
+        nodeId
+      ];
 
   if (!node) {
     return {
@@ -46,6 +50,76 @@ export function getBattleTerrainForNode(
       ...node.features,
     ],
   };
+}
+
+export function getBattleTerrainForEdge(
+  edgeId:
+    string
+): BattleTerrainDefinition {
+  const edge =
+    getActiveGameMap()
+      .edges[
+        edgeId
+      ];
+
+  if (!edge) {
+    return {
+      ...DEFAULT_TERRAIN,
+
+      features: [],
+    };
+  }
+
+  switch (
+    edge.terrain
+  ) {
+    case "forest_road":
+      return {
+        terrain:
+          "forest",
+
+        features:
+          [],
+      };
+
+    case "mountain_road":
+      return {
+        terrain:
+          "mountain",
+
+        features:
+          [],
+      };
+
+    case "marsh_road":
+      return {
+        terrain:
+          "marsh",
+
+        features:
+          [],
+      };
+
+    case "river_road":
+      return {
+        terrain:
+          "river_crossing",
+
+        features: [
+          "bridge",
+        ],
+      };
+
+    case "road":
+    default:
+      return {
+        terrain:
+          "plains",
+
+        features:
+          [],
+      };
+  }
 }
 
 export const battleTerrainByNode:
