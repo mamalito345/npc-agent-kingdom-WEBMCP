@@ -4,6 +4,10 @@ import type {
 } from "@/types/session";
 import type { WorldMinute } from "@/types/simulation";
 
+import {
+  createInitialLordRuntimeState,
+} from "@/data/lords";
+
 export const STRATEGIC_BRIEFING_INTERVAL_MINUTES = 3 * 24 * 60;
 
 export function createInitialSession(
@@ -65,6 +69,7 @@ export function createInitialSession(
     startedAt: worldTime,
     players: playerRecord,
     localPlayerId: "player-edwyn",
+
     commandCycle: {
       phase: "planning",
       playerOrder: [...playerIds],
@@ -73,7 +78,9 @@ export function createInitialSession(
       currentPlayerId: playerIds[0],
       windowOpenedAt: worldTime,
     },
+
     orders: {},
+
     knowledge: Object.fromEntries(
       players.map((player) => [
         player.id,
@@ -86,16 +93,21 @@ export function createInitialSession(
         },
       ])
     ),
+
     conversations: {},
     memories: {},
     characterKnowledge: {},
     presenceContexts: {},
+
     llmPlayers: {
       plans: {},
       activePlanByPlayerId: {},
       decisions: [],
       lastActivationAt: {},
     },
+
+    lords: createInitialLordRuntimeState(),
+
     director: {
       proposals: {},
       lastContextAt: undefined,

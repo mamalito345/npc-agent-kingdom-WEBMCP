@@ -20,6 +20,10 @@ import {
   inspectPresentCharacters,
 } from "@/lib/conversation/service";
 
+import {
+  inspectKingdomLords,
+} from "@/lib/lords/service";
+
 import type {
   LlmPlayerActivationReason,
   LlmPlayerContext,
@@ -38,6 +42,8 @@ const AVAILABLE_ACTIONS: LlmPlayerToolName[] = [
   "inspect_settlements",
   "inspect_economy",
   "inspect_present_characters",
+  "inspect_kingdom_lords",
+  "issue_character_order",
   "issue_army_move",
   "issue_intercept",
   "cancel_order",
@@ -53,64 +59,126 @@ const AVAILABLE_ACTIONS: LlmPlayerToolName[] = [
   "pass_command_window",
 ];
 
-function getActivePlan(playerId: string): StrategicPlan | null {
-  const world = getRuntimeWorldState();
-  const planId = world.session.llmPlayers.activePlanByPlayerId[playerId];
+function getActivePlan(
+  playerId: string
+): StrategicPlan | null {
+  const world =
+    getRuntimeWorldState();
+
+  const planId =
+    world.session.llmPlayers
+      .activePlanByPlayerId[
+        playerId
+      ];
 
   if (!planId) {
     return null;
   }
 
-  return world.session.llmPlayers.plans[planId] ?? null;
+  return (
+    world.session.llmPlayers
+      .plans[planId] ??
+    null
+  );
 }
 
 export function buildLlmPlayerContext(
   playerId: string,
-  activationReason: LlmPlayerActivationReason
+  activationReason:
+    LlmPlayerActivationReason
 ): LlmPlayerContext | undefined {
-  const world = getRuntimeWorldState();
-  const player = world.session.players[playerId];
+  const world =
+    getRuntimeWorldState();
+
+  const player =
+    world.session.players[
+      playerId
+    ];
 
   if (!player?.active) {
     return undefined;
   }
 
-  const playerState = getPlayerObservation(playerId);
+  const playerState =
+    getPlayerObservation(
+      playerId
+    );
+
   if (!playerState) {
     return undefined;
   }
 
-  /*
-   * Enemy/world information comes exclusively from player-safe readers.
-   * No canonical enemy armies, routes, foreign treasuries or secret messages
-   * are copied into this context.
-   */
   return {
-    sessionId: world.session.id,
+    sessionId:
+      world.session.id,
     playerId,
     activationReason,
-    worldTimeMinutes: world.simulation.worldTimeMinutes,
+    worldTimeMinutes:
+      world.simulation
+        .worldTimeMinutes,
     playerState,
-    knownWorld: getPlayerKnownWorld(world.session.id, playerId),
-    knownEnemyForces: getPlayerKnownEnemyForces(world.session.id, playerId),
-    messages: getPlayerMessages(world.session.id, playerId),
+    knownWorld:
+      getPlayerKnownWorld(
+        world.session.id,
+        playerId
+      ),
+    knownEnemyForces:
+      getPlayerKnownEnemyForces(
+        world.session.id,
+        playerId
+      ),
+    messages:
+      getPlayerMessages(
+        world.session.id,
+        playerId
+      ),
     orders: {
       ok: true,
-      orders: getPlayerOrders(playerId),
+      orders:
+        getPlayerOrders(
+          playerId
+        ),
     },
-    battles: getPlayerBattlesView(world.session.id, playerId),
-    settlements: getPlayerSettlementsView(world.session.id, playerId),
-    economy: getPlayerEconomyView(world.session.id, playerId),
-    presentCharacters: inspectPresentCharacters(world.session.id, playerId),
-    activePlan: getActivePlan(playerId),
-    availableActions: [...AVAILABLE_ACTIONS],
+    battles:
+      getPlayerBattlesView(
+        world.session.id,
+        playerId
+      ),
+    settlements:
+      getPlayerSettlementsView(
+        world.session.id,
+        playerId
+      ),
+    economy:
+      getPlayerEconomyView(
+        world.session.id,
+        playerId
+      ),
+    presentCharacters:
+      inspectPresentCharacters(
+        world.session.id,
+        playerId
+      ),
+    lords:
+      inspectKingdomLords(
+        world.session.id,
+        playerId
+      ),
+    activePlan:
+      getActivePlan(
+        playerId
+      ),
+    availableActions: [
+      ...AVAILABLE_ACTIONS,
+    ],
     rules: [
       "You are a player, not the World Director.",
       "Use only player-safe information in this context and gameplay tools.",
       "Never assume hidden canonical enemy state.",
       "All mutations must go through normal player action services.",
+      "You may inspect your own kingdom's major lords, including loyalty information available to your court.",
+      "Direct character orders require physical/council presence; distant lords require courier messaging.",
       "Do not act outside your command window.",
-      "Distant communication uses couriers; distant NPC conversation is not allowed.",
       "Keep actions bounded and pass the command window when finished.",
     ],
   };

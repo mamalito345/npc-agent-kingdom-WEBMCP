@@ -46,6 +46,8 @@ export type LlmPlayerToolName =
   | "inspect_settlements"
   | "inspect_economy"
   | "inspect_present_characters"
+  | "inspect_kingdom_lords"
+  | "issue_character_order"
   | "issue_army_move"
   | "issue_intercept"
   | "cancel_order"
@@ -119,6 +121,7 @@ export interface LlmPlayerContext {
   settlements: unknown;
   economy: unknown;
   presentCharacters: unknown;
+  lords: unknown;
   activePlan: StrategicPlan | null;
   availableActions: LlmPlayerToolName[];
   rules: string[];

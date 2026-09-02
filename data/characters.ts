@@ -7,7 +7,6 @@ export const characters: Record<
   Character
 > = {
   // NORTHREACH
-
   king_aldric: {
     id: "king_aldric",
     name: "King Aldric",
@@ -16,10 +15,10 @@ export const characters: Record<
     locationId: "northwatch",
     treasury: 7000,
     army: 1200,
-
     relationships: {
       lord_edwyn: 35,
       lord_merek: 62,
+      lord_rowan: 18,
     },
   },
 
@@ -31,10 +30,10 @@ export const characters: Record<
     locationId: "stoneford",
     treasury: 3200,
     army: 850,
-
     relationships: {
       king_aldric: 35,
       lord_merek: -20,
+      lord_rowan: 12,
     },
   },
 
@@ -46,15 +45,29 @@ export const characters: Record<
     locationId: "riverhold",
     treasury: 4100,
     army: 1050,
-
     relationships: {
       king_aldric: 62,
       lord_edwyn: -20,
+      lord_rowan: 8,
+    },
+  },
+
+  lord_rowan: {
+    id: "lord_rowan",
+    name: "Lord Rowan",
+    kingdomId: "northreach",
+    rank: "lord",
+    locationId: "frostmere",
+    treasury: 2900,
+    army: 640,
+    relationships: {
+      king_aldric: 18,
+      lord_edwyn: 12,
+      lord_merek: 8,
     },
   },
 
   // EASTVALE
-
   king_roderic: {
     id: "king_roderic",
     name: "King Roderic",
@@ -63,7 +76,10 @@ export const characters: Record<
     locationId: "eastkeep",
     treasury: 6000,
     army: 1000,
-    relationships: {},
+    relationships: {
+      lord_theon: 48,
+      lord_beric: 30,
+    },
   },
 
   lord_theon: {
@@ -76,6 +92,7 @@ export const characters: Record<
     army: 720,
     relationships: {
       king_roderic: 48,
+      lord_beric: 10,
     },
   },
 
@@ -89,11 +106,11 @@ export const characters: Record<
     army: 810,
     relationships: {
       king_roderic: 30,
+      lord_theon: 10,
     },
   },
 
   // WESTMOOR
-
   king_garran: {
     id: "king_garran",
     name: "King Garran",
@@ -102,7 +119,10 @@ export const characters: Record<
     locationId: "moorhall",
     treasury: 5200,
     army: 900,
-    relationships: {},
+    relationships: {
+      lord_corvin: 20,
+      lord_harlan: 44,
+    },
   },
 
   lord_corvin: {
@@ -115,6 +135,7 @@ export const characters: Record<
     army: 680,
     relationships: {
       king_garran: 20,
+      lord_harlan: -8,
     },
   },
 
@@ -128,11 +149,11 @@ export const characters: Record<
     army: 760,
     relationships: {
       king_garran: 44,
+      lord_corvin: -8,
     },
   },
 
   // SOUTHMARK
-
   king_osric: {
     id: "king_osric",
     name: "King Osric",
@@ -141,7 +162,10 @@ export const characters: Record<
     locationId: "sunspire",
     treasury: 6500,
     army: 950,
-    relationships: {},
+    relationships: {
+      lord_cedric: 55,
+      lord_tavian: 26,
+    },
   },
 
   lord_cedric: {
@@ -154,6 +178,7 @@ export const characters: Record<
     army: 690,
     relationships: {
       king_osric: 55,
+      lord_tavian: 14,
     },
   },
 
@@ -167,11 +192,11 @@ export const characters: Record<
     army: 740,
     relationships: {
       king_osric: 26,
+      lord_cedric: 14,
     },
   },
 
   // IRONHOLLOW
-
   king_varren: {
     id: "king_varren",
     name: "King Varren",
@@ -180,7 +205,10 @@ export const characters: Record<
     locationId: "ironhold",
     treasury: 8000,
     army: 1400,
-    relationships: {},
+    relationships: {
+      lord_durand: 40,
+      lord_malric: 18,
+    },
   },
 
   lord_durand: {
@@ -193,6 +221,7 @@ export const characters: Record<
     army: 980,
     relationships: {
       king_varren: 40,
+      lord_malric: -12,
     },
   },
 
@@ -206,6 +235,7 @@ export const characters: Record<
     army: 1020,
     relationships: {
       king_varren: 18,
+      lord_durand: -12,
     },
   },
 };

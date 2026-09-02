@@ -7,6 +7,7 @@ import type {
   ConversationSession,
 } from "@/types/conversation";
 import type { LlmPlayerRuntimeState } from "@/types/actors";
+import type { LordRuntimeState } from "@/types/lords";
 
 export type PlayerControllerType = "human" | "webmcp_llm";
 
@@ -167,5 +168,6 @@ export interface GameSessionState {
   presenceContexts: Record<string, CharacterPresenceContext>;
 
   llmPlayers: LlmPlayerRuntimeState;
+  lords: LordRuntimeState;
   director: DirectorState;
 }
