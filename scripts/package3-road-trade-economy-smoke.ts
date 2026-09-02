@@ -346,7 +346,38 @@ const battle:
       .simulation
       .worldTimeMinutes +
     60,
+  battleHour:
+    0,
 
+  frontMomentum:
+    0,
+
+  attackerTactic:
+    "aggressive_push",
+
+  defenderTactic:
+    "hold_ground",
+
+  attackerMoralePressure:
+    0,
+
+  defenderMoralePressure:
+    0,
+
+  attackerReserveCommitted:
+    false,
+
+  defenderReserveCommitted:
+    false,
+
+  terrain:
+    "hills",
+
+  features: [
+    "high_ground",
+  ],
+
+  rounds: [],
   status:
     "active",
 

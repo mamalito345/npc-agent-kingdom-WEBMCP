@@ -322,6 +322,71 @@ export interface FortificationRepairOrder {
     FortificationRepairOrderStatus;
 }
 
+export type BattleTerrain =
+  | "plains"
+  | "hills"
+  | "forest"
+  | "dense_forest"
+  | "mountain"
+  | "marsh"
+  | "river_crossing";
+
+export type BattleFeature =
+  | "high_ground"
+  | "bridge"
+  | "narrow_pass"
+  | "fortified_position";
+
+export type BattleTactic =
+  | "hold_ground"
+  | "aggressive_push"
+  | "shield_wall"
+  | "cavalry_flank"
+  | "commit_reserve"
+  | "counterattack"
+  | "seize_high_ground"
+  | "orderly_retreat"
+  | "desperate_assault";
+
+export type BattleSide =
+  | "attacker"
+  | "defender";
+
+export interface BattleRoundSideResult {
+  tactic: BattleTactic;
+
+  soldiersBefore: number;
+  soldiersLost: number;
+  soldiersAfter: number;
+
+  rawPower: number;
+  effectivePower: number;
+
+  casualtyMultiplier: number;
+  moralePressureAdded: number;
+}
+
+export interface BattleRoundResult {
+  id: string;
+
+  battleId: string;
+
+  hour: number;
+
+  resolvedAt: WorldMinute;
+
+  attacker:
+    BattleRoundSideResult;
+
+  defender:
+    BattleRoundSideResult;
+
+  momentumBefore: number;
+  momentumAfter: number;
+
+  summary: string;
+}
+
 export type BattlePhase =
   | "contact"
   | "deployment"
@@ -386,6 +451,7 @@ export interface BattleHistoryEntry {
     | "phase_changed"
     | "decision_requested"
     | "order_issued"
+    | "battle_round"
     | "battle_ended";
 
   summary: string;
@@ -412,6 +478,40 @@ export interface PersistentBattle {
 
   status:
     PersistentBattleStatus;
+
+  battleHour: number;
+
+  frontMomentum: number;
+
+  attackerTactic:
+    BattleTactic;
+
+  defenderTactic:
+    BattleTactic;
+
+  attackerMoralePressure:
+    number;
+
+  defenderMoralePressure:
+    number;
+
+  attackerReserveCommitted:
+    boolean;
+
+  defenderReserveCommitted:
+    boolean;
+
+  terrain:
+    BattleTerrain;
+
+  features:
+    BattleFeature[];
+
+  rounds:
+    BattleRoundResult[];
+
+  lastRound?:
+    BattleRoundResult;
 
   activeOrders:
     BattleOrder[];

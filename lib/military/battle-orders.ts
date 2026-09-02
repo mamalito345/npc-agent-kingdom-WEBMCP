@@ -174,7 +174,15 @@ export function submitBattleOrder(
         current.battles[
           battle.id
         ];
+        const tactic =
+          battleOrderToTactic(
+            input.order
+          );
 
+        const attackerSide =
+          latest.attackerArmyIds.includes(
+            input.armyId
+          );
       if (!latest) {
         return current;
       }
@@ -187,6 +195,16 @@ export function submitBattleOrder(
 
           [battle.id]: {
             ...latest,
+
+            attackerTactic:
+              attackerSide
+                ? tactic
+                : latest.attackerTactic,
+
+            defenderTactic:
+              attackerSide
+                ? latest.defenderTactic
+                : tactic,
 
             pendingDecision:
               undefined,
@@ -235,4 +253,22 @@ export function submitBattleOrder(
     ok: true,
     order,
   };
+}
+
+function battleOrderToTactic(
+  order: BattleOrderType
+) {
+  switch (order) {
+    case "hold_position":
+      return "hold_ground" as const;
+
+    case "commit_reserve":
+      return "commit_reserve" as const;
+
+    case "press_attack":
+      return "aggressive_push" as const;
+
+    case "order_retreat":
+      return "orderly_retreat" as const;
+  }
 }

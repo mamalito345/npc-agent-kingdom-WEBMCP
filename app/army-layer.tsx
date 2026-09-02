@@ -28,20 +28,11 @@ const KINGDOM_LABELS:
     string,
     string
   > = {
-  northreach:
-    "N",
-
-  eastvale:
-    "E",
-
-  westmoor:
-    "W",
-
-  southmark:
-    "S",
-
-  ironhollow:
-    "I",
+  northreach: "N",
+  eastvale: "E",
+  westmoor: "W",
+  southmark: "S",
+  ironhollow: "I",
 };
 
 export default function ArmyLayer() {
@@ -63,15 +54,30 @@ export default function ArmyLayer() {
     Object.values(
       world.armies
     ).filter(
-      (army) =>
+      (
+        army
+      ) =>
         army.status !==
         "destroyed"
+    );
+
+  const battles =
+    Object.values(
+      world.battles
+    ).filter(
+      (
+        battle
+      ) =>
+        battle.status ===
+        "active"
     );
 
   return (
     <>
       {armies.map(
-        (army) => {
+        (
+          army
+        ) => {
           const position =
             world.simulation
               .entityPositions[
@@ -91,6 +97,77 @@ export default function ArmyLayer() {
             return null;
           }
 
+          const battle =
+            battles.find(
+              (
+                candidate
+              ) =>
+                candidate
+                  .attackerArmyIds
+                  .includes(
+                    army.id
+                  ) ||
+                candidate
+                  .defenderArmyIds
+                  .includes(
+                    army.id
+                  )
+            );
+
+          const isAttacker =
+            battle
+              ?.attackerArmyIds
+              .includes(
+                army.id
+              ) ??
+            false;
+
+          const isDefender =
+            battle
+              ?.defenderArmyIds
+              .includes(
+                army.id
+              ) ??
+            false;
+
+          /*
+           * VISUAL ONLY.
+           *
+           * frontMomentum stays canonical.
+           * Pixel offsets never enter world state.
+           */
+          let battleOffsetX =
+            0;
+
+          let battleOffsetY =
+            0;
+
+          if (
+            battle &&
+            isAttacker
+          ) {
+            battleOffsetX =
+              -70 +
+              battle.frontMomentum *
+                0.45;
+
+            battleOffsetY =
+              -24;
+          }
+
+          if (
+            battle &&
+            isDefender
+          ) {
+            battleOffsetX =
+              70 +
+              battle.frontMomentum *
+                0.45;
+
+            battleOffsetY =
+              24;
+          }
+
           const selected =
             selectedArmyId ===
             army.id;
@@ -102,6 +179,21 @@ export default function ArmyLayer() {
                   army.id
                 ]
             );
+
+          const lastRound =
+            battle
+              ?.lastRound;
+
+          const lastLoss =
+            lastRound
+              ? isAttacker
+                ? lastRound
+                    .attacker
+                    .soldiersLost
+                : lastRound
+                    .defender
+                    .soldiersLost
+              : 0;
 
           return (
             <button
@@ -126,7 +218,7 @@ export default function ArmyLayer() {
                   army.id
                 );
               }}
-              className={`absolute z-40 flex h-16 w-16 flex-col items-center justify-center rounded-lg border-4 shadow-xl ${
+              className={`absolute z-40 flex h-16 w-16 flex-col items-center justify-center rounded-lg border-4 shadow-xl transition-all duration-500 ${
                 selected
                   ? "border-yellow-300 bg-yellow-950"
                   : army.ownerId ===
@@ -139,21 +231,32 @@ export default function ArmyLayer() {
               }`}
               style={{
                 left:
-                  point.x,
+                  point.x +
+                  battleOffsetX,
 
                 top:
-                  point.y,
+                  point.y +
+                  battleOffsetY,
 
                 transform:
                   "translate(-50%, -50%)",
               }}
             >
+              {battle && (
+                <span className="absolute -top-6 whitespace-nowrap rounded bg-red-950/90 px-2 py-0.5 text-[9px] font-bold text-red-200">
+                  {isAttacker
+                    ? "ATTACK →"
+                    : "← DEFEND"}
+                </span>
+              )}
+
               <span className="text-lg font-black">
                 ⚔
                 {
                   KINGDOM_LABELS[
                     army.ownerId
-                  ] ?? "?"
+                  ] ??
+                  "?"
                 }
               </span>
 
@@ -168,6 +271,19 @@ export default function ArmyLayer() {
               {moving && (
                 <span className="absolute -bottom-5 rounded bg-black/80 px-1 text-[9px] text-white">
                   MOVING
+                </span>
+              )}
+
+              {battle && (
+                <span className="absolute -bottom-6 whitespace-nowrap rounded bg-black/85 px-2 py-0.5 text-[9px] text-white">
+                  H
+                  {
+                    battle.battleHour
+                  }
+                  {lastLoss >
+                  0
+                    ? ` • -${lastLoss}`
+                    : ""}
                 </span>
               )}
             </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -35,6 +36,10 @@ import {
 } from "@/lib/world/actions";
 
 import {
+  advanceWorldBy,
+} from "@/lib/world/simulation";
+
+import {
   formatWorldTime,
   pauseWorld,
   resumeWorld,
@@ -50,6 +55,20 @@ interface MapCoordinate {
   x: number;
   y: number;
 }
+
+type PlaybackSpeed =
+  | 1
+  | 2
+  | 4;
+
+const PLAYBACK_DELAYS: Record<
+  PlaybackSpeed,
+  number
+> = {
+  1: 3000,
+  2: 1500,
+  4: 750,
+};
 
 export default function StrategyMap() {
   const world =
@@ -71,15 +90,28 @@ export default function StrategyMap() {
     cameraY: number;
   } | null>(null);
 
-  const [camera, setCamera] =
+  const playbackBusyRef =
+    useRef(false);
+
+  const [
+    camera,
+    setCamera,
+  ] =
     useState<Camera>({
       x: 100,
       y: 50,
-
       zoom:
         visualMapConfig
           .initialZoom,
     });
+
+  const [
+    playbackSpeed,
+    setPlaybackSpeed,
+  ] =
+    useState<PlaybackSpeed>(
+      1
+    );
 
   const [
     selectedSettlementId,
@@ -100,13 +132,83 @@ export default function StrategyMap() {
   const [
     imageFailed,
     setImageFailed,
-  ] = useState(false);
+  ] =
+    useState(false);
+
+  /*
+   * PRESENTATION CLOCK ONLY.
+   *
+   * Canonical time still progresses exclusively through
+   * advanceWorldBy(60).
+   *
+   * Browser time NEVER directly mutates WorldMinute.
+   */
+  useEffect(
+    () => {
+      if (
+        world.simulation
+          .paused
+      ) {
+        return;
+      }
+
+      const timer =
+        window.setTimeout(
+          () => {
+            if (
+              playbackBusyRef
+                .current
+            ) {
+              return;
+            }
+
+            playbackBusyRef.current =
+              true;
+
+            try {
+              const result =
+                advanceWorldBy(
+                  60
+                );
+
+              if (
+                result.interrupt
+              ) {
+                pauseWorld();
+              }
+            } finally {
+              playbackBusyRef.current =
+                false;
+            }
+          },
+          PLAYBACK_DELAYS[
+            playbackSpeed
+          ]
+        );
+
+      return () => {
+        window.clearTimeout(
+          timer
+        );
+      };
+    },
+    [
+      world.simulation
+        .paused,
+
+      world.simulation
+        .worldTimeMinutes,
+
+      playbackSpeed,
+    ]
+  );
 
   const playerPosition =
     world.simulation
       .entityPositions[
-      world.player.characterId
-    ];
+        world.player
+          .characterId
+      ];
 
   const playerMapPoint =
     playerPosition
@@ -116,39 +218,49 @@ export default function StrategyMap() {
       : null;
 
   const courierPoints =
-    useMemo(() => {
-      return Object.values(
-        world.couriers
-      )
-        .filter(
-          (courier) =>
-            courier.status ===
-            "traveling"
+    useMemo(
+      () => {
+        return Object.values(
+          world.couriers
         )
-        .map((courier) => {
-          const position =
-            world.simulation
-              .entityPositions[
-              courier.id
-            ];
+          .filter(
+            (
+              courier
+            ) =>
+              courier.status ===
+              "traveling"
+          )
+          .map(
+            (
+              courier
+            ) => {
+              const position =
+                world
+                  .simulation
+                  .entityPositions[
+                    courier.id
+                  ];
 
-          const point =
-            position
-              ? getPointForPosition(
-                  position
-                )
-              : null;
+              const point =
+                position
+                  ? getPointForPosition(
+                      position
+                    )
+                  : null;
 
-          return {
-            courier,
-            point,
-          };
-        });
-    }, [
-      world.couriers,
-      world.simulation
-        .entityPositions,
-    ]);
+              return {
+                courier,
+                point,
+              };
+            }
+          );
+      },
+      [
+        world.couriers,
+        world.simulation
+          .entityPositions,
+      ]
+    );
 
   const selectedSettlement =
     selectedSettlementId
@@ -190,15 +302,19 @@ export default function StrategyMap() {
 
     return {
       x:
-        (clientX -
+        (
+          clientX -
           rect.left -
-          camera.x) /
+          camera.x
+        ) /
         camera.zoom,
 
       y:
-        (clientY -
+        (
+          clientY -
           rect.top -
-          camera.y) /
+          camera.y
+        ) /
         camera.zoom,
     };
   }
@@ -227,32 +343,42 @@ export default function StrategyMap() {
       rect.top;
 
     const worldX =
-      (mouseX -
-        camera.x) /
+      (
+        mouseX -
+        camera.x
+      ) /
       camera.zoom;
 
     const worldY =
-      (mouseY -
-        camera.y) /
+      (
+        mouseY -
+        camera.y
+      ) /
       camera.zoom;
 
     const zoomFactor =
-      event.deltaY < 0
+      event.deltaY <
+      0
         ? 1.1
         : 0.9;
 
     const nextZoom =
       Math.max(
-        visualMapConfig.minZoom,
+        visualMapConfig
+          .minZoom,
+
         Math.min(
-          visualMapConfig.maxZoom,
+          visualMapConfig
+            .maxZoom,
+
           camera.zoom *
             zoomFactor
         )
       );
 
     setCamera({
-      zoom: nextZoom,
+      zoom:
+        nextZoom,
 
       x:
         mouseX -
@@ -267,10 +393,13 @@ export default function StrategyMap() {
   }
 
   function handlePointerDown(
-    event: React.PointerEvent
+    event: React.PointerEvent<
+      HTMLDivElement
+    >
   ) {
     if (
-      event.button !== 0
+      event.button !==
+      0
     ) {
       return;
     }
@@ -295,101 +424,208 @@ export default function StrategyMap() {
       );
   }
 
-function handlePointerMove(
-  event: React.PointerEvent
-) {
-  const coordinate =
-    mapCoordinateFromClient(
-      event.clientX,
-      event.clientY
+  function handlePointerMove(
+    event: React.PointerEvent<
+      HTMLDivElement
+    >
+  ) {
+    const coordinate =
+      mapCoordinateFromClient(
+        event.clientX,
+        event.clientY
+      );
+
+    if (coordinate) {
+      setDebugCoordinate({
+        x:
+          Math.round(
+            coordinate.x
+          ),
+
+        y:
+          Math.round(
+            coordinate.y
+          ),
+      });
+    }
+
+    const dragState =
+      dragRef.current;
+
+    if (!dragState) {
+      return;
+    }
+
+    const deltaX =
+      event.clientX -
+      dragState.mouseX;
+
+    const deltaY =
+      event.clientY -
+      dragState.mouseY;
+
+    setCamera(
+      (
+        current
+      ) => ({
+        ...current,
+
+        x:
+          dragState
+            .cameraX +
+          deltaX,
+
+        y:
+          dragState
+            .cameraY +
+          deltaY,
+      })
     );
-
-  if (coordinate) {
-    setDebugCoordinate({
-      x: Math.round(
-        coordinate.x
-      ),
-
-      y: Math.round(
-        coordinate.y
-      ),
-    });
   }
 
-  const dragState =
-    dragRef.current;
+  function handlePointerUp(
+    event: React.PointerEvent<
+      HTMLDivElement
+    >
+  ) {
+    dragRef.current =
+      null;
 
-  if (!dragState) {
-    return;
-  }
-
-  const deltaX =
-    event.clientX -
-    dragState.mouseX;
-
-  const deltaY =
-    event.clientY -
-    dragState.mouseY;
-
-  setCamera((current) => ({
-    ...current,
-
-    x:
-      dragState.cameraX +
-      deltaX,
-
-    y:
-      dragState.cameraY +
-      deltaY,
-  }));
-}
-  function handlePointerUp() {
-    dragRef.current = null;
+    if (
+      event.currentTarget
+        .hasPointerCapture(
+          event.pointerId
+        )
+    ) {
+      event.currentTarget
+        .releasePointerCapture(
+          event.pointerId
+        );
+    }
   }
 
   function handleTravel(
     settlementId: string
   ) {
+    /*
+     * TEMPORARY:
+     *
+     * F1.5 keeps the existing travel entry point.
+     * The next architecture package replaces this with
+     * queued character movement orders so player travel
+     * can never teleport.
+     */
     travelTo(
       settlementId
     );
   }
 
+  function handleSingleHour() {
+    pauseWorld();
+
+    advanceWorldBy(
+      60
+    );
+  }
+
+  function handlePlaybackToggle() {
+    if (
+      world.simulation
+        .paused
+    ) {
+      resumeWorld();
+    } else {
+      pauseWorld();
+    }
+  }
+
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
-      <header className="flex flex-wrap items-center gap-4 border-b border-neutral-800 px-5 py-3">
+    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-neutral-950 text-neutral-100">
+      <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-neutral-800 bg-neutral-950 px-5 py-3">
         <strong>
           Living World
         </strong>
 
-        <span>
+        <span className="font-mono text-sm">
           {formatWorldTime(
             world.simulation
               .worldTimeMinutes
           )}
         </span>
 
-        <span>
-          {world.simulation.paused
+        <span
+          className={
+            world.simulation
+              .paused
+              ? "text-xs text-yellow-300"
+              : "text-xs text-green-300"
+          }
+        >
+          {world.simulation
+            .paused
             ? "Paused"
             : "Running"}
         </span>
 
         <button
           type="button"
-          onClick={pauseWorld}
-          className="rounded border border-neutral-700 px-3 py-1"
+          onClick={
+            handlePlaybackToggle
+          }
+          className="rounded border border-neutral-700 bg-neutral-900 px-3 py-1 text-sm hover:bg-neutral-800"
         >
-          Pause
+          {world.simulation
+            .paused
+            ? "▶ Play"
+            : "⏸ Pause"}
         </button>
 
         <button
           type="button"
-          onClick={resumeWorld}
-          className="rounded border border-neutral-700 px-3 py-1"
+          onClick={
+            handleSingleHour
+          }
+          className="rounded border border-neutral-700 bg-neutral-900 px-3 py-1 text-sm hover:bg-neutral-800"
         >
-          Resume
+          +1h
         </button>
+
+        <div className="flex items-center gap-1">
+          {(
+            [
+              1,
+              2,
+              4,
+            ] as const
+          ).map(
+            (
+              speed
+            ) => (
+              <button
+                key={
+                  speed
+                }
+                type="button"
+                onClick={() =>
+                  setPlaybackSpeed(
+                    speed
+                  )
+                }
+                className={`rounded border px-2 py-1 text-xs ${
+                  playbackSpeed ===
+                  speed
+                    ? "border-yellow-300 bg-yellow-950/40 text-yellow-200"
+                    : "border-neutral-700 bg-neutral-900 text-neutral-300"
+                }`}
+              >
+                x
+                {
+                  speed
+                }
+              </button>
+            )
+          )}
+        </div>
 
         <span className="ml-auto text-xs text-neutral-400">
           Zoom{" "}
@@ -399,10 +635,14 @@ function handlePointerMove(
         </span>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <div
-          ref={viewportRef}
-          onWheel={handleWheel}
+          ref={
+            viewportRef
+          }
+          onWheel={
+            handleWheel
+          }
           onPointerDown={
             handlePointerDown
           }
@@ -415,29 +655,33 @@ function handlePointerMove(
           onPointerCancel={
             handlePointerUp
           }
-          className="relative min-h-[720px] flex-1 cursor-grab overflow-hidden bg-neutral-900 active:cursor-grabbing"
+          className="relative min-h-0 flex-1 touch-none cursor-grab overflow-hidden bg-neutral-900 active:cursor-grabbing"
         >
           <div
             className="absolute left-0 top-0 origin-top-left"
             style={{
               width:
-                visualMapConfig.width,
+                visualMapConfig
+                  .width,
 
               height:
-                visualMapConfig.height,
+                visualMapConfig
+                  .height,
 
-              transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
+              transform:
+                `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
             }}
           >
-            {/* Layer 0 — base map */}
-
             {!imageFailed ? (
               <img
                 src={
-                  visualMapConfig.imageUrl
+                  visualMapConfig
+                    .imageUrl
                 }
                 alt=""
-                draggable={false}
+                draggable={
+                  false
+                }
                 onError={() =>
                   setImageFailed(
                     true
@@ -449,40 +693,49 @@ function handlePointerMove(
               <div className="absolute inset-0 bg-neutral-800">
                 <div className="p-8 text-3xl text-neutral-500">
                   World Map
-                  Placeholder
                 </div>
               </div>
             )}
 
-            {/* Layer 1 — roads */}
-
             <svg
               className="pointer-events-none absolute inset-0"
               width={
-                visualMapConfig.width
+                visualMapConfig
+                  .width
               }
               height={
-                visualMapConfig.height
+                visualMapConfig
+                  .height
               }
               viewBox={`0 0 ${visualMapConfig.width} ${visualMapConfig.height}`}
             >
               {Object.values(
                 roadVisuals
               ).map(
-                (road) => (
+                (
+                  road
+                ) => (
                   <polyline
                     key={
                       road.edgeId
                     }
-                    points={road.points
-                      .map(
-                        (point) =>
-                          `${point.x},${point.y}`
-                      )
-                      .join(" ")}
+                    points={
+                      road.points
+                        .map(
+                          (
+                            point
+                          ) =>
+                            `${point.x},${point.y}`
+                        )
+                        .join(
+                          " "
+                        )
+                    }
                     fill="none"
                     stroke="rgba(226, 213, 179, 0.42)"
-                    strokeWidth={10}
+                    strokeWidth={
+                      10
+                    }
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
@@ -490,14 +743,15 @@ function handlePointerMove(
               )}
             </svg>
 
-            {/* Layer 2 + 4 — settlements and labels */}
-
             {Object.values(
               settlementVisuals
             ).map(
-              (visual) => {
+              (
+                visual
+              ) => {
                 const settlement =
-                  world.settlements[
+                  world
+                    .settlements[
                     visual
                       .settlementId
                   ];
@@ -514,8 +768,10 @@ function handlePointerMove(
 
                 const markerSize =
                   54 *
-                  (visual.scale ??
-                    1);
+                  (
+                    visual.scale ??
+                    1
+                  );
 
                 return (
                   <button
@@ -525,15 +781,19 @@ function handlePointerMove(
                     type="button"
                     onPointerDown={(
                       event
-                    ) =>
-                      event.stopPropagation()
-                    }
-                    onClick={() =>
+                    ) => {
+                      event.stopPropagation();
+                    }}
+                    onClick={(
+                      event
+                    ) => {
+                      event.stopPropagation();
+
                       setSelectedSettlementId(
                         settlement.id
-                      )
-                    }
-                    className="absolute"
+                      );
+                    }}
+                    className="absolute z-10"
                     style={{
                       left:
                         visual.x,
@@ -546,7 +806,7 @@ function handlePointerMove(
                     }}
                   >
                     <div
-                      className={`flex items-center justify-center rounded-full border-4 bg-neutral-200 text-neutral-950 shadow-lg ${
+                      className={`relative flex items-center justify-center rounded-full border-4 bg-neutral-200 text-neutral-950 shadow-lg ${
                         selected
                           ? "border-yellow-300"
                           : "border-neutral-700"
@@ -593,13 +853,8 @@ function handlePointerMove(
                     <span
                       className="absolute left-1/2 top-full mt-2 whitespace-nowrap rounded bg-black/70 px-2 py-1 text-sm text-white"
                       style={{
-                        transform: `translate(calc(-50% + ${
-                          visual.labelOffsetX ??
-                          0
-                        }px), ${
-                          visual.labelOffsetY ??
-                          0
-                        }px)`,
+                        transform:
+                          `translate(calc(-50% + ${visual.labelOffsetX ?? 0}px), ${visual.labelOffsetY ?? 0}px)`,
                       }}
                     >
                       {
@@ -610,10 +865,8 @@ function handlePointerMove(
                 );
               }
             )}
-            {/* Layer 3 — armies */}
 
             <ArmyLayer />
-            {/* Layer 3 — player */}
 
             {playerMapPoint && (
               <div
@@ -632,8 +885,6 @@ function handlePointerMove(
                 P
               </div>
             )}
-
-            {/* Layer 3 — couriers */}
 
             {courierPoints.map(
               ({
@@ -666,14 +917,14 @@ function handlePointerMove(
             )}
           </div>
 
-          <div className="pointer-events-none absolute bottom-3 left-3 rounded bg-black/70 px-3 py-2 text-xs">
+          <div className="pointer-events-none absolute bottom-3 left-3 z-50 rounded bg-black/70 px-3 py-2 text-xs">
             {debugCoordinate
               ? `Map x: ${debugCoordinate.x} — y: ${debugCoordinate.y}`
               : "Move cursor over map"}
           </div>
         </div>
 
-        <aside className="w-[340px] shrink-0 overflow-y-auto border-l border-neutral-800 bg-neutral-950 p-5">
+        <aside className="h-full w-[340px] shrink-0 overflow-y-auto border-l border-neutral-800 bg-neutral-950 p-5">
           <h2 className="mb-4 text-xl font-semibold">
             Settlement
           </h2>
@@ -723,55 +974,35 @@ function handlePointerMove(
                     Food
                   </span>
                   <span>
-                    {
-                      selectedSettlement
-                        .resources
-                        .food
-                    }
+                    {selectedSettlement.resources.food}
                   </span>
 
                   <span>
                     Gold
                   </span>
                   <span>
-                    {
-                      selectedSettlement
-                        .resources
-                        .gold
-                    }
+                    {selectedSettlement.resources.gold}
                   </span>
 
                   <span>
                     Wood
                   </span>
                   <span>
-                    {
-                      selectedSettlement
-                        .resources
-                        .wood
-                    }
+                    {selectedSettlement.resources.wood}
                   </span>
 
                   <span>
                     Stone
                   </span>
                   <span>
-                    {
-                      selectedSettlement
-                        .resources
-                        .stone
-                    }
+                    {selectedSettlement.resources.stone}
                   </span>
 
                   <span>
                     Metal
                   </span>
                   <span>
-                    {
-                      selectedSettlement
-                        .resources
-                        .metal
-                    }
+                    {selectedSettlement.resources.metal}
                   </span>
                 </div>
               </div>
@@ -787,11 +1018,7 @@ function handlePointerMove(
                   </span>
                   <span>
                     +
-                    {
-                      selectedSettlement
-                        .dailyProduction
-                        .food
-                    }
+                    {selectedSettlement.dailyProduction.food}
                   </span>
 
                   <span>
@@ -799,11 +1026,7 @@ function handlePointerMove(
                   </span>
                   <span>
                     +
-                    {
-                      selectedSettlement
-                        .dailyProduction
-                        .gold
-                    }
+                    {selectedSettlement.dailyProduction.gold}
                   </span>
 
                   <span>
@@ -811,11 +1034,7 @@ function handlePointerMove(
                   </span>
                   <span>
                     +
-                    {
-                      selectedSettlement
-                        .dailyProduction
-                        .wood
-                    }
+                    {selectedSettlement.dailyProduction.wood}
                   </span>
 
                   <span>
@@ -823,11 +1042,7 @@ function handlePointerMove(
                   </span>
                   <span>
                     +
-                    {
-                      selectedSettlement
-                        .dailyProduction
-                        .stone
-                    }
+                    {selectedSettlement.dailyProduction.stone}
                   </span>
 
                   <span>
@@ -835,11 +1050,7 @@ function handlePointerMove(
                   </span>
                   <span>
                     +
-                    {
-                      selectedSettlement
-                        .dailyProduction
-                        .metal
-                    }
+                    {selectedSettlement.dailyProduction.metal}
                   </span>
                 </div>
               </div>

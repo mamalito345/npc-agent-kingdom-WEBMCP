@@ -5,8 +5,8 @@ import {
 } from "@/lib/world/runtime";
 
 import {
-  getBattlePhaseDuration,
-} from "@/lib/military/battle-timeline";
+  getBattleTerrainForNode,
+} from "@/data/battle-terrain";
 
 import {
   ensureActiveWarBetweenRealms,
@@ -262,6 +262,10 @@ export function startBattle(
         6,
         "0"
       )}-001`;
+  const terrain =
+    getBattleTerrainForNode(
+      attackerPosition.nodeId
+    );
 
   const battle:
     PersistentBattle = {
@@ -292,13 +296,43 @@ export function startBattle(
       "contact",
 
     nextPhaseAt:
-      now +
-      getBattlePhaseDuration(
-        "contact"
-      ),
+      now + 60,
 
     status:
       "active",
+
+    battleHour:
+      0,
+
+    frontMomentum:
+      0,
+
+    attackerTactic:
+      "aggressive_push",
+
+    defenderTactic:
+      "hold_ground",
+
+    attackerMoralePressure:
+      0,
+
+    defenderMoralePressure:
+      0,
+
+    attackerReserveCommitted:
+      false,
+
+    defenderReserveCommitted:
+      false,
+
+    terrain:
+      terrain.terrain,
+
+    features: [
+      ...terrain.features,
+    ],
+
+    rounds: [],
 
     activeOrders: [],
 
