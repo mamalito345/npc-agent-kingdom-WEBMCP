@@ -10,6 +10,10 @@ import {
 } from "@/lib/map/paths";
 
 import {
+  getMapNode,
+} from "@/lib/map/graph";
+
+import {
   createMovement,
 } from "@/lib/world/movement";
 
@@ -18,18 +22,23 @@ import type {
   WorldMessage,
 } from "@/types/courier";
 
-export const COURIER_SPEED_KM_PER_HOUR = 12;
+export const COURIER_SPEED_KM_PER_HOUR =
+  12;
 
 export type SpawnCourierResult =
   | {
       ok: false;
+
       error:
         | "START_NODE_NOT_FOUND"
+        | "DESTINATION_NODE_NOT_FOUND"
         | "ROUTE_NOT_FOUND";
     }
   | {
       ok: true;
+
       courier: Courier;
+
       message: WorldMessage;
     };
 
@@ -40,27 +49,41 @@ export function spawnCourier(
   startNodeId: string,
   destinationNodeId: string
 ): SpawnCourierResult {
-  const world =
-    getRuntimeWorldState();
+  const startNode =
+    getMapNode(startNodeId);
 
-  if (
-    !world.locations[startNodeId]
-  ) {
+  if (!startNode) {
     return {
       ok: false,
-      error: "START_NODE_NOT_FOUND",
+      error:
+        "START_NODE_NOT_FOUND",
     };
   }
 
-  const route = findRoute(
-    startNodeId,
-    destinationNodeId
-  );
+  const destinationNode =
+    getMapNode(
+      destinationNodeId
+    );
+
+  if (!destinationNode) {
+    return {
+      ok: false,
+      error:
+        "DESTINATION_NODE_NOT_FOUND",
+    };
+  }
+
+  const route =
+    findRoute(
+      startNodeId,
+      destinationNodeId
+    );
 
   if (!route) {
     return {
       ok: false,
-      error: "ROUTE_NOT_FOUND",
+      error:
+        "ROUTE_NOT_FOUND",
     };
   }
 
@@ -73,60 +96,67 @@ export function spawnCourier(
   const messageId =
     `message-${messageSequence
       .toString()
-      .padStart(6, "0")}`;
+      .padStart(
+        6,
+        "0"
+      )}`;
 
   const courierId =
     `courier-${courierSequence
       .toString()
-      .padStart(6, "0")}`;
+      .padStart(
+        6,
+        "0"
+      )}`;
 
   const now =
     getRuntimeWorldState()
       .simulation
       .worldTimeMinutes;
 
-  const message: WorldMessage = {
-    id: messageId,
+  const message: WorldMessage =
+    {
+      id: messageId,
 
-    senderId,
+      senderId,
 
-    recipientId,
-
-    content,
-
-    createdAt: now,
-  };
-
-  const courier: Courier = {
-    id: courierId,
-
-    senderId,
-
-    targetId:
       recipientId,
 
-    messageId,
+      content,
 
-    destinationNodeId,
+      createdAt: now,
+    };
 
-    position: {
-      kind: "node",
-      nodeId: startNodeId,
-    },
+  const courier: Courier =
+    {
+      id: courierId,
 
-    speedKmPerHour:
-      COURIER_SPEED_KM_PER_HOUR,
+      senderId,
 
-    status: "traveling",
+      targetId:
+        recipientId,
 
-    createdAt: now,
-  };
+      messageId,
+
+      destinationNodeId,
+
+      speedKmPerHour:
+        COURIER_SPEED_KM_PER_HOUR,
+
+      status:
+        "traveling",
+
+      createdAt: now,
+    };
 
   const movement =
     createMovement(
       `movement-${courierSequence
         .toString()
-        .padStart(6, "0")}`,
+        .padStart(
+          6,
+          "0"
+        )}`,
 
       courierId,
 
@@ -159,11 +189,17 @@ export function spawnCourier(
         ...current.simulation,
 
         entityPositions: {
-          ...current.simulation
+          ...current
+            .simulation
             .entityPositions,
 
-          [courier.id]:
-            courier.position,
+          [courier.id]: {
+            kind:
+              "node",
+
+            nodeId:
+              startNodeId,
+          },
         },
       },
     })
@@ -175,7 +211,9 @@ export function spawnCourier(
 
   return {
     ok: true,
+
     courier,
+
     message,
   };
 }
@@ -226,25 +264,30 @@ export function processCourierArrivals(): void {
 
         if (
           !position ||
-          position.kind !== "node" ||
+          position.kind !==
+            "node" ||
           position.nodeId !==
-            courier.destinationNodeId
+            courier
+              .destinationNodeId
         ) {
           continue;
         }
 
-        if (!courierChanged) {
+        if (
+          !courierChanged
+        ) {
           couriers = {
             ...current.couriers,
           };
 
-          courierChanged = true;
+          courierChanged =
+            true;
         }
 
-        couriers[courier.id] = {
+        couriers[
+          courier.id
+        ] = {
           ...courier,
-
-          position,
 
           status:
             "delivered",
@@ -260,12 +303,15 @@ export function processCourierArrivals(): void {
           ];
 
         if (message) {
-          if (!messageChanged) {
+          if (
+            !messageChanged
+          ) {
             messages = {
               ...current.messages,
             };
 
-            messageChanged = true;
+            messageChanged =
+              true;
           }
 
           messages[
@@ -274,7 +320,8 @@ export function processCourierArrivals(): void {
             ...message,
 
             deliveredAt:
-              current.simulation
+              current
+                .simulation
                 .worldTimeMinutes,
           };
         }
@@ -282,7 +329,9 @@ export function processCourierArrivals(): void {
 
       return {
         ...current,
+
         couriers,
+
         messages,
       };
     }

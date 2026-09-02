@@ -6,12 +6,17 @@ import {
   processDailySettlementProduction,
 } from "@/lib/economy/production";
 
+import {
+  processDailyMilitaryEconomy,
+} from "@/lib/military/daily";
+
 import type {
   WorldMinute,
 } from "@/types/simulation";
 
 export function getNextDailyBoundary(
-  currentTime: WorldMinute
+  currentTime:
+    WorldMinute
 ): WorldMinute {
   const completedDays =
     Math.floor(
@@ -26,7 +31,8 @@ export function getNextDailyBoundary(
 }
 
 export function processDailyBoundary(
-  worldTime: WorldMinute
+  worldTime:
+    WorldMinute
 ): void {
   if (
     worldTime %
@@ -36,5 +42,14 @@ export function processDailyBoundary(
     return;
   }
 
+  /**
+   * Settlement economy resolves first.
+   */
   processDailySettlementProduction();
+
+  /**
+   * Then armies pay campaign /
+   * garrison upkeep.
+   */
+  processDailyMilitaryEconomy();
 }

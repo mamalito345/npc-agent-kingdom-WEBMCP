@@ -6,6 +6,8 @@ import type {
   WorldMinute,
 } from "@/types/simulation";
 
+
+
 import type {
   Settlement,
 } from "@/types/settlement";
@@ -14,6 +16,22 @@ import type {
   Courier,
   WorldMessage,
 } from "@/types/courier";
+
+import type {
+  ResourceStockpile,
+} from "@/types/resources";
+
+import type {
+  Army,
+  ArmyContact,
+  BattleResult,
+  RecruitmentOrder,
+  SettlementOperation,
+  UnitBlock,
+  FortificationOrder,
+  FortificationRepairOrder,
+  War,
+} from "@/types/military";
 
 export type CharacterRank =
   | "king"
@@ -31,17 +49,31 @@ export interface Kingdom {
   settlementIds: string[];
 
   /**
-   * Package 3 will activate real army entities.
-   * Keep the canonical relation now.
+   * Canonical army references.
+   *
+   * Real army state lives in:
+   * WorldState.armies
    */
   armyIds: string[];
 
   treasury: number;
+
+  /**
+   * Legacy compatibility field.
+   *
+   * Do NOT use as the Package 3
+   * canonical military source of truth.
+   */
   army: number;
+
   food: number;
+
   stability: number;
 
-  relations: Record<string, number>;
+  relations: Record<
+    string,
+    number
+  >;
 }
 
 export interface Character {
@@ -56,16 +88,25 @@ export interface Character {
   /**
    * Last/current settled location.
    *
-   * Precise travelling position lives inside:
+   * Precise travelling position:
    * WorldState.simulation.entityPositions
    */
   locationId: string;
 
   treasury: number;
 
+  /**
+   * Legacy compatibility field.
+   *
+   * Real armies live in:
+   * WorldState.armies
+   */
   army: number;
 
-  relationships: Record<string, number>;
+  relationships: Record<
+    string,
+    number
+  >;
 }
 
 export type LocationType =
@@ -92,10 +133,21 @@ export interface PlayerState {
 }
 
 export interface SimulationState {
-  worldTimeMinutes: WorldMinute;
+  worldTimeMinutes:
+    WorldMinute;
 
   paused: boolean;
 
+  /**
+   * Canonical exact position for
+   * every moving entity:
+   *
+   * character
+   * courier
+   * army
+   * future diplomat
+   * future scout
+   */
   entityPositions: Record<
     string,
     Position
@@ -106,9 +158,11 @@ export interface SimulationState {
     ActiveMovement
   >;
 
-  scheduledEvents: ScheduledEvent[];
+  scheduledEvents:
+    ScheduledEvent[];
 
-  resolvedEvents: ResolvedEvent[];
+  resolvedEvents:
+    ResolvedEvent[];
 
   nextSequence: number;
 }
@@ -134,6 +188,65 @@ export interface WorldState {
     Settlement
   >;
 
+  armyContacts: Record<
+    string,
+    ArmyContact
+  >;
+
+  battleResults: Record<
+    string,
+    BattleResult
+  >;
+
+  /**
+   * Reservation ledger.
+   *
+   * Settlement.resources = physical total.
+   *
+   * Available resources:
+   * total - reserved
+   */
+  settlementResourceReservations:
+    Record<
+      string,
+      ResourceStockpile
+    >;
+
+  settlementOperations:
+    Record<
+      string,
+      SettlementOperation
+    >;
+
+  unitBlocks: Record<
+    string,
+    UnitBlock
+  >;
+
+  armies: Record<
+    string,
+    Army
+  >;
+  fortificationOrders:
+    Record<
+      string,
+      FortificationOrder
+    >;
+  fortificationRepairOrders:
+    Record<
+      string,
+      FortificationRepairOrder
+    >;
+  recruitmentOrders: Record<
+    string,
+    RecruitmentOrder
+  >;
+
+  wars: Record<
+    string,
+    War
+  >;
+
   couriers: Record<
     string,
     Courier
@@ -146,5 +259,6 @@ export interface WorldState {
 
   player: PlayerState;
 
-  simulation: SimulationState;
+  simulation:
+    SimulationState;
 }

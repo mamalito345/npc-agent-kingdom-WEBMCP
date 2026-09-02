@@ -4,6 +4,16 @@ import {
 } from "@/lib/world/events";
 
 import {
+  getNextFortificationRepairBoundary,
+  processFortificationRepairs,
+} from "@/lib/military/fortification-repair-completion";
+
+import {
+  getNextFortificationCompletionBoundary,
+  processFortificationCompletions,
+} from "@/lib/military/fortification-completion";
+
+import {
   advanceMovementPositionsTo,
   getNextWorldMovementBoundaryTime,
   resolveCompletedMovements,
@@ -23,24 +33,44 @@ import {
   processDailyBoundary,
 } from "@/lib/world/processors/daily-boundary";
 
+import {
+  processArmyContactInterrupt,
+} from "@/lib/military/contact-interrupt";
+
+import {
+  getNextSettlementOperationBoundary,
+  processSettlementOperations,
+} from "@/lib/military/settlement-operations";
+
+import {
+  getNextRecruitmentCompletionBoundary,
+  processRecruitmentCompletions,
+} from "@/lib/military/recruitment-completion";
+
 import type {
   AdvanceWorldResult,
   WorldMinute,
 } from "@/types/simulation";
 
 function getEarliestRelevantMoment(
-  currentTime: WorldMinute,
-  targetTime: WorldMinute
+  currentTime:
+    WorldMinute,
+  targetTime:
+    WorldMinute
 ): WorldMinute {
   let nextMoment =
     targetTime;
 
+  //
+  // 1. Scheduled events
+  //
   const nextEvent =
     getNextScheduledEvent();
 
   if (
     nextEvent &&
-    nextEvent.executeAt >= currentTime &&
+    nextEvent.executeAt >
+      currentTime &&
     nextEvent.executeAt <
       nextMoment
   ) {
@@ -48,13 +78,19 @@ function getEarliestRelevantMoment(
       nextEvent.executeAt;
   }
 
+  //
+  // 2. Generic movement
+  //
   const movementBoundary =
     getNextWorldMovementBoundaryTime(
       currentTime
     );
 
   if (
-    movementBoundary !== undefined &&
+    movementBoundary !==
+      undefined &&
+    movementBoundary >
+      currentTime &&
     movementBoundary <
       nextMoment
   ) {
@@ -62,6 +98,72 @@ function getEarliestRelevantMoment(
       movementBoundary;
   }
 
+  //
+  // 3. Recruitment completion
+  //
+  const recruitmentBoundary =
+    getNextRecruitmentCompletionBoundary();
+
+  if (
+    recruitmentBoundary !==
+      undefined &&
+    recruitmentBoundary >
+      currentTime &&
+    recruitmentBoundary <
+      nextMoment
+  ) {
+    nextMoment =
+      recruitmentBoundary;
+  }
+
+  //
+  // 4. Raid / settlement operations
+  //
+  const settlementOperationBoundary =
+    getNextSettlementOperationBoundary();
+
+  if (
+    settlementOperationBoundary !==
+      undefined &&
+    settlementOperationBoundary >
+      currentTime &&
+    settlementOperationBoundary <
+      nextMoment
+  ) {
+    nextMoment =
+      settlementOperationBoundary;
+  }
+  const fortificationBoundary =
+    getNextFortificationCompletionBoundary();
+
+  if (
+    fortificationBoundary !==
+      undefined &&
+    fortificationBoundary >
+      currentTime &&
+    fortificationBoundary <
+      nextMoment
+  ) {
+    nextMoment =
+      fortificationBoundary;
+  }
+  const fortificationRepairBoundary =
+    getNextFortificationRepairBoundary();
+
+  if (
+    fortificationRepairBoundary !==
+      undefined &&
+    fortificationRepairBoundary >
+      currentTime &&
+    fortificationRepairBoundary <
+      nextMoment
+  ) {
+    nextMoment =
+      fortificationRepairBoundary;
+  }
+  //
+  // 5. Daily economy
+  //
   const dailyBoundary =
     getNextDailyBoundary(
       currentTime
@@ -81,40 +183,106 @@ function getEarliestRelevantMoment(
 }
 
 function processSimulationMoment(
-  worldTime: WorldMinute
+  worldTime:
+    WorldMinute
 ): {
-  interrupt?: AdvanceWorldResult["interrupt"];
+  interrupt?:
+    AdvanceWorldResult[
+      "interrupt"
+    ];
 } {
+  //
+  // Scheduled world events
+  //
   const eventResult =
-    processDueEvents(worldTime);
+    processDueEvents(
+      worldTime
+    );
 
+  if (
+    eventResult.interrupt
+  ) {
+    return {
+      interrupt:
+        eventResult
+          .interrupt,
+    };
+  }
+
+  //
+  // Resolve generic movement
+  //
   resolveCompletedMovements(
     worldTime
   );
 
+  //
+  // Courier delivery
+  //
   processCourierArrivals();
 
+  //
+  // Recruitment completion
+  //
+  processRecruitmentCompletions(
+    worldTime
+  );
+
+  //
+  // Raid / settlement operation completion
+  //
+  processSettlementOperations(
+    worldTime
+  );
+
+  processFortificationCompletions(
+    worldTime
+  );
+
+  processFortificationRepairs(
+    worldTime
+  );
+   //
+  // Army contact occurs after
+  // movement has resolved.
+  //
+  const armyContact =
+    processArmyContactInterrupt();
+
+  if (
+    armyContact
+  ) {
+    return {
+      interrupt:
+        armyContact,
+    };
+  }
+
+  //
+  // Daily economy + military upkeep
+  //
   processDailyBoundary(
     worldTime
   );
 
-  return {
-    interrupt:
-      eventResult.interrupt,
-  };
+  return {};
 }
 
 export function advanceWorldUntil(
-  targetTime: WorldMinute
+  targetTime:
+    WorldMinute
 ): AdvanceWorldResult {
   let currentTime =
     getWorldTime();
 
   if (
-    targetTime <= currentTime
+    targetTime <=
+    currentTime
   ) {
     return {
-      reachedTarget: true,
+      reachedTarget:
+        true,
+
       currentTime,
     };
   }
@@ -123,23 +291,35 @@ export function advanceWorldUntil(
     currentTime <
     targetTime
   ) {
+    //
+    // Resolve events that are
+    // already due now.
+    //
     const dueAtCurrentTime =
       processDueEvents(
         currentTime
       );
 
     if (
-      dueAtCurrentTime.interrupt
+      dueAtCurrentTime
+        .interrupt
     ) {
       return {
-        reachedTarget: false,
+        reachedTarget:
+          false,
+
         currentTime,
 
         interrupt:
-          dueAtCurrentTime.interrupt,
+          dueAtCurrentTime
+            .interrupt,
       };
     }
 
+    //
+    // Choose nearest important
+    // simulation moment.
+    //
     const nextMoment =
       getEarliestRelevantMoment(
         currentTime,
@@ -155,10 +335,17 @@ export function advanceWorldUntil(
       );
     }
 
+    //
+    // Move all moving entities
+    // forward to that exact time.
+    //
     advanceMovementPositionsTo(
       nextMoment
     );
 
+    //
+    // Advance canonical clock.
+    //
     setWorldTime(
       nextMoment
     );
@@ -166,6 +353,10 @@ export function advanceWorldUntil(
     currentTime =
       nextMoment;
 
+    //
+    // Resolve everything that
+    // happens now.
+    //
     const processed =
       processSimulationMoment(
         currentTime
@@ -175,25 +366,33 @@ export function advanceWorldUntil(
       processed.interrupt
     ) {
       return {
-        reachedTarget: false,
+        reachedTarget:
+          false,
+
         currentTime,
 
         interrupt:
-          processed.interrupt,
+          processed
+            .interrupt,
       };
     }
   }
 
   return {
-    reachedTarget: true,
+    reachedTarget:
+      true,
+
     currentTime,
   };
 }
 
 export function advanceWorldBy(
-  minutes: number
+  minutes:
+    number
 ): AdvanceWorldResult {
-  if (minutes < 0) {
+  if (
+    minutes < 0
+  ) {
     throw new Error(
       "Cannot advance world by a negative duration."
     );

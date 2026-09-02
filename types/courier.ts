@@ -1,5 +1,4 @@
 import type {
-  Position,
   WorldMinute,
 } from "@/types/simulation";
 
@@ -10,8 +9,11 @@ export type CourierStatus =
 
 export interface WorldMessage {
   id: string;
+
   senderId: string;
+
   recipientId: string;
+
   content: string;
 
   createdAt: WorldMinute;
@@ -23,13 +25,12 @@ export interface Courier {
   id: string;
 
   senderId: string;
+
   targetId: string;
 
   messageId: string;
 
   destinationNodeId: string;
-
-  position: Position;
 
   speedKmPerHour: number;
 
