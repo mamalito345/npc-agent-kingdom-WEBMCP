@@ -18,10 +18,6 @@ import {
 } from "@/lib/ui/army-selection";
 
 import {
-  advanceWorldBy,
-} from "@/lib/world/simulation";
-
-import {
   getArmySoldierCount,
 } from "@/lib/military/army-queries";
 
@@ -32,6 +28,10 @@ import {
 import {
   submitBattleOrder,
 } from "@/lib/military/battle-orders";
+
+import {
+  setBattleTactic,
+} from "@/lib/military/battle-tactic-orders";
 
 import {
   moveArmy,
@@ -45,16 +45,24 @@ import {
   startSiege,
 } from "@/lib/military/siege";
 
+import {
+  getPlayerControlledArmyId,
+  isPlayerPresentAtBattle,
+} from "@/lib/military/player-presence";
+
 import type {
   BattleOrderType,
+  BattleTactic,
+  PersistentBattle,
 } from "@/types/military";
 
-const ORDER_LABELS: Record<
-  BattleOrderType,
-  string
-> = {
+const ORDER_LABELS:
+  Record<
+    BattleOrderType,
+    string
+  > = {
   hold_position:
-    "Hold",
+    "Hold Position",
 
   commit_reserve:
     "Commit Reserve",
@@ -66,6 +74,111 @@ const ORDER_LABELS: Record<
     "Retreat",
 };
 
+const TACTIC_LABELS:
+  Record<
+    BattleTactic,
+    string
+  > = {
+  hold_ground:
+    "Hold Ground",
+
+  aggressive_push:
+    "Aggressive Push",
+
+  shield_wall:
+    "Shield Wall",
+
+  cavalry_flank:
+    "Cavalry Flank",
+
+  commit_reserve:
+    "Commit Reserve",
+
+  counterattack:
+    "Counterattack",
+
+  seize_high_ground:
+    "Seize High Ground",
+
+  orderly_retreat:
+    "Orderly Retreat",
+
+  desperate_assault:
+    "Desperate Assault",
+};
+
+const NORMAL_TACTICS:
+  BattleTactic[] = [
+  "hold_ground",
+  "aggressive_push",
+  "shield_wall",
+  "cavalry_flank",
+  "counterattack",
+  "seize_high_ground",
+  "orderly_retreat",
+  "desperate_assault",
+];
+
+function momentumPercent(
+  momentum:
+    number
+): number {
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      (
+        momentum +
+        100
+      ) /
+        2
+    )
+  );
+}
+
+function getSideSoldiers(
+  battle:
+    PersistentBattle,
+  side:
+    "attacker" |
+    "defender"
+): number {
+  const world =
+    getWorldState();
+
+  const ids =
+    side ===
+    "attacker"
+      ? battle
+          .attackerArmyIds
+      : battle
+          .defenderArmyIds;
+
+  return ids.reduce(
+    (
+      total,
+      armyId
+    ) => {
+      const army =
+        world.armies[
+          armyId
+        ];
+
+      if (!army) {
+        return total;
+      }
+
+      return (
+        total +
+        getArmySoldierCount(
+          armyId
+        )
+      );
+    },
+    0
+  );
+}
+
 export default function OperationalPanel() {
   const world =
     useSyncExternalStore(
@@ -74,25 +187,28 @@ export default function OperationalPanel() {
       getWorldState
     );
 
-    const selectedArmyId =
+  const selectedArmyId =
     useSyncExternalStore(
-        subscribeArmySelection,
-        getSelectedArmyId,
-        getSelectedArmyId
+      subscribeArmySelection,
+      getSelectedArmyId,
+      getSelectedArmyId
     );
+
   const [
     destinationId,
     setDestinationId,
-  ] = useState(
-    "riverhold"
-  );
+  ] =
+    useState(
+      "riverhold"
+    );
 
   const [
     actionMessage,
     setActionMessage,
-  ] = useState<
-    string | null
-  >(null);
+  ] =
+    useState<
+      string | null
+    >(null);
 
   const playerCharacter =
     world.characters[
@@ -153,42 +269,50 @@ export default function OperationalPanel() {
 
   const selectedArmyPosition =
     selectedArmyId
-      ? world.simulation
+      ? world
+          .simulation
           .entityPositions[
             selectedArmyId
           ]
       : undefined;
 
   const enemiesAtSelectedArmyNode =
-    selectedArmyPosition?.kind ===
+    selectedArmyPosition
+      ?.kind ===
     "node"
       ? enemyArmies.filter(
           (army) => {
             const position =
-              world.simulation
+              world
+                .simulation
                 .entityPositions[
                   army.id
                 ];
 
             return (
-              position?.kind ===
+              position
+                ?.kind ===
                 "node" &&
               position.nodeId ===
-                selectedArmyPosition.nodeId
+                selectedArmyPosition
+                  .nodeId
             );
           }
         )
       : [];
 
   const settlementsAtSelectedArmyNode =
-    selectedArmyPosition?.kind ===
+    selectedArmyPosition
+      ?.kind ===
     "node"
       ? Object.values(
           world.settlements
         ).filter(
           (settlement) =>
-            settlement.locationId ===
-            selectedArmyPosition.nodeId
+            settlement
+              .locationId ===
+            selectedArmyPosition
+              .nodeId
         )
       : [];
 
@@ -201,7 +325,8 @@ export default function OperationalPanel() {
           settlement.kingdomId;
 
         return (
-          selectedArmy &&
+          selectedArmy !==
+            undefined &&
           controller !==
             selectedArmy.ownerId
         );
@@ -225,29 +350,6 @@ export default function OperationalPanel() {
         siege.status ===
         "active"
     );
-
-    function advanceTime(
-    minutes: number
-    ) {
-    const result =
-        advanceWorldBy(
-        minutes
-        );
-
-    if (
-        result.interrupt
-    ) {
-        setActionMessage(
-        `World interrupted at minute ${result.currentTime}: ${result.interrupt.type}`
-        );
-
-        return;
-    }
-
-    setActionMessage(
-        `World advanced to minute ${result.currentTime}.`
-    );
-    }
 
   function handleMoveArmy() {
     if (
@@ -280,7 +382,8 @@ export default function OperationalPanel() {
   }
 
   function handleStartBattle(
-    enemyArmyId: string
+    enemyArmyId:
+      string
   ) {
     if (
       !selectedArmyId
@@ -311,7 +414,8 @@ export default function OperationalPanel() {
   }
 
   function handleStartSiege(
-    settlementId: string
+    settlementId:
+      string
   ) {
     if (
       !selectedArmyId
@@ -341,8 +445,10 @@ export default function OperationalPanel() {
   }
 
   function issueOrder(
-    battleId: string,
-    armyId: string,
+    battleId:
+      string,
+    armyId:
+      string,
     order:
       BattleOrderType
   ) {
@@ -371,73 +477,51 @@ export default function OperationalPanel() {
     }
 
     setActionMessage(
-      `Order issued: ${order}`
+      `Battle order: ${ORDER_LABELS[order]}`
+    );
+  }
+
+  function changeTactic(
+    battleId:
+      string,
+    armyId:
+      string,
+    tactic:
+      BattleTactic
+  ) {
+    const result =
+      setBattleTactic({
+        battleId,
+
+        armyId,
+
+        tactic,
+      });
+
+    if (!result.ok) {
+      setActionMessage(
+        result.reason
+          ? `Tactic failed: ${result.reason}`
+          : `Tactic failed: ${result.error}`
+      );
+
+      return;
+    }
+
+    setActionMessage(
+      `Tactic changed to ${TACTIC_LABELS[tactic]}.`
     );
   }
 
   return (
-    <aside className="fixed bottom-4 left-4 z-[100] max-h-[82vh] w-[420px] overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-950/95 p-4 text-sm text-neutral-100 shadow-2xl backdrop-blur">
+    <aside className="fixed bottom-4 left-4 z-[100] max-h-[82vh] w-[430px] overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-950/95 p-4 text-sm text-neutral-100 shadow-2xl backdrop-blur">
       <div className="mb-4">
         <div className="text-lg font-bold">
           Operational Command
         </div>
-            <section className="mb-4">
-            <div className="mb-2 text-xs font-semibold text-neutral-400">
-                Advance World
-            </div>
 
-            <div className="grid grid-cols-4 gap-2">
-                <button
-                type="button"
-                onClick={() =>
-                    advanceTime(
-                    60
-                    )
-                }
-                className="rounded border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs hover:bg-neutral-800"
-                >
-                +1h
-                </button>
-
-                <button
-                type="button"
-                onClick={() =>
-                    advanceTime(
-                    360
-                    )
-                }
-                className="rounded border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs hover:bg-neutral-800"
-                >
-                +6h
-                </button>
-
-                <button
-                type="button"
-                onClick={() =>
-                    advanceTime(
-                    720
-                    )
-                }
-                className="rounded border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs hover:bg-neutral-800"
-                >
-                +12h
-                </button>
-
-                <button
-                type="button"
-                onClick={() =>
-                    advanceTime(
-                    1440
-                    )
-                }
-                className="rounded border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs hover:bg-neutral-800"
-                >
-                +1d
-                </button>
-            </div>
-            </section>
         <div className="text-xs text-neutral-400">
-          Army movement, battles and siege
+          Army movement, battle tactics and sieges
         </div>
       </div>
 
@@ -505,14 +589,15 @@ export default function OperationalPanel() {
         {ownArmies.length ===
         0 ? (
           <div className="rounded border border-neutral-800 p-3 text-xs text-neutral-500">
-            No armies currently exist for your kingdom.
+            No armies.
           </div>
         ) : (
           <div className="space-y-2">
             {ownArmies.map(
               (army) => {
                 const position =
-                  world.simulation
+                  world
+                    .simulation
                     .entityPositions[
                       army.id
                     ];
@@ -528,9 +613,9 @@ export default function OperationalPanel() {
                     }
                     type="button"
                     onClick={() =>
-                    selectArmy(
+                      selectArmy(
                         army.id
-                    )
+                      )
                     }
                     className={`w-full rounded border p-3 text-left ${
                       selected
@@ -539,7 +624,9 @@ export default function OperationalPanel() {
                     }`}
                   >
                     <div className="font-semibold">
-                      {army.id}
+                      {
+                        army.id
+                      }
                     </div>
 
                     <div className="text-xs text-neutral-400">
@@ -560,10 +647,12 @@ export default function OperationalPanel() {
 
                     <div className="text-xs text-neutral-500">
                       Position:{" "}
-                      {position?.kind ===
+                      {position
+                        ?.kind ===
                       "node"
                         ? position.nodeId
-                        : position?.kind ===
+                        : position
+                              ?.kind ===
                             "edge"
                           ? `${position.edgeId} ${(position.progress * 100).toFixed(0)}%`
                           : "unknown"}
@@ -609,7 +698,9 @@ export default function OperationalPanel() {
             {Object.values(
               world.locations
             ).map(
-              (location) => (
+              (
+                location
+              ) => (
                 <option
                   key={
                     location.id
@@ -651,7 +742,9 @@ export default function OperationalPanel() {
 
               <div className="space-y-2">
                 {enemiesAtSelectedArmyNode.map(
-                  (enemy) => (
+                  (
+                    enemy
+                  ) => (
                     <button
                       key={
                         enemy.id
@@ -710,7 +803,7 @@ export default function OperationalPanel() {
                         settlement.id
                       )
                     }
-                    className="w-full rounded border border-orange-800 bg-orange-950/30 px-3 py-2 text-left hover:bg-orange-900/40"
+                    className="mb-2 w-full rounded border border-orange-800 bg-orange-950/30 px-3 py-2 text-left hover:bg-orange-900/40"
                   >
                     <div>
                       {
@@ -744,7 +837,10 @@ export default function OperationalPanel() {
       <section className="mb-5">
         <h3 className="mb-2 font-semibold">
           Active Battles (
-          {activeBattles.length})
+          {
+            activeBattles.length
+          }
+          )
         </h3>
 
         {activeBattles.length ===
@@ -753,90 +849,413 @@ export default function OperationalPanel() {
             No active battles.
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {activeBattles.map(
-              (battle) => (
-                <div
-                  key={
-                    battle.id
-                  }
-                  className="rounded border border-red-900 bg-red-950/20 p-3"
-                >
-                  <div className="font-semibold">
-                    {
-                      battle.nodeId
-                    }
-                  </div>
+              (
+                battle
+              ) => {
+                const playerPresent =
+                  isPlayerPresentAtBattle(
+                    battle
+                  );
 
-                  <div className="text-xs uppercase text-red-300">
-                    {
-                      battle.currentPhase
-                    }
-                  </div>
+                const playerArmyId =
+                  playerPresent
+                    ? getPlayerControlledArmyId(
+                        battle
+                      )
+                    : undefined;
 
-                  <div className="mt-1 text-xs">
-                    {
-                      battle
+                const playerAttacker =
+                  playerArmyId
+                    ? battle
                         .attackerArmyIds
-                        .join(", ")
+                        .includes(
+                          playerArmyId
+                        )
+                    : false;
+
+                const playerTactic =
+                  playerArmyId
+                    ? playerAttacker
+                      ? battle
+                          .attackerTactic
+                      : battle
+                          .defenderTactic
+                    : undefined;
+
+                const attackerSoldiers =
+                  getSideSoldiers(
+                    battle,
+                    "attacker"
+                  );
+
+                const defenderSoldiers =
+                  getSideSoldiers(
+                    battle,
+                    "defender"
+                  );
+
+                const pending =
+                  battle
+                    .pendingDecision;
+
+                const playerDecision =
+                  pending !==
+                    undefined &&
+                  playerArmyId ===
+                    pending.armyId;
+
+                const lastRound =
+                  battle.lastRound;
+
+                return (
+                  <div
+                    key={
+                      battle.id
                     }
-                  </div>
+                    className="rounded border border-red-900 bg-red-950/20 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold">
+                          {
+                            world.locations[
+                              battle.nodeId
+                            ]?.name ??
+                            battle.nodeId
+                          }
+                        </div>
 
-                  <div className="text-xs">
-                    vs
-                  </div>
-
-                  <div className="text-xs">
-                    {
-                      battle
-                        .defenderArmyIds
-                        .join(", ")
-                    }
-                  </div>
-
-                  {battle.pendingDecision && (
-                    <div className="mt-3 rounded border border-yellow-700 p-2">
-                      <div className="mb-2 text-xs font-semibold text-yellow-300">
-                        Battle decision required
+                        <div className="text-[10px] text-neutral-500">
+                          {
+                            battle.id
+                          }
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
-                        {battle
-                          .pendingDecision
-                          .availableOrders
+                      <div className="text-right">
+                        <div className="text-xs font-bold text-red-300">
+                          Hour{" "}
+                          {
+                            battle.battleHour
+                          }
+                        </div>
+
+                        <div className="text-[10px] uppercase text-neutral-400">
+                          {
+                            battle.currentPhase
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded bg-black/30 p-2">
+                      <div className="grid grid-cols-3 text-center text-xs">
+                        <div>
+                          <div className="font-bold text-red-300">
+                            ATTACK
+                          </div>
+
+                          <div>
+                            {
+                              attackerSoldiers
+                            }
+                          </div>
+
+                          <div className="text-[10px] text-neutral-400">
+                            {
+                              TACTIC_LABELS[
+                                battle
+                                  .attackerTactic
+                              ]
+                            }
+                          </div>
+                        </div>
+
+                        <div className="text-neutral-500">
+                          VS
+                        </div>
+
+                        <div>
+                          <div className="font-bold text-blue-300">
+                            DEFEND
+                          </div>
+
+                          <div>
+                            {
+                              defenderSoldiers
+                            }
+                          </div>
+
+                          <div className="text-[10px] text-neutral-400">
+                            {
+                              TACTIC_LABELS[
+                                battle
+                                  .defenderTactic
+                              ]
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 text-xs">
+                      <div className="mb-1 flex justify-between">
+                        <span>
+                          Defender
+                        </span>
+
+                        <span className="font-semibold">
+                          Front Momentum{" "}
+                          {
+                            battle.frontMomentum
+                          }
+                        </span>
+
+                        <span>
+                          Attacker
+                        </span>
+                      </div>
+
+                      <div className="relative h-3 overflow-hidden rounded bg-neutral-800">
+                        <div
+                          className="absolute bottom-0 left-0 top-0 bg-red-700 transition-all duration-500"
+                          style={{
+                            width:
+                              `${momentumPercent(
+                                battle.frontMomentum
+                              )}%`,
+                          }}
+                        />
+
+                        <div className="absolute bottom-0 left-1/2 top-0 w-px bg-white/70" />
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded bg-neutral-900 p-2">
+                        <div className="text-neutral-400">
+                          Attacker morale pressure
+                        </div>
+
+                        <div className="text-lg font-bold">
+                          {battle
+                            .attackerMoralePressure
+                            .toFixed(
+                              1
+                            )}
+                        </div>
+                      </div>
+
+                      <div className="rounded bg-neutral-900 p-2">
+                        <div className="text-neutral-400">
+                          Defender morale pressure
+                        </div>
+
+                        <div className="text-lg font-bold">
+                          {battle
+                            .defenderMoralePressure
+                            .toFixed(
+                              1
+                            )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 text-xs text-neutral-400">
+                      Terrain:{" "}
+                      <span className="text-neutral-100">
+                        {
+                          battle.terrain
+                        }
+                      </span>
+
+                      {battle.features.length >
+                        0 && (
+                        <>
+                          {" · "}
+                          {battle.features.join(
+                            ", "
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="mt-2 text-xs">
+                      Reserve:
+                      {" A="}
+                      {battle
+                        .attackerReserveCommitted
+                        ? "COMMITTED"
+                        : "HELD"}
+                      {" · D="}
+                      {battle
+                        .defenderReserveCommitted
+                        ? "COMMITTED"
+                        : "HELD"}
+                    </div>
+
+                    {lastRound && (
+                      <div className="mt-3 rounded border border-neutral-800 bg-neutral-900/70 p-2 text-xs">
+                        <div className="font-semibold">
+                          Last hour
+                        </div>
+
+                        <div className="mt-1">
+                          Attacker lost{" "}
+                          <strong>
+                            {
+                              lastRound
+                                .attacker
+                                .soldiersLost
+                            }
+                          </strong>
+                          {" · "}
+                          Defender lost{" "}
+                          <strong>
+                            {
+                              lastRound
+                                .defender
+                                .soldiersLost
+                            }
+                          </strong>
+                        </div>
+
+                        <div className="mt-1 text-[10px] text-neutral-500">
+                          {
+                            lastRound.summary
+                          }
+                        </div>
+                      </div>
+                    )}
+
+                    {!playerPresent && (
+                      <div className="mt-3 rounded border border-neutral-800 bg-neutral-900 p-2 text-xs text-neutral-400">
+                        Player is not physically present at this battlefield. Local commanders control tactical decisions.
+                      </div>
+                    )}
+
+                    {playerArmyId &&
+                      playerPresent &&
+                      !playerDecision && (
+                        <div className="mt-4">
+                          <div className="mb-2 text-xs font-semibold text-yellow-300">
+                            Tactical Posture
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            {NORMAL_TACTICS.map(
+                              (
+                                tactic
+                              ) => (
+                                <button
+                                  key={
+                                    tactic
+                                  }
+                                  type="button"
+                                  onClick={() =>
+                                    changeTactic(
+                                      battle.id,
+                                      playerArmyId,
+                                      tactic
+                                    )
+                                  }
+                                  className={`rounded border px-2 py-2 text-xs ${
+                                    playerTactic ===
+                                    tactic
+                                      ? "border-yellow-300 bg-yellow-950/40 text-yellow-200"
+                                      : "border-neutral-700 bg-neutral-900 hover:bg-neutral-800"
+                                  }`}
+                                >
+                                  {
+                                    TACTIC_LABELS[
+                                      tactic
+                                    ]
+                                  }
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {playerDecision &&
+                      pending && (
+                        <div className="mt-4 rounded border border-yellow-600 bg-yellow-950/20 p-3">
+                          <div className="mb-2 font-semibold text-yellow-300">
+                            ⚠ Battle Crisis
+                          </div>
+
+                          <div className="mb-3 text-xs text-neutral-300">
+                            Immediate operational decision required before time may continue.
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            {pending
+                              .availableOrders
+                              .map(
+                                (
+                                  order
+                                ) => (
+                                  <button
+                                    key={
+                                      order
+                                    }
+                                    type="button"
+                                    onClick={() =>
+                                      issueOrder(
+                                        battle.id,
+                                        pending.armyId,
+                                        order
+                                      )
+                                    }
+                                    className="rounded border border-yellow-700 bg-neutral-900 px-2 py-2 text-xs hover:bg-yellow-950/40"
+                                  >
+                                    {
+                                      ORDER_LABELS[
+                                        order
+                                      ]
+                                    }
+                                  </button>
+                                )
+                              )}
+                          </div>
+                        </div>
+                      )}
+
+                    <div className="mt-4 border-t border-neutral-800 pt-3">
+                      <div className="mb-2 text-[10px] font-semibold uppercase text-neutral-500">
+                        Battle Log
+                      </div>
+
+                      <div className="space-y-1">
+                        {battle.history
+                          .slice(
+                            -4
+                          )
+                          .reverse()
                           .map(
                             (
-                              order
+                              entry
                             ) => (
-                              <button
+                              <div
                                 key={
-                                  order
+                                  entry.id
                                 }
-                                type="button"
-                                onClick={() =>
-                                  issueOrder(
-                                    battle.id,
-                                    battle
-                                      .pendingDecision!
-                                      .armyId,
-                                    order
-                                  )
-                                }
-                                className="rounded border border-neutral-600 bg-neutral-800 px-2 py-1 text-xs"
+                                className="text-[10px] text-neutral-400"
                               >
                                 {
-                                  ORDER_LABELS[
-                                    order
-                                  ]
+                                  entry.summary
                                 }
-                              </button>
+                              </div>
                             )
                           )}
                       </div>
                     </div>
-                  )}
-                </div>
-              )
+                  </div>
+                );
+              }
             )}
           </div>
         )}
@@ -845,7 +1264,10 @@ export default function OperationalPanel() {
       <section>
         <h3 className="mb-2 font-semibold">
           Active Sieges (
-          {activeSieges.length})
+          {
+            activeSieges.length
+          }
+          )
         </h3>
 
         {activeSieges.length ===
@@ -855,7 +1277,9 @@ export default function OperationalPanel() {
           </div>
         ) : (
           activeSieges.map(
-            (siege) => (
+            (
+              siege
+            ) => (
               <div
                 key={
                   siege.id

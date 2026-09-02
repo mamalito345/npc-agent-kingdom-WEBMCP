@@ -26,32 +26,20 @@ export type BattleSide =
 
 export interface BattleArmyPower {
   armyId: string;
-
   basePower: number;
-
   moraleModifier: number;
-
   supplyModifier: number;
-
   reserveMultiplier: number;
-
   effectivePower: number;
 }
 
 export interface BattleSidePower {
   side: BattleSide;
-
   armyIds: string[];
-
   order?: BattleOrder;
-
-  armyPowers:
-    BattleArmyPower[];
-
+  armyPowers: BattleArmyPower[];
   rawPower: number;
-
   orderMultiplier: number;
-
   totalPower: number;
 }
 
@@ -91,7 +79,9 @@ export function getLatestBattleOrderForSide(
   battle: PersistentBattle,
   side: BattleSide
 ): BattleOrder | undefined {
-  return battle.activeOrders
+  return [
+    ...battle.activeOrders,
+  ]
     .filter(
       (order) =>
         getBattleSideForArmy(
@@ -127,10 +117,7 @@ function getArmyBasePower(
   return getArmyUnits(
     armyId
   ).reduce(
-    (
-      total,
-      unit
-    ) =>
+    (total, unit) =>
       total +
       getUnitCombatStrength(
         unit
@@ -141,39 +128,16 @@ function getArmyBasePower(
 
 function getReserveMultiplier(
   armyIndex: number,
-  order?: BattleOrder
+  reserveCommitted: boolean
 ): number {
-  //
-  // First army represents the
-  // currently committed frontline.
-  //
-  // Additional armies are operational
-  // reserves / reinforcements.
-  //
-  if (
-    armyIndex ===
-    0
-  ) {
+  if (armyIndex === 0) {
     return 1;
   }
 
-  //
-  // COMMIT_RESERVE causes all currently
-  // available reinforcing armies to
-  // contribute fully.
-  //
-  if (
-    order?.type ===
-    "commit_reserve"
-  ) {
+  if (reserveCommitted) {
     return 1;
   }
 
-  //
-  // Reinforcements that have arrived
-  // but have not been committed still
-  // contribute partially.
-  //
   return 0.5;
 }
 
@@ -185,42 +149,19 @@ function getOrderMultiplier(
     return 1;
   }
 
-  switch (
-    order.type
-  ) {
+  switch (order.type) {
     case "hold_position":
-      //
-      // Holding is particularly useful
-      // for the defending side.
-      //
-      return side ===
-        "defender"
+      return side === "defender"
         ? 1.12
         : 0.95;
 
     case "commit_reserve":
-      //
-      // Main mechanical effect lives in
-      // reserveMultiplier.
-      //
-      // Small coordination bonus.
-      //
       return 1.05;
 
     case "press_attack":
-      //
-      // Increased operational pressure.
-      //
-      // C2.4 will also attach increased
-      // casualty exposure to this order.
-      //
       return 1.15;
 
     case "order_retreat":
-      //
-      // Army is disengaging rather than
-      // fighting for battlefield control.
-      //
       return 0.6;
   }
 }
@@ -244,8 +185,7 @@ export function calculateBattleSidePower(
           ];
 
         return (
-          army !==
-            undefined &&
+          army !== undefined &&
           army.status !==
             "destroyed"
         );
@@ -257,6 +197,13 @@ export function calculateBattleSidePower(
       battle,
       side
     );
+
+  const reserveCommitted =
+    side === "attacker"
+      ? battle
+          .attackerReserveCommitted
+      : battle
+          .defenderReserveCommitted;
 
   const armyPowers =
     armyIds.map(
@@ -293,7 +240,7 @@ export function calculateBattleSidePower(
         const reserveMultiplier =
           getReserveMultiplier(
             armyIndex,
-            order
+            reserveCommitted
           );
 
         const operationalPower =
@@ -306,15 +253,10 @@ export function calculateBattleSidePower(
 
         return {
           armyId,
-
           basePower,
-
           moraleModifier,
-
           supplyModifier,
-
           reserveMultiplier,
-
           effectivePower:
             operationalPower *
             reserveMultiplier,
@@ -324,10 +266,7 @@ export function calculateBattleSidePower(
 
   const rawPower =
     armyPowers.reduce(
-      (
-        total,
-        army
-      ) =>
+      (total, army) =>
         total +
         army.effectivePower,
       0
@@ -341,17 +280,11 @@ export function calculateBattleSidePower(
 
   return {
     side,
-
     armyIds,
-
     order,
-
     armyPowers,
-
     rawPower,
-
     orderMultiplier,
-
     totalPower:
       rawPower *
       orderMultiplier,

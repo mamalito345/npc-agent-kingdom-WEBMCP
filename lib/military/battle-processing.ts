@@ -31,13 +31,16 @@ const BATTLE_ROUND_MINUTES =
 const MINIMUM_BATTLE_HOURS =
   4;
 
+const CRISIS_COOLDOWN_MINUTES =
+  4 * 60;
+
+const MAXIMUM_BATTLE_HOURS =
+  72;
+
 function appendHistory(
-  battleId:
-    string,
-  worldTime:
-    WorldMinute,
-  summary:
-    string
+  battleId: string,
+  worldTime: WorldMinute,
+  summary: string
 ): void {
   updateRuntimeWorldState(
     (state) => {
@@ -93,14 +96,12 @@ function appendHistory(
 }
 
 function setBattlePhase(
-  battleId:
-    string,
+  battleId: string,
   phase:
     PersistentBattle[
       "currentPhase"
     ],
-  worldTime:
-    WorldMinute
+  worldTime: WorldMinute
 ): void {
   updateRuntimeWorldState(
     (state) => {
@@ -166,11 +167,104 @@ function setBattlePhase(
   );
 }
 
-function endBattle(
-  battleId:
-    string,
+function getLatestBattleOrderTime(
+  battle:
+    PersistentBattle
+): WorldMinute | undefined {
+  if (
+    battle.activeOrders
+      .length ===
+    0
+  ) {
+    return undefined;
+  }
+
+  return Math.max(
+    ...battle.activeOrders.map(
+      (order) =>
+        order.issuedAt
+    )
+  );
+}
+
+function crisisThresholdReached(
+  battle:
+    PersistentBattle
+): boolean {
+  return (
+    Math.abs(
+      battle.frontMomentum
+    ) >=
+      55 ||
+    battle
+      .attackerMoralePressure >=
+      60 ||
+    battle
+      .defenderMoralePressure >=
+      60
+  );
+}
+
+function shouldEnterCrisis(
+  battle:
+    PersistentBattle,
   worldTime:
     WorldMinute
+): boolean {
+  if (
+    battle.battleHour <
+    MINIMUM_BATTLE_HOURS
+  ) {
+    return false;
+  }
+
+  if (
+    !crisisThresholdReached(
+      battle
+    )
+  ) {
+    return false;
+  }
+
+  const lastOrderTime =
+    getLatestBattleOrderTime(
+      battle
+    );
+
+  if (
+    lastOrderTime ===
+    undefined
+  ) {
+    return true;
+  }
+
+  return (
+    worldTime -
+      lastOrderTime >=
+    CRISIS_COOLDOWN_MINUTES
+  );
+}
+
+function hasExplicitRetreat(
+  battle:
+    PersistentBattle,
+  losingSide:
+    | "attacker"
+    | "defender"
+): boolean {
+  return losingSide ===
+    "attacker"
+    ? battle
+        .attackerTactic ===
+        "orderly_retreat"
+    : battle
+        .defenderTactic ===
+        "orderly_retreat";
+}
+
+function endBattle(
+  battleId: string,
+  worldTime: WorldMinute
 ): void {
   const world =
     getRuntimeWorldState();
@@ -266,25 +360,121 @@ function endBattle(
   );
 }
 
-function shouldEnterCrisis(
-  battle:
-    PersistentBattle
-): boolean {
-  return (
-    Math.abs(
-      battle
-        .frontMomentum
-    ) >=
-      55 ||
-    battle
-      .attackerMoralePressure >=
-      60 ||
-    battle
-      .defenderMoralePressure >=
-      60
+function scheduleNextBattleHour(
+  battleId: string,
+  worldTime: WorldMinute
+): void {
+  updateRuntimeWorldState(
+    (state) => {
+      const latest =
+        state.battles[
+          battleId
+        ];
+
+      if (
+        !latest ||
+        latest.status !==
+          "active"
+      ) {
+        return state;
+      }
+
+      return {
+        ...state,
+
+        battles: {
+          ...state.battles,
+
+          [battleId]: {
+            ...latest,
+
+            nextPhaseAt:
+              worldTime +
+              BATTLE_ROUND_MINUTES,
+          },
+        },
+      };
+    }
   );
 }
 
+function prepareNewCrisis(
+  battleId: string,
+  worldTime: WorldMinute
+): void {
+  updateRuntimeWorldState(
+    (state) => {
+      const battle =
+        state.battles[
+          battleId
+        ];
+
+      if (!battle) {
+        return state;
+      }
+
+      return {
+        ...state,
+
+        battles: {
+          ...state.battles,
+
+          [battleId]: {
+            ...battle,
+
+            currentPhase:
+              "crisis",
+
+            /*
+             * activeOrders belong to the
+             * current decision window.
+             *
+             * Persistent consequences,
+             * especially committed reserves,
+             * live in separate battle fields.
+             */
+            activeOrders: [],
+
+            history: [
+              ...battle.history,
+
+              {
+                id:
+                  `${battleId}-history-${(
+                    battle
+                      .history
+                      .length +
+                    1
+                  )
+                    .toString()
+                    .padStart(
+                      3,
+                      "0"
+                    )}`,
+
+                timestamp:
+                  worldTime,
+
+                type:
+                  "phase_changed",
+
+                summary:
+                  "Battle reached a new operational crisis.",
+              },
+            ],
+          },
+        },
+      };
+    }
+  );
+}
+
+/*
+ * Called by the world simulation scheduler.
+ *
+ * Returns the earliest battle hour
+ * boundary among all active battles.
+ */
 export function getNextBattleBoundary():
   WorldMinute | undefined {
   return Object.values(
@@ -315,6 +505,13 @@ export function getNextBattleBoundary():
     ?.nextPhaseAt;
 }
 
+/*
+ * Called when simulation reaches one
+ * or more battle boundaries.
+ *
+ * Each due battle advances exactly
+ * one canonical battle hour.
+ */
 export function processBattlePhases(
   worldTime:
     WorldMinute
@@ -337,11 +534,11 @@ export function processBattlePhases(
         (a, b) =>
           (
             a.nextPhaseAt ??
-            Infinity
+              Infinity
           ) -
             (
               b.nextPhaseAt ??
-              Infinity
+                Infinity
             ) ||
           a.id.localeCompare(
             b.id
@@ -370,9 +567,37 @@ export function processBattlePhases(
       continue;
     }
 
-    //
-    // Hour 1 = contact.
-    //
+    /*
+     * A crisis that already received
+     * its decision goes back into
+     * normal engagement.
+     */
+    if (
+      battle.currentPhase ===
+        "crisis" &&
+      !battle.pendingDecision
+    ) {
+      setBattlePhase(
+        battleId,
+        "engagement",
+        worldTime
+      );
+
+      battle =
+        getRuntimeWorldState()
+          .battles[
+            battleId
+          ];
+
+      if (!battle) {
+        continue;
+      }
+    }
+
+    /*
+     * First operational hour:
+     * contact becomes deployment.
+     */
     if (
       battle.battleHour ===
       0
@@ -390,12 +615,23 @@ export function processBattlePhases(
       );
     }
 
-    //
-    // Hour 2 onward = actual engagement.
-    //
+    battle =
+      getRuntimeWorldState()
+        .battles[
+          battleId
+        ];
+
+    if (!battle) {
+      continue;
+    }
+
+    /*
+     * Hour two onward:
+     * deployment becomes engagement.
+     */
     if (
       battle.battleHour >=
-      1 &&
+        1 &&
       battle.currentPhase ===
         "deployment"
     ) {
@@ -406,6 +642,9 @@ export function processBattlePhases(
       );
     }
 
+    /*
+     * Exactly one hourly combat round.
+     */
     processBattleRound(
       battleId,
       worldTime
@@ -425,18 +664,67 @@ export function processBattlePhases(
       continue;
     }
 
+    /*
+     * Collapse / withdrawal.
+     */
+    const losingSide =
+      battleShouldEnd(
+        battleId
+      );
+
     if (
-      battle.battleHour >=
-        MINIMUM_BATTLE_HOURS &&
-      shouldEnterCrisis(
-        battle
-      ) &&
-      battle.currentPhase !==
-        "crisis"
+      losingSide
     ) {
-      setBattlePhase(
+      const enoughBattleTime =
+        battle.battleHour >=
+        MINIMUM_BATTLE_HOURS;
+
+      const explicitRetreat =
+        hasExplicitRetreat(
+          battle,
+          losingSide
+        );
+
+      if (
+        enoughBattleTime ||
+        explicitRetreat
+      ) {
+        setBattlePhase(
+          battleId,
+          "resolution",
+          worldTime
+        );
+
+        appendHistory(
+          battleId,
+          worldTime,
+          explicitRetreat
+            ? `${losingSide} began an organized withdrawal.`
+            : `${losingSide} battle line collapsed.`
+        );
+
+        endBattle(
+          battleId,
+          worldTime
+        );
+
+        continue;
+      }
+    }
+
+    /*
+     * Crisis windows are state-driven,
+     * not simply scheduled because
+     * a certain number of hours passed.
+     */
+    if (
+      shouldEnterCrisis(
+        battle,
+        worldTime
+      )
+    ) {
+      prepareNewCrisis(
         battleId,
-        "crisis",
         worldTime
       );
 
@@ -455,25 +743,9 @@ export function processBattlePhases(
         if (
           interrupt
         ) {
-          updateRuntimeWorldState(
-            (state) => ({
-              ...state,
-
-              battles: {
-                ...state.battles,
-
-                [battleId]: {
-                  ...state
-                    .battles[
-                      battleId
-                    ],
-
-                  nextPhaseAt:
-                    worldTime +
-                    BATTLE_ROUND_MINUTES,
-                },
-              },
-            })
+          scheduleNextBattleHour(
+            battleId,
+            worldTime
           );
 
           return interrupt;
@@ -481,43 +753,26 @@ export function processBattlePhases(
       }
     }
 
-    const losingSide =
-      battleShouldEnd(
-        battleId
-      );
+    battle =
+      getRuntimeWorldState()
+        .battles[
+          battleId
+        ];
 
     if (
-      losingSide &&
-      battle.battleHour >=
-        MINIMUM_BATTLE_HOURS
+      !battle ||
+      battle.status !==
+        "active"
     ) {
-      setBattlePhase(
-        battleId,
-        "resolution",
-        worldTime
-      );
-
-      appendHistory(
-        battleId,
-        worldTime,
-        `${losingSide} battle line collapsed.`
-      );
-
-      endBattle(
-        battleId,
-        worldTime
-      );
-
       continue;
     }
 
-    //
-    // Safety valve:
-    // no battle should run forever.
-    //
+    /*
+     * Safety valve only.
+     */
     if (
       battle.battleHour >=
-      72
+      MAXIMUM_BATTLE_HOURS
     ) {
       appendHistory(
         battleId,
@@ -533,37 +788,9 @@ export function processBattlePhases(
       continue;
     }
 
-    updateRuntimeWorldState(
-      (state) => {
-        const latest =
-          state.battles[
-            battleId
-          ];
-
-        if (
-          !latest ||
-          latest.status !==
-            "active"
-        ) {
-          return state;
-        }
-
-        return {
-          ...state,
-
-          battles: {
-            ...state.battles,
-
-            [battleId]: {
-              ...latest,
-
-              nextPhaseAt:
-                worldTime +
-                BATTLE_ROUND_MINUTES,
-            },
-          },
-        };
-      }
+    scheduleNextBattleHour(
+      battleId,
+      worldTime
     );
   }
 

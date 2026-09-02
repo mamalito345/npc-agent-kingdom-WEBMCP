@@ -8,23 +8,15 @@ import type {
   BattleDecisionActor,
   BattleOrder,
   BattleOrderType,
+  BattleTactic,
 } from "@/types/military";
 
 export interface SubmitBattleOrderInput {
-  battleId:
-    string;
-
-  armyId:
-    string;
-
-  actorType:
-    BattleDecisionActor;
-
-  actorId:
-    string;
-
-  order:
-    BattleOrderType;
+  battleId: string;
+  armyId: string;
+  actorType: BattleDecisionActor;
+  actorId: string;
+  order: BattleOrderType;
 }
 
 export type SubmitBattleOrderError =
@@ -43,13 +35,29 @@ export type SubmitBattleOrderResult =
     }
   | {
       ok: true;
-      order:
-        BattleOrder;
+      order: BattleOrder;
     };
 
+function battleOrderToTactic(
+  order: BattleOrderType
+): BattleTactic {
+  switch (order) {
+    case "hold_position":
+      return "hold_ground";
+
+    case "commit_reserve":
+      return "commit_reserve";
+
+    case "press_attack":
+      return "aggressive_push";
+
+    case "order_retreat":
+      return "orderly_retreat";
+  }
+}
+
 export function submitBattleOrder(
-  input:
-    SubmitBattleOrderInput
+  input: SubmitBattleOrderInput
 ): SubmitBattleOrderResult {
   const world =
     getRuntimeWorldState();
@@ -78,17 +86,20 @@ export function submitBattleOrder(
     };
   }
 
-  const participating =
-    battle.attackerArmyIds
-      .includes(
-        input.armyId
-      ) ||
-    battle.defenderArmyIds
-      .includes(
-        input.armyId
-      );
+  const attackerSide =
+    battle.attackerArmyIds.includes(
+      input.armyId
+    );
 
-  if (!participating) {
+  const defenderSide =
+    battle.defenderArmyIds.includes(
+      input.armyId
+    );
+
+  if (
+    !attackerSide &&
+    !defenderSide
+  ) {
     return {
       ok: false,
       error:
@@ -119,7 +130,8 @@ export function submitBattleOrder(
   }
 
   if (
-    !pending.availableOrders
+    !pending
+      .availableOrders
       .includes(
         input.order
       )
@@ -168,24 +180,32 @@ export function submitBattleOrder(
       now,
   };
 
+  const tactic =
+    battleOrderToTactic(
+      input.order
+    );
+
   updateRuntimeWorldState(
     (current) => {
       const latest =
         current.battles[
           battle.id
         ];
-        const tactic =
-          battleOrderToTactic(
-            input.order
-          );
 
-        const attackerSide =
-          latest.attackerArmyIds.includes(
-            input.armyId
-          );
       if (!latest) {
         return current;
       }
+
+      const isAttacker =
+        latest
+          .attackerArmyIds
+          .includes(
+            input.armyId
+          );
+
+      const commitsReserve =
+        input.order ===
+        "commit_reserve";
 
       return {
         ...current,
@@ -197,14 +217,32 @@ export function submitBattleOrder(
             ...latest,
 
             attackerTactic:
-              attackerSide
+              isAttacker
                 ? tactic
-                : latest.attackerTactic,
+                : latest
+                    .attackerTactic,
 
             defenderTactic:
-              attackerSide
-                ? latest.defenderTactic
+              isAttacker
+                ? latest
+                    .defenderTactic
                 : tactic,
+
+            attackerReserveCommitted:
+              latest
+                .attackerReserveCommitted ||
+              (
+                isAttacker &&
+                commitsReserve
+              ),
+
+            defenderReserveCommitted:
+              latest
+                .defenderReserveCommitted ||
+              (
+                !isAttacker &&
+                commitsReserve
+              ),
 
             pendingDecision:
               undefined,
@@ -212,7 +250,6 @@ export function submitBattleOrder(
             activeOrders: [
               ...latest
                 .activeOrders,
-
               order,
             ],
 
@@ -253,22 +290,4 @@ export function submitBattleOrder(
     ok: true,
     order,
   };
-}
-
-function battleOrderToTactic(
-  order: BattleOrderType
-) {
-  switch (order) {
-    case "hold_position":
-      return "hold_ground" as const;
-
-    case "commit_reserve":
-      return "commit_reserve" as const;
-
-    case "press_attack":
-      return "aggressive_push" as const;
-
-    case "order_retreat":
-      return "orderly_retreat" as const;
-  }
 }

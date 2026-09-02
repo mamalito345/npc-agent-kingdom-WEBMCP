@@ -65,6 +65,21 @@ export function setBattleTactic(
     };
   }
 
+  if (
+    input.tactic ===
+    "commit_reserve"
+  ) {
+    return {
+      ok: false,
+
+      error:
+        "TACTIC_NOT_AVAILABLE",
+
+      reason:
+        "Commit Reserve is a crisis battle order, not a normal hourly tactic.",
+    };
+  }
+
   let side:
     BattleSide;
 
@@ -126,8 +141,10 @@ export function setBattleTactic(
   ) {
     return {
       ok: false,
+
       error:
         "TACTIC_NOT_AVAILABLE",
+
       reason:
         evaluation.reason,
     };
@@ -140,7 +157,11 @@ export function setBattleTactic(
           input.battleId
         ];
 
-      if (!latest) {
+      if (
+        !latest ||
+        latest.status !==
+          "active"
+      ) {
         return current;
       }
 
@@ -148,7 +169,7 @@ export function setBattleTactic(
         current.simulation
           .worldTimeMinutes;
 
-      const updatedBattle =
+      const updated =
         side ===
         "attacker"
           ? {
@@ -171,15 +192,15 @@ export function setBattleTactic(
           ...current.battles,
 
           [input.battleId]: {
-            ...updatedBattle,
+            ...updated,
 
             history: [
-              ...updatedBattle.history,
+              ...updated.history,
 
               {
                 id:
                   `${input.battleId}-history-${(
-                    updatedBattle
+                    updated
                       .history
                       .length +
                     1
@@ -197,7 +218,7 @@ export function setBattleTactic(
                   "order_issued" as const,
 
                 summary:
-                  `${input.armyId} changed ${side} battle tactic to ${input.tactic}.`,
+                  `${input.armyId} changed ${side} tactic to ${input.tactic}.`,
               },
             ],
           },
