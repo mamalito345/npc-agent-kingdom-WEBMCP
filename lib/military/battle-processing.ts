@@ -12,8 +12,9 @@ import {
 } from "@/lib/military/battle-side-power";
 
 import {
-  fightArmies,
-} from "@/lib/military/battle";
+  applyProgressiveBattleCasualties,
+  resolvePersistentBattleOutcome,
+} from "@/lib/military/persistent-battle-resolution";
 
 import {
   getBattlePhaseDuration,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/military/battle-timeline";
 
 import type {
+  BattlePhase,
   PersistentBattle,
 } from "@/types/military";
 
@@ -64,12 +66,9 @@ export function getNextBattleBoundary():
 }
 
 function createHistoryEntry(
-  battle:
-    PersistentBattle,
-  worldTime:
-    WorldMinute,
-  summary:
-    string
+  battle: PersistentBattle,
+  worldTime: WorldMinute,
+  summary: string
 ) {
   const index =
     battle.history.length +
@@ -198,53 +197,62 @@ function appendOperationalPowerSnapshot(
   );
 }
 
+function shouldApplyCasualties(
+  phase: BattlePhase
+): phase is
+  | "engagement"
+  | "crisis"
+  | "resolution" {
+  return (
+    phase ===
+      "engagement" ||
+    phase ===
+      "crisis" ||
+    phase ===
+      "resolution"
+  );
+}
+
 function finishPersistentBattle(
-  battle:
-    PersistentBattle,
-  worldTime:
-    WorldMinute
+  battle: PersistentBattle,
+  worldTime: WorldMinute
 ): void {
-  //
-  // IMPORTANT:
-  //
-  // C2.3 makes participation + orders
-  // multi-army.
-  //
-  // C2.4 will replace THIS legacy
-  // representative 1v1 casualty resolver
-  // with the full side casualty/outcome
-  // resolver.
-  //
-  const attackerArmyId =
-    battle.attackerArmyIds[
-      0
-    ];
+  const existing =
+    getRuntimeWorldState()
+      .battles[
+        battle.id
+      ];
 
-  const defenderArmyId =
-    battle.defenderArmyIds[
-      0
-    ];
+  if (!existing) {
+    return;
+  }
 
-  const result =
-    fightArmies({
-      attackerArmyId,
-      defenderArmyId,
-    });
+  let result =
+    existing
+      .finalBattleResultId
+      ? getRuntimeWorldState()
+          .battleResults[
+            existing
+              .finalBattleResultId
+          ]
+      : undefined;
 
-  if (!result.ok) {
-    throw new Error(
-      `Persistent battle resolution failed: ${result.error}`
-    );
+  if (!result) {
+    result =
+      resolvePersistentBattleOutcome(
+        battle.id,
+        worldTime
+      );
   }
 
   updateRuntimeWorldState(
     (current) => {
-      const existing =
+      const latest =
         current.battles[
           battle.id
         ];
 
-      if (!existing) {
+      if (!latest) {
         return current;
       }
 
@@ -255,7 +263,7 @@ function finishPersistentBattle(
           ...current.battles,
 
           [battle.id]: {
-            ...existing,
+            ...latest,
 
             currentPhase:
               "ended",
@@ -270,15 +278,15 @@ function finishPersistentBattle(
               undefined,
 
             finalBattleResultId:
-              result.battle.id,
+              result!.id,
 
             history: [
-              ...existing.history,
+              ...latest.history,
 
               {
                 id:
                   `${battle.id}-history-${(
-                    existing
+                    latest
                       .history
                       .length +
                     1
@@ -296,9 +304,9 @@ function finishPersistentBattle(
                   "battle_ended",
 
                 summary:
-                  result.battle
+                  result!
                     .winnerArmyId
-                    ? `Battle ended. Winner: ${result.battle.winnerArmyId}.`
+                    ? `Battle ended. Winning side led by ${result!.winnerArmyId}.`
                     : "Battle ended in stalemate.",
               },
             ],
@@ -310,8 +318,7 @@ function finishPersistentBattle(
 }
 
 export function processBattlePhases(
-  worldTime:
-    WorldMinute
+  worldTime: WorldMinute
 ): SimulationInterrupt | undefined {
   const snapshot =
     getRuntimeWorldState();
@@ -431,6 +438,24 @@ export function processBattlePhases(
       }
     );
 
+    //
+    // Progressive casualty pulses.
+    //
+    if (
+      shouldApplyCasualties(
+        nextPhase
+      )
+    ) {
+      applyProgressiveBattleCasualties(
+        battle.id,
+        nextPhase,
+        worldTime
+      );
+    }
+
+    //
+    // Crisis decision point.
+    //
     if (
       nextPhase ===
       "crisis"
@@ -456,9 +481,7 @@ export function processBattlePhases(
     }
 
     //
-    // Both sides should have their
-    // operational orders by the time
-    // RESOLUTION starts.
+    // Resolution snapshot after casualty pulse.
     //
     if (
       nextPhase ===
@@ -468,6 +491,94 @@ export function processBattlePhases(
         battle.id,
         worldTime
       );
+    }
+
+    //
+    // Resolution → retreat:
+    //
+    // decide actual battlefield winner
+    // using ALL surviving armies.
+    //
+    if (
+      nextPhase ===
+      "retreat"
+    ) {
+      const refreshed =
+        getRuntimeWorldState()
+          .battles[
+            battle.id
+          ];
+
+      if (
+        refreshed &&
+        !refreshed
+          .finalBattleResultId
+      ) {
+        const result =
+          resolvePersistentBattleOutcome(
+            battle.id,
+            worldTime
+          );
+
+        updateRuntimeWorldState(
+          (state) => {
+            const latest =
+              state.battles[
+                battle.id
+              ];
+
+            if (!latest) {
+              return state;
+            }
+
+            return {
+              ...state,
+
+              battles: {
+                ...state.battles,
+
+                [battle.id]: {
+                  ...latest,
+
+                  finalBattleResultId:
+                    result.id,
+
+                  history: [
+                    ...latest.history,
+
+                    {
+                      id:
+                        `${battle.id}-history-${(
+                          latest
+                            .history
+                            .length +
+                          1
+                        )
+                          .toString()
+                          .padStart(
+                            3,
+                            "0"
+                          )}`,
+
+                      timestamp:
+                        worldTime,
+
+                      type:
+                        "phase_changed",
+
+                      summary:
+                        result
+                          .winnerArmyId
+                          ? `Battlefield outcome decided. Winning side led by ${result.winnerArmyId}.`
+                          : "Battlefield outcome decided as stalemate.",
+                    },
+                  ],
+                },
+              },
+            };
+          }
+        );
+      }
     }
   }
 
