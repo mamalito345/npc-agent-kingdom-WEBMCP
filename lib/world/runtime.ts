@@ -62,6 +62,8 @@ let worldState: WorldState = {
 
   battles: {},
 
+  sieges: {},
+
   battleResults: {},
 
   couriers: {},

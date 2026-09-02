@@ -35,6 +35,7 @@ export type ArmyStatus =
   | "garrison"
   | "retreating"
   | "battle"
+  | "siege"
   | "destroyed";
 
 export type CommanderRating =
@@ -422,4 +423,68 @@ export interface PersistentBattle {
     BattleHistoryEntry[];
 
   finalBattleResultId?: string;
+}
+
+export type SiegePhase =
+  | "encirclement"
+  | "bombardment"
+  | "breach"
+  | "ended";
+
+export type SiegeStatus =
+  | "active"
+  | "ended";
+
+export type SiegeOutcome =
+  | "breached"
+  | "lifted";
+
+export interface SiegeHistoryEntry {
+  id: string;
+
+  timestamp:
+    WorldMinute;
+
+  type:
+    | "siege_started"
+    | "phase_changed"
+    | "fortification_damaged"
+    | "siege_ended";
+
+  summary: string;
+}
+
+export interface PersistentSiege {
+  id: string;
+
+  warId: string;
+
+  settlementId: string;
+
+  attackerArmyIds:
+    string[];
+
+  defenderRealmId:
+    string;
+
+  startedAt:
+    WorldMinute;
+
+  currentPhase:
+    SiegePhase;
+
+  nextPhaseAt?:
+    WorldMinute;
+
+  status:
+    SiegeStatus;
+
+  fortificationIntegrityAtStart:
+    number;
+
+  outcome?:
+    SiegeOutcome;
+
+  history:
+    SiegeHistoryEntry[];
 }

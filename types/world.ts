@@ -31,6 +31,7 @@ import type {
   FortificationOrder,
   FortificationRepairOrder,
   PersistentBattle,
+  PersistentSiege,
   War,
 } from "@/types/military";
 
@@ -196,6 +197,11 @@ export interface WorldState {
   battles: Record<
     string,
     PersistentBattle
+  >;
+
+  sieges: Record<
+    string,
+    PersistentSiege
   >;
 
   battleResults: Record<

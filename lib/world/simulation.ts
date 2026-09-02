@@ -4,6 +4,11 @@ import {
 } from "@/lib/world/events";
 
 import {
+  getNextSiegeBoundary,
+  processSieges,
+} from "@/lib/military/siege";
+
+import {
   getNextBattleBoundary,
   processBattlePhases,
 } from "@/lib/military/battle-processing";
@@ -187,6 +192,20 @@ function getEarliestRelevantMoment(
     nextMoment =
       battleBoundary;
   }
+  const siegeBoundary =
+    getNextSiegeBoundary();
+
+  if (
+    siegeBoundary !==
+      undefined &&
+    siegeBoundary >
+      currentTime &&
+    siegeBoundary <
+      nextMoment
+  ) {
+    nextMoment =
+      siegeBoundary;
+  }
   const dailyBoundary =
     getNextDailyBoundary(
       currentTime
@@ -263,6 +282,9 @@ function processSimulationMoment(
   );
 
   processFortificationRepairs(
+    worldTime
+  );
+  processSieges(
     worldTime
   );
   const battleInterrupt =
