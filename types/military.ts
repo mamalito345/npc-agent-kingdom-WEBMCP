@@ -395,6 +395,8 @@ export interface PersistentBattle {
 
   contactId?: string;
 
+  warId?: string;
+
   nodeId: string;
 
   attackerArmyIds: string[];

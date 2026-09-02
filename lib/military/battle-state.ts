@@ -8,19 +8,20 @@ import {
   getBattlePhaseDuration,
 } from "@/lib/military/battle-timeline";
 
+import {
+  ensureActiveWarBetweenRealms,
+} from "@/lib/military/war";
+
 import type {
   PersistentBattle,
 } from "@/types/military";
 
 export interface StartBattleInput {
-  attackerArmyId:
-    string;
+  attackerArmyId: string;
 
-  defenderArmyId:
-    string;
+  defenderArmyId: string;
 
-  contactId?:
-    string;
+  contactId?: string;
 }
 
 export type StartBattleError =
@@ -35,8 +36,7 @@ export type StartBattleError =
 export type StartBattleResult =
   | {
       ok: false;
-      error:
-        StartBattleError;
+      error: StartBattleError;
     }
   | {
       ok: true;
@@ -45,8 +45,7 @@ export type StartBattleResult =
     };
 
 function armyIsAlreadyInBattle(
-  armyId:
-    string
+  armyId: string
 ): boolean {
   const world =
     getRuntimeWorldState();
@@ -73,15 +72,12 @@ function armyIsAlreadyInBattle(
 }
 
 export function getBattle(
-  battleId:
-    string
+  battleId: string
 ): PersistentBattle | undefined {
-  return (
-    getRuntimeWorldState()
-      .battles[
-        battleId
-      ]
-  );
+  return getRuntimeWorldState()
+    .battles[
+      battleId
+    ];
 }
 
 export function getActiveBattles():
@@ -106,8 +102,7 @@ export function getActiveBattles():
 }
 
 export function startBattle(
-  input:
-    StartBattleInput
+  input: StartBattleInput
 ): StartBattleResult {
   if (
     input.attackerArmyId ===
@@ -115,8 +110,7 @@ export function startBattle(
   ) {
     return {
       ok: false,
-      error:
-        "SAME_ARMY",
+      error: "SAME_ARMY",
     };
   }
 
@@ -212,9 +206,7 @@ export function startBattle(
     };
   }
 
-  if (
-    input.contactId
-  ) {
+  if (input.contactId) {
     const contact =
       world.armyContacts[
         input.contactId
@@ -232,6 +224,18 @@ export function startBattle(
       };
     }
   }
+
+  //
+  // C2.5
+  //
+  // Battles are operational events
+  // inside a longer-lived War.
+  //
+  const war =
+    ensureActiveWarBetweenRealms(
+      attacker.ownerId,
+      defender.ownerId
+    );
 
   const sequence =
     allocateSimulationSequence();
@@ -264,6 +268,9 @@ export function startBattle(
     id:
       battleId,
 
+    warId:
+      war.id,
+
     contactId:
       input.contactId,
 
@@ -292,7 +299,7 @@ export function startBattle(
 
     status:
       "active",
-    
+
     activeOrders: [],
 
     history: [
@@ -307,7 +314,7 @@ export function startBattle(
           "battle_started",
 
         summary:
-          `Battle started between ${attacker.id} and ${defender.id} at ${attackerPosition.nodeId}.`,
+          `Battle started between ${attacker.id} and ${defender.id} at ${attackerPosition.nodeId} during war ${war.id}.`,
       },
     ],
   };
