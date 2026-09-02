@@ -14,12 +14,6 @@ export function createInitialSession(
   worldTime:
     WorldMinute
 ): GameSessionState {
-  /*
-   * Human + four WebMCP LLM players.
-   *
-   * The World Director is NOT represented
-   * here. It will be added separately in D.
-   */
   const players:
     PlayerSlot[] = [
     {
@@ -210,5 +204,19 @@ export function createInitialSession(
           ]
         )
       ),
+
+    director: {
+      proposals:
+        {},
+
+      lastContextAt:
+        undefined,
+
+      lastTurnAt:
+        undefined,
+
+      lastAppliedProposalId:
+        undefined,
+    },
   };
 }

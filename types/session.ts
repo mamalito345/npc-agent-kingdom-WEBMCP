@@ -2,6 +2,10 @@ import type {
   WorldMinute,
 } from "@/types/simulation";
 
+import type {
+  DirectorState,
+} from "@/types/director";
+
 export type PlayerControllerType =
   | "human"
   | "webmcp_llm";
@@ -101,10 +105,6 @@ export interface StrategicOrder {
   status:
     StrategicOrderStatus;
 
-  /*
-   * Populated once the strategic
-   * order starts a physical movement.
-   */
   movementId?:
     string;
 
@@ -224,16 +224,13 @@ export interface KnownWorldFact {
   summary:
     string;
 
-  /*
-   * Player-facing knowledge.
-   *
-   * This must NOT automatically equal
-   * canonical world state.
-   */
   data:
     Record<
       string,
-      string | number | boolean | null
+      string |
+      number |
+      boolean |
+      null
     >;
 }
 
@@ -287,4 +284,13 @@ export interface GameSessionState {
       string,
       PlayerKnowledgeState
     >;
+
+  /*
+   * World Director is deliberately not
+   * a PlayerSlot.
+   *
+   * WORLD DIRECTOR !== PLAYER.
+   */
+  director:
+    DirectorState;
 }
