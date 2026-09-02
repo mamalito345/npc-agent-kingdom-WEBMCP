@@ -10,6 +10,434 @@ import {
   getPlayerOrders,
 } from "@/lib/session/orders";
 
+import {
+  validatePlayerAccess,
+} from "@/lib/session/access";
+
+export function getPlayerKnownWorld(
+  sessionId:
+    string,
+  playerId:
+    string
+) {
+  const access =
+    validatePlayerAccess(
+      sessionId,
+      playerId
+    );
+
+  if (
+    access.ok ===
+    false
+  ) {
+    return access;
+  }
+
+  return {
+    ok:
+      true as const,
+
+    worldTimeMinutes:
+      getRuntimeWorldState()
+        .simulation
+        .worldTimeMinutes,
+
+    facts:
+      getDeliveredPlayerKnowledge(
+        playerId
+      ),
+  };
+}
+
+export function getPlayerKnownEnemyForces(
+  sessionId:
+    string,
+  playerId:
+    string
+) {
+  const access =
+    validatePlayerAccess(
+      sessionId,
+      playerId
+    );
+
+  if (
+    access.ok ===
+    false
+  ) {
+    return access;
+  }
+
+  const world =
+    getRuntimeWorldState();
+
+  const facts =
+    getDeliveredPlayerKnowledge(
+      playerId
+    )
+      .filter(
+        (fact) =>
+          fact.kind ===
+          "army"
+      )
+      .filter(
+        (fact) => {
+          const canonicalArmy =
+            world.armies[
+              fact.subjectId
+            ];
+
+          /*
+           * Canonical lookup here is used
+           * only to determine ownership.
+           *
+           * We DO NOT add canonical position,
+           * composition or movement data to
+           * the returned fact.
+           */
+          return (
+            canonicalArmy ===
+              undefined ||
+            canonicalArmy.ownerId !==
+              access
+                .player
+                .kingdomId
+          );
+        }
+      );
+
+  return {
+    ok:
+      true as const,
+
+    forces:
+      facts,
+  };
+}
+
+export function getPlayerMessages(
+  sessionId:
+    string,
+  playerId:
+    string
+) {
+  const access =
+    validatePlayerAccess(
+      sessionId,
+      playerId
+    );
+
+  if (
+    access.ok ===
+    false
+  ) {
+    return access;
+  }
+
+  const world =
+    getRuntimeWorldState();
+
+  const characterId =
+    access
+      .player
+      .characterId;
+
+  const now =
+    world.simulation
+      .worldTimeMinutes;
+
+  const messages =
+    Object.values(
+      world.messages
+    )
+      .filter(
+        (message) => {
+          /*
+           * Sender may inspect its own
+           * outgoing dispatch immediately.
+           */
+          if (
+            message.senderId ===
+            characterId
+          ) {
+            return true;
+          }
+
+          /*
+           * Recipient does not know the
+           * message until courier delivery.
+           */
+          return (
+            message.recipientId ===
+              characterId &&
+            message.deliveredAt !==
+              undefined &&
+            message.deliveredAt <=
+              now
+          );
+        }
+      )
+      .sort(
+        (a, b) =>
+          a.createdAt -
+            b.createdAt ||
+          a.id.localeCompare(
+            b.id
+          )
+      );
+
+  return {
+    ok:
+      true as const,
+
+    messages,
+  };
+}
+
+export function getPlayerBattlesView(
+  sessionId:
+    string,
+  playerId:
+    string
+) {
+  const access =
+    validatePlayerAccess(
+      sessionId,
+      playerId
+    );
+
+  if (
+    access.ok ===
+    false
+  ) {
+    return access;
+  }
+
+  const world =
+    getRuntimeWorldState();
+
+  const ownArmyIds =
+    new Set(
+      Object.values(
+        world.armies
+      )
+        .filter(
+          (army) =>
+            army.ownerId ===
+            access
+              .player
+              .kingdomId
+        )
+        .map(
+          (army) =>
+            army.id
+        )
+    );
+
+  const battles =
+    Object.values(
+      world.battles
+    )
+      .filter(
+        (battle) =>
+          battle
+            .attackerArmyIds
+            .some(
+              (armyId) =>
+                ownArmyIds.has(
+                  armyId
+                )
+            ) ||
+          battle
+            .defenderArmyIds
+            .some(
+              (armyId) =>
+                ownArmyIds.has(
+                  armyId
+                )
+            )
+      )
+      .sort(
+        (a, b) =>
+          a.startedAt -
+            b.startedAt ||
+          a.id.localeCompare(
+            b.id
+          )
+      );
+
+  const knownRemoteBattles =
+    getDeliveredPlayerKnowledge(
+      playerId
+    ).filter(
+      (fact) =>
+        fact.kind ===
+        "battle"
+    );
+
+  return {
+    ok:
+      true as const,
+
+    ownBattles:
+      battles,
+
+    knownRemoteBattles,
+  };
+}
+
+export function getPlayerSettlementsView(
+  sessionId:
+    string,
+  playerId:
+    string
+) {
+  const access =
+    validatePlayerAccess(
+      sessionId,
+      playerId
+    );
+
+  if (
+    access.ok ===
+    false
+  ) {
+    return access;
+  }
+
+  const world =
+    getRuntimeWorldState();
+
+  const ownSettlements =
+    Object.values(
+      world.settlements
+    )
+      .filter(
+        (settlement) =>
+          (
+            settlement
+              .controllerKingdomId ??
+            settlement.kingdomId
+          ) ===
+          access
+            .player
+            .kingdomId
+      )
+      .map(
+        (settlement) => ({
+          id:
+            settlement.id,
+
+          locationId:
+            settlement.locationId,
+
+          type:
+            settlement.type,
+
+          kingdomId:
+            settlement.kingdomId,
+
+          controllerKingdomId:
+            settlement
+              .controllerKingdomId ??
+            settlement.kingdomId,
+
+          ownerId:
+            settlement.ownerId,
+
+          fortificationLevel:
+            settlement
+              .fortificationLevel ??
+            0,
+
+          fortificationIntegrity:
+            settlement
+              .fortificationIntegrity ??
+            0,
+        })
+      );
+
+  const knownForeignSettlements =
+    getDeliveredPlayerKnowledge(
+      playerId
+    ).filter(
+      (fact) =>
+        fact.kind ===
+        "settlement"
+    );
+
+  return {
+    ok:
+      true as const,
+
+    ownSettlements,
+
+    knownForeignSettlements,
+  };
+}
+
+export function getPlayerEconomyView(
+  sessionId:
+    string,
+  playerId:
+    string
+) {
+  const access =
+    validatePlayerAccess(
+      sessionId,
+      playerId
+    );
+
+  if (
+    access.ok ===
+    false
+  ) {
+    return access;
+  }
+
+  const world =
+    getRuntimeWorldState();
+
+  const kingdom =
+    world.kingdoms[
+      access
+        .player
+        .kingdomId
+    ];
+
+  if (!kingdom) {
+    return {
+      ok:
+        false as const,
+
+      error:
+        "KINGDOM_NOT_FOUND",
+    };
+  }
+
+  return {
+    ok:
+      true as const,
+
+    kingdom: {
+      id:
+        kingdom.id,
+
+      name:
+        kingdom.name,
+
+      treasury:
+        kingdom.treasury,
+
+      food:
+        kingdom.food,
+
+      stability:
+        kingdom.stability,
+    },
+  };
+}
+
 export function getPlayerObservation(
   playerId:
     string
@@ -63,6 +491,11 @@ export function getPlayerObservation(
               .supply
               .state,
 
+          fundingState:
+            army
+              .funding
+              .state,
+
           commanderId:
             army.commanderId,
 
@@ -74,13 +507,13 @@ export function getPlayerObservation(
               ] ??
             null,
 
-          moving:
+          movement:
             world
               .simulation
               .activeMovements[
                 army.id
-              ] !==
-            undefined,
+              ] ??
+            null,
         })
       );
 
@@ -101,6 +534,10 @@ export function getPlayerObservation(
     player: {
       id:
         player.id,
+
+      displayName:
+        player
+          .displayName,
 
       controllerType:
         player
@@ -132,6 +569,22 @@ export function getPlayerObservation(
           .currentPlayerId ===
         playerId,
 
+      requiredPlayerIds:
+        [
+          ...world
+            .session
+            .commandCycle
+            .requiredPlayerIds,
+        ],
+
+      readyPlayerIds:
+        [
+          ...world
+            .session
+            .commandCycle
+            .readyPlayerIds,
+        ],
+
       interrupt:
         world.session
           .commandCycle
@@ -139,44 +592,49 @@ export function getPlayerObservation(
         null,
     },
 
-    character: character
-      ? {
-          id:
-            character.id,
+    character:
+      character
+        ? {
+            id:
+              character.id,
 
-          name:
-            character.name,
+            name:
+              character.name,
 
-          position:
-            characterPosition ??
-            null,
+            rank:
+              character.rank,
 
-          treasury:
-            character
-              .treasury,
-        }
-      : null,
+            position:
+              characterPosition ??
+              null,
 
-    kingdom: kingdom
-      ? {
-          id:
-            kingdom.id,
+            treasury:
+              character
+                .treasury,
+          }
+        : null,
 
-          name:
-            kingdom.name,
+    kingdom:
+      kingdom
+        ? {
+            id:
+              kingdom.id,
 
-          treasury:
-            kingdom
-              .treasury,
+            name:
+              kingdom.name,
 
-          stability:
-            kingdom
-              .stability,
+            treasury:
+              kingdom
+                .treasury,
 
-          food:
-            kingdom.food,
-        }
-      : null,
+            stability:
+              kingdom
+                .stability,
+
+            food:
+              kingdom.food,
+          }
+        : null,
 
     ownArmies,
 
@@ -185,11 +643,6 @@ export function getPlayerObservation(
         playerId
       ),
 
-    /*
-     * Other realms / enemy forces
-     * appear only through the player's
-     * knowledge layer.
-     */
     knownWorld:
       getDeliveredPlayerKnowledge(
         playerId

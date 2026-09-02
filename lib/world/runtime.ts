@@ -42,6 +42,30 @@ type Listener =
 const INITIAL_WORLD_TIME_MINUTES =
   8 * 60;
 
+function createInitialCharacterPositions():
+  Record<
+    string,
+    Position
+  > {
+  return Object.fromEntries(
+    Object.values(
+      characters
+    ).map(
+      (character) => [
+        character.id,
+
+        {
+          kind:
+            "node" as const,
+
+          nodeId:
+            character.locationId,
+        },
+      ]
+    )
+  );
+}
+
 let worldState:
   WorldState = {
   kingdoms,
@@ -102,8 +126,10 @@ let worldState:
     ),
 
   /*
-   * Temporary local-player
-   * compatibility projection.
+   * Legacy local human projection.
+   *
+   * Multiplayer canonical ownership
+   * lives in session.players.
    */
   player: {
     characterId:
@@ -121,13 +147,7 @@ let worldState:
       true,
 
     entityPositions: {
-      lord_edwyn: {
-        kind:
-          "node",
-
-        nodeId:
-          "stoneford",
-      },
+      ...createInitialCharacterPositions(),
 
       ...demoArmyPositions,
     },
@@ -302,7 +322,8 @@ export function removeActiveMovement(
         ...current,
 
         simulation: {
-          ...current.simulation,
+          ...current
+            .simulation,
 
           activeMovements,
         },
@@ -377,12 +398,6 @@ export function allocateSimulationSequence():
   return sequence;
 }
 
-/*
- * Legacy UI compatibility.
- *
- * Final arrival position is still
- * driven by physical movement.
- */
 export function setPlayerSettledLocation(
   locationId:
     string

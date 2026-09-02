@@ -14,6 +14,12 @@ export function createInitialSession(
   worldTime:
     WorldMinute
 ): GameSessionState {
+  /*
+   * Human + four WebMCP LLM players.
+   *
+   * The World Director is NOT represented
+   * here. It will be added separately in D.
+   */
   const players:
     PlayerSlot[] = [
     {
@@ -26,9 +32,6 @@ export function createInitialSession(
       characterId:
         "lord_edwyn",
 
-      /*
-       * Actual canonical realm ID.
-       */
       kingdomId:
         "northreach",
 
@@ -38,9 +41,93 @@ export function createInitialSession(
       active:
         true,
     },
+
+    {
+      id:
+        "player-roderic",
+
+      controllerType:
+        "webmcp_llm",
+
+      characterId:
+        "king_roderic",
+
+      kingdomId:
+        "eastvale",
+
+      displayName:
+        "King Roderic",
+
+      active:
+        true,
+    },
+
+    {
+      id:
+        "player-garran",
+
+      controllerType:
+        "webmcp_llm",
+
+      characterId:
+        "king_garran",
+
+      kingdomId:
+        "westmoor",
+
+      displayName:
+        "King Garran",
+
+      active:
+        true,
+    },
+
+    {
+      id:
+        "player-osric",
+
+      controllerType:
+        "webmcp_llm",
+
+      characterId:
+        "king_osric",
+
+      kingdomId:
+        "southmark",
+
+      displayName:
+        "King Osric",
+
+      active:
+        true,
+    },
+
+    {
+      id:
+        "player-varren",
+
+      controllerType:
+        "webmcp_llm",
+
+      characterId:
+        "king_varren",
+
+      kingdomId:
+        "ironhollow",
+
+      displayName:
+        "King Varren",
+
+      active:
+        true,
+    },
   ];
 
-  const playerRecord =
+  const playerRecord:
+    Record<
+      string,
+      PlayerSlot
+    > =
     Object.fromEntries(
       players.map(
         (player) => [

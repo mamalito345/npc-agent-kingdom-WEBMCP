@@ -3,216 +3,103 @@ import type {
 } from "@mcp-b/webmcp-types";
 
 import {
-  travelTo,
-} from "@/lib/world/actions";
-
-import {
-  fortify,
-} from "@/lib/military/fortification";
-
-import {
-  repairFortification,
-} from "@/lib/military/fortification-repair";
-
-import {
-  getPlayerVisibleWorld,
-  inspectCharacter,
-  inspectLocation,
-} from "@/lib/world/state";
-
-import {
   isWebMCPAvailable,
 } from "@/lib/webmcp/support";
 
 import {
-  inspectArmy,
-  inspectSettlementMilitary,
-  inspectSettlementResources,
-} from "@/lib/military/inspection";
+  validatePlayerAccess,
+} from "@/lib/session/access";
 
 import {
-  recruitUnits,
-} from "@/lib/military/recruitment";
+  getPlayerObservation,
+  getPlayerKnownWorld,
+  getPlayerKnownEnemyForces,
+  getPlayerMessages,
+  getPlayerBattlesView,
+  getPlayerSettlementsView,
+  getPlayerEconomyView,
+} from "@/lib/session/observation";
 
 import {
-  moveArmy,
-} from "@/lib/military/army-movement";
+  getPlayerOrders,
+} from "@/lib/session/orders";
 
 import {
-  supportArmy,
-} from "@/lib/military/support";
+  issuePlayerArmyMove,
+  issuePlayerInterception,
+  cancelPlayerOrder,
+  changeQueuedPlayerArmyOrder,
+  setPlayerBattleTactic,
+  submitPlayerBattleCrisisOrder,
+  recruitPlayerUnits,
+  startPlayerSiege,
+  sendPlayerMessage,
+  sendPlayerEnvoy,
+  passPlayerCommandWindow,
+} from "@/lib/session/player-actions";
 
-import {
-  startBattle,
-} from "@/lib/military/battle-state";
-
-import {
-  submitBattleOrder,
-} from "@/lib/military/battle-orders";
-
-import {
-  startSiege,
-  liftSiege,
-} from "@/lib/military/siege";
-
-import {
-  inspectActiveBattles,
-  inspectActiveSieges,
-  inspectBattle,
-  inspectKingdomEconomy,
-  inspectRoad,
-  inspectSiege,
-  inspectWars,
-} from "@/lib/military/operational-inspection";
-
-import {
-  getRuntimeWorldState,
-} from "@/lib/world/runtime";
-import {
-  retreatArmyImmediately,
-} from "@/lib/military/retreat";
-
-import {
-  captureSettlement,
-} from "@/lib/military/conquest";
-
-import {
-  raidSettlement,
-} from "@/lib/military/raid";
-
-import {
-  sackSettlement,
-} from "@/lib/military/sack";
+import type {
+  BattleOrderType,
+  BattleTactic,
+  UnitType,
+} from "@/types/military";
 
 //
 // ============================================================
-// WEBMCP INPUT SCHEMAS
+// BASE SCHEMAS
 // ============================================================
 //
 
-const emptyInputSchema = {
-  type: "object",
-  properties: {},
-  additionalProperties:
-    false,
-} as const satisfies JsonSchemaForInference;
+const playerInputProperties = {
+  session_id: {
+    type:
+      "string",
+  },
 
-const locationInputSchema = {
-  type: "object",
+  player_id: {
+    type:
+      "string",
+  },
+} as const;
+
+const playerSchema = {
+  type:
+    "object",
 
   properties: {
-    location_id: {
-      type: "string",
-    },
+    ...playerInputProperties,
   },
 
   required: [
-    "location_id",
+    "session_id",
+    "player_id",
   ],
 
   additionalProperties:
     false,
 } as const satisfies JsonSchemaForInference;
 
-const characterInputSchema = {
-  type: "object",
+const moveArmySchema = {
+  type:
+    "object",
 
   properties: {
-    character_id: {
-      type: "string",
-    },
-  },
+    ...playerInputProperties,
 
-  required: [
-    "character_id",
-  ],
-
-  additionalProperties:
-    false,
-} as const satisfies JsonSchemaForInference;
-
-const armyInputSchema = {
-  type: "object",
-
-  properties: {
     army_id: {
-      type: "string",
-    },
-  },
-
-  required: [
-    "army_id",
-  ],
-
-  additionalProperties:
-    false,
-} as const satisfies JsonSchemaForInference;
-
-const resourcesInputSchema = {
-  type: "object",
-
-  properties: {
-    settlement_id: {
-      type: "string",
-    },
-  },
-
-  required: [
-    "settlement_id",
-  ],
-
-  additionalProperties:
-    false,
-} as const satisfies JsonSchemaForInference;
-
-const recruitInputSchema = {
-  type: "object",
-
-  properties: {
-    settlement_id: {
-      type: "string",
-    },
-
-    unit_type: {
-      type: "string",
-
-      enum: [
-        "infantry",
-        "cavalry",
-        "siege",
-        "ship",
-      ],
-    },
-
-    blocks: {
-      type: "number",
-    },
-  },
-
-  required: [
-    "settlement_id",
-    "unit_type",
-    "blocks",
-  ],
-
-  additionalProperties:
-    false,
-} as const satisfies JsonSchemaForInference;
-
-const moveArmyInputSchema = {
-  type: "object",
-
-  properties: {
-    army_id: {
-      type: "string",
+      type:
+        "string",
     },
 
     destination_node_id: {
-      type: "string",
+      type:
+        "string",
     },
   },
 
   required: [
+    "session_id",
+    "player_id",
     "army_id",
     "destination_node_id",
   ],
@@ -221,21 +108,28 @@ const moveArmyInputSchema = {
     false,
 } as const satisfies JsonSchemaForInference;
 
-const supportArmyInputSchema = {
-  type: "object",
+const interceptSchema = {
+  type:
+    "object",
 
   properties: {
-    supporter_army_id: {
-      type: "string",
+    ...playerInputProperties,
+
+    army_id: {
+      type:
+        "string",
     },
 
     target_army_id: {
-      type: "string",
+      type:
+        "string",
     },
   },
 
   required: [
-    "supporter_army_id",
+    "session_id",
+    "player_id",
+    "army_id",
     "target_army_id",
   ],
 
@@ -243,102 +137,124 @@ const supportArmyInputSchema = {
     false,
 } as const satisfies JsonSchemaForInference;
 
-const fightInputSchema = {
-  type: "object",
+const orderIdSchema = {
+  type:
+    "object",
 
   properties: {
-    attacker_army_id: {
-      type: "string",
-    },
+    ...playerInputProperties,
 
-    defender_army_id: {
-      type: "string",
-    },
-
-    contact_id: {
-      type: "string",
+    order_id: {
+      type:
+        "string",
     },
   },
 
   required: [
-    "attacker_army_id",
-    "defender_army_id",
+    "session_id",
+    "player_id",
+    "order_id",
   ],
 
   additionalProperties:
     false,
 } as const satisfies JsonSchemaForInference;
 
-const armySettlementInputSchema = {
-  type: "object",
+const changeOrderSchema = {
+  type:
+    "object",
 
   properties: {
-    army_id: {
-      type: "string",
+    ...playerInputProperties,
+
+    order_id: {
+      type:
+        "string",
     },
 
-    settlement_id: {
-      type: "string",
+    destination_node_id: {
+      type:
+        "string",
     },
   },
 
   required: [
-    "army_id",
-    "settlement_id",
+    "session_id",
+    "player_id",
+    "order_id",
+    "destination_node_id",
   ],
 
   additionalProperties:
     false,
 } as const satisfies JsonSchemaForInference;
 
-const battleInputSchema = {
-  type: "object",
+const battleTacticSchema = {
+  type:
+    "object",
 
   properties: {
+    ...playerInputProperties,
+
     battle_id: {
-      type: "string",
+      type:
+        "string",
+    },
+
+    army_id: {
+      type:
+        "string",
+    },
+
+    tactic: {
+      type:
+        "string",
+
+      enum: [
+        "hold_ground",
+        "aggressive_push",
+        "shield_wall",
+        "cavalry_flank",
+        "counterattack",
+        "seize_high_ground",
+        "orderly_retreat",
+        "desperate_assault",
+      ],
     },
   },
 
   required: [
+    "session_id",
+    "player_id",
     "battle_id",
+    "army_id",
+    "tactic",
   ],
 
   additionalProperties:
     false,
 } as const satisfies JsonSchemaForInference;
 
-const siegeInputSchema = {
-  type: "object",
+const battleOrderSchema = {
+  type:
+    "object",
 
   properties: {
-    siege_id: {
-      type: "string",
-    },
-  },
+    ...playerInputProperties,
 
-  required: [
-    "siege_id",
-  ],
-
-  additionalProperties:
-    false,
-} as const satisfies JsonSchemaForInference;
-
-const battleOrderInputSchema = {
-  type: "object",
-
-  properties: {
     battle_id: {
-      type: "string",
+      type:
+        "string",
     },
 
     army_id: {
-      type: "string",
+      type:
+        "string",
     },
 
     order: {
-      type: "string",
+      type:
+        "string",
 
       enum: [
         "hold_position",
@@ -350,6 +266,8 @@ const battleOrderInputSchema = {
   },
 
   required: [
+    "session_id",
+    "player_id",
     "battle_id",
     "army_id",
     "order",
@@ -359,34 +277,129 @@ const battleOrderInputSchema = {
     false,
 } as const satisfies JsonSchemaForInference;
 
-const kingdomInputSchema = {
-  type: "object",
+const recruitSchema = {
+  type:
+    "object",
 
   properties: {
-    kingdom_id: {
-      type: "string",
+    ...playerInputProperties,
+
+    settlement_id: {
+      type:
+        "string",
+    },
+
+    unit_type: {
+      type:
+        "string",
+
+      enum: [
+        "infantry",
+        "cavalry",
+        "siege",
+        "ship",
+      ],
+    },
+
+    blocks: {
+      type:
+        "number",
     },
   },
 
   required: [
-    "kingdom_id",
+    "session_id",
+    "player_id",
+    "settlement_id",
+    "unit_type",
+    "blocks",
   ],
 
   additionalProperties:
     false,
 } as const satisfies JsonSchemaForInference;
 
-const roadInputSchema = {
-  type: "object",
+const siegeSchema = {
+  type:
+    "object",
 
   properties: {
-    edge_id: {
-      type: "string",
+    ...playerInputProperties,
+
+    army_id: {
+      type:
+        "string",
+    },
+
+    settlement_id: {
+      type:
+        "string",
     },
   },
 
   required: [
-    "edge_id",
+    "session_id",
+    "player_id",
+    "army_id",
+    "settlement_id",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const messageSchema = {
+  type:
+    "object",
+
+  properties: {
+    ...playerInputProperties,
+
+    recipient_character_id: {
+      type:
+        "string",
+    },
+
+    content: {
+      type:
+        "string",
+    },
+  },
+
+  required: [
+    "session_id",
+    "player_id",
+    "recipient_character_id",
+    "content",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const envoySchema = {
+  type:
+    "object",
+
+  properties: {
+    ...playerInputProperties,
+
+    recipient_character_id: {
+      type:
+        "string",
+    },
+
+    proposal: {
+      type:
+        "string",
+    },
+  },
+
+  required: [
+    "session_id",
+    "player_id",
+    "recipient_character_id",
+    "proposal",
   ],
 
   additionalProperties:
@@ -406,7 +419,7 @@ let registrationController:
 
 //
 // ============================================================
-// REGISTER ALL TOOLS
+// REGISTER
 // ============================================================
 //
 
@@ -443,19 +456,21 @@ export async function registerWebMCPTools():
 
   try {
     //
-    // WORLD
+    // ========================================================
+    // PLAYER STATE
+    // ========================================================
     //
 
     await modelContext.registerTool(
       {
         name:
-          "inspect_world",
+          "inspect_player_state",
 
         description:
-          "Inspect the political world and locations currently available to the player.",
+          "Inspect only this player's canonical own state, command window, armies, orders and delivered knowledge.",
 
         inputSchema:
-          emptyInputSchema,
+          playerSchema,
 
         annotations: {
           readOnlyHint:
@@ -463,8 +478,35 @@ export async function registerWebMCPTools():
         },
 
         execute:
-          async () =>
-            getPlayerVisibleWorld(),
+          async ({
+            session_id,
+            player_id,
+          }) => {
+            const access =
+              validatePlayerAccess(
+                session_id,
+                player_id
+              );
+
+            if (
+              access.ok ===
+              false
+            ) {
+              return access;
+            }
+
+            return (
+              getPlayerObservation(
+                player_id
+              ) ?? {
+                ok:
+                  false,
+
+                error:
+                  "PLAYER_NOT_FOUND",
+              }
+            );
+          },
       },
 
       {
@@ -476,13 +518,13 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "inspect_location",
+          "inspect_known_world",
 
         description:
-          "Inspect a location using its location ID.",
+          "Inspect world facts that have actually been delivered to this player. Does not expose omniscient canonical enemy state.",
 
         inputSchema:
-          locationInputSchema,
+          playerSchema,
 
         annotations: {
           readOnlyHint:
@@ -491,10 +533,12 @@ export async function registerWebMCPTools():
 
         execute:
           async ({
-            location_id,
+            session_id,
+            player_id,
           }) =>
-            inspectLocation(
-              location_id
+            getPlayerKnownWorld(
+              session_id,
+              player_id
             ),
       },
 
@@ -507,13 +551,13 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "inspect_character",
+          "inspect_armies",
 
         description:
-          "Inspect a character using its character ID.",
+          "Inspect this player's own armies and their exact canonical positions.",
 
         inputSchema:
-          characterInputSchema,
+          playerSchema,
 
         annotations: {
           readOnlyHint:
@@ -522,11 +566,37 @@ export async function registerWebMCPTools():
 
         execute:
           async ({
-            character_id,
-          }) =>
-            inspectCharacter(
-              character_id
-            ),
+            session_id,
+            player_id,
+          }) => {
+            const access =
+              validatePlayerAccess(
+                session_id,
+                player_id
+              );
+
+            if (
+              access.ok ===
+              false
+            ) {
+              return access;
+            }
+
+            const observation =
+              getPlayerObservation(
+                player_id
+              );
+
+            return {
+              ok:
+                true,
+
+              armies:
+                observation
+                  ?.ownArmies ??
+                [],
+            };
+          },
       },
 
       {
@@ -538,43 +608,13 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "travel_to",
+          "inspect_known_enemy_forces",
 
         description:
-          "Travel the player through the canonical world simulation.",
+          "Inspect only enemy force information actually known to this player through observation, scouts, couriers or intelligence.",
 
         inputSchema:
-          locationInputSchema,
-
-        execute:
-          async ({
-            location_id,
-          }) =>
-            travelTo(
-              location_id
-            ),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
-
-    //
-    // MILITARY INSPECTION
-    //
-
-    await modelContext.registerTool(
-      {
-        name:
-          "inspect_army",
-
-        description:
-          "Inspect an army including units, position, movement, upkeep, supply and funding.",
-
-        inputSchema:
-          armyInputSchema,
+          playerSchema,
 
         annotations: {
           readOnlyHint:
@@ -583,10 +623,12 @@ export async function registerWebMCPTools():
 
         execute:
           async ({
-            army_id,
+            session_id,
+            player_id,
           }) =>
-            inspectArmy(
-              army_id
+            getPlayerKnownEnemyForces(
+              session_id,
+              player_id
             ),
       },
 
@@ -599,13 +641,13 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "inspect_resources",
+          "inspect_messages",
 
         description:
-          "Inspect total, reserved and available settlement resources.",
+          "Inspect this player's sent messages and incoming messages that have physically arrived.",
 
         inputSchema:
-          resourcesInputSchema,
+          playerSchema,
 
         annotations: {
           readOnlyHint:
@@ -614,10 +656,12 @@ export async function registerWebMCPTools():
 
         execute:
           async ({
-            settlement_id,
+            session_id,
+            player_id,
           }) =>
-            inspectSettlementResources(
-              settlement_id
+            getPlayerMessages(
+              session_id,
+              player_id
             ),
       },
 
@@ -630,13 +674,13 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "inspect_settlement_military",
+          "inspect_orders",
 
         description:
-          "Inspect political ownership, military controller, occupation, garrison and fortification state.",
+          "Inspect this player's strategic order queue and lifecycle.",
 
         inputSchema:
-          resourcesInputSchema,
+          playerSchema,
 
         annotations: {
           readOnlyHint:
@@ -645,10 +689,130 @@ export async function registerWebMCPTools():
 
         execute:
           async ({
-            settlement_id,
+            session_id,
+            player_id,
+          }) => {
+            const access =
+              validatePlayerAccess(
+                session_id,
+                player_id
+              );
+
+            if (
+              access.ok ===
+              false
+            ) {
+              return access;
+            }
+
+            return {
+              ok:
+                true,
+
+              orders:
+                getPlayerOrders(
+                  player_id
+                ),
+            };
+          },
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_battles",
+
+        description:
+          "Inspect exact battles involving this player's armies plus remotely known battle reports.",
+
+        inputSchema:
+          playerSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async ({
+            session_id,
+            player_id,
           }) =>
-            inspectSettlementMilitary(
-              settlement_id
+            getPlayerBattlesView(
+              session_id,
+              player_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_settlements",
+
+        description:
+          "Inspect exact friendly-controlled settlements plus foreign settlements known through the intelligence layer.",
+
+        inputSchema:
+          playerSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async ({
+            session_id,
+            player_id,
+          }) =>
+            getPlayerSettlementsView(
+              session_id,
+              player_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_economy",
+
+        description:
+          "Inspect the player's own kingdom economy without exposing foreign canonical treasuries.",
+
+        inputSchema:
+          playerSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async ({
+            session_id,
+            player_id,
+          }) =>
+            getPlayerEconomyView(
+              session_id,
+              player_id
             ),
       },
 
@@ -659,68 +823,32 @@ export async function registerWebMCPTools():
     );
 
     //
-    // RECRUITMENT
+    // ========================================================
+    // STRATEGIC ORDERS
+    // ========================================================
     //
 
     await modelContext.registerTool(
       {
         name:
-          "recruit_units",
+          "issue_army_move",
 
         description:
-          "Recruit military units through the canonical resource reservation and recruitment system.",
+          "Queue a canonical movement order for an army controlled by this player.",
 
         inputSchema:
-          recruitInputSchema,
+          moveArmySchema,
 
         execute:
           async ({
-            settlement_id,
-            unit_type,
-            blocks,
-          }) =>
-            recruitUnits({
-              settlementId:
-                settlement_id,
-
-              unitType:
-                unit_type as
-                  | "infantry"
-                  | "cavalry"
-                  | "siege"
-                  | "ship",
-
-              blocks,
-            }),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
-
-    //
-    // ARMY OPERATIONS
-    //
-
-    await modelContext.registerTool(
-      {
-        name:
-          "move_army",
-
-        description:
-          "Move an army using canonical map pathfinding and simulation movement.",
-
-        inputSchema:
-          moveArmyInputSchema,
-
-        execute:
-          async ({
+            session_id,
+            player_id,
             army_id,
             destination_node_id,
           }) =>
-            moveArmy(
+            issuePlayerArmyMove(
+              session_id,
+              player_id,
               army_id,
               destination_node_id
             ),
@@ -735,21 +863,25 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "support_army",
+          "issue_intercept",
 
         description:
-          "Order one friendly army to support another.",
+          "Queue an interception order for one of this player's armies.",
 
         inputSchema:
-          supportArmyInputSchema,
+          interceptSchema,
 
         execute:
           async ({
-            supporter_army_id,
+            session_id,
+            player_id,
+            army_id,
             target_army_id,
           }) =>
-            supportArmy(
-              supporter_army_id,
+            issuePlayerInterception(
+              session_id,
+              player_id,
+              army_id,
               target_army_id
             ),
       },
@@ -760,92 +892,27 @@ export async function registerWebMCPTools():
       }
     );
 
-    //
-    // COMBAT
-    //
     await modelContext.registerTool(
       {
         name:
-          "start_battle",
+          "cancel_order",
 
         description:
-          "Start a persistent canonical battle between hostile armies at the same node. The battle then progresses through simulation time and may request player battle orders.",
+          "Cancel one of this player's strategic orders. Executing movement halts at its current physical position.",
 
         inputSchema:
-          fightInputSchema,
+          orderIdSchema,
 
         execute:
           async ({
-            attacker_army_id,
-            defender_army_id,
-            contact_id,
+            session_id,
+            player_id,
+            order_id,
           }) =>
-            startBattle({
-              attackerArmyId:
-                attacker_army_id,
-
-              defenderArmyId:
-                defender_army_id,
-
-              contactId:
-                contact_id,
-            }),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
-    await modelContext.registerTool(
-  {
-    name:
-      "inspect_battles",
-
-    description:
-      "Inspect all currently active persistent battles and pending decision points.",
-
-    inputSchema:
-      emptyInputSchema,
-
-    annotations: {
-      readOnlyHint:
-        true,
-    },
-
-    execute:
-      async () =>
-        inspectActiveBattles(),
-  },
-
-  {
-    signal:
-      controller.signal,
-  }
-);
-
-    await modelContext.registerTool(
-      {
-        name:
-          "inspect_battle",
-
-        description:
-          "Inspect one persistent battle including participants, phase, operational power, orders, history and final result.",
-
-        inputSchema:
-          battleInputSchema,
-
-        annotations: {
-          readOnlyHint:
-            true,
-        },
-
-        execute:
-          async ({
-            battle_id,
-          }) =>
-            inspectBattle(
-              battle_id
+            cancelPlayerOrder(
+              session_id,
+              player_id,
+              order_id
             ),
       },
 
@@ -858,69 +925,102 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "submit_battle_order",
+          "change_order",
 
         description:
-          "Submit the player's canonical order at a pending battle decision. Available orders are hold_position, commit_reserve, press_attack and order_retreat.",
+          "Replace a queued army movement order with another destination. Executing mid-road rerouting is intentionally not fabricated.",
 
         inputSchema:
-          battleOrderInputSchema,
+          changeOrderSchema,
 
         execute:
           async ({
+            session_id,
+            player_id,
+            order_id,
+            destination_node_id,
+          }) =>
+            changeQueuedPlayerArmyOrder(
+              session_id,
+              player_id,
+              order_id,
+              destination_node_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    //
+    // ========================================================
+    // BATTLE
+    // ========================================================
+    //
+
+    await modelContext.registerTool(
+      {
+        name:
+          "set_battle_tactic",
+
+        description:
+          "Set the normal hourly tactic for one of this player's armies in an active battle.",
+
+        inputSchema:
+          battleTacticSchema,
+
+        execute:
+          async ({
+            session_id,
+            player_id,
+            battle_id,
+            army_id,
+            tactic,
+          }) =>
+            setPlayerBattleTactic(
+              session_id,
+              player_id,
+              battle_id,
+              army_id,
+              tactic as
+                BattleTactic
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "submit_battle_crisis_order",
+
+        description:
+          "Submit an available crisis decision for one of this player's armies when the battle requests a decision.",
+
+        inputSchema:
+          battleOrderSchema,
+
+        execute:
+          async ({
+            session_id,
+            player_id,
             battle_id,
             army_id,
             order,
-          }) => {
-            const world =
-              getRuntimeWorldState();
-
-            return submitBattleOrder({
-              battleId:
-                battle_id,
-
-              armyId:
-                army_id,
-
-              actorType:
-                "player",
-
-              actorId:
-                world.player
-                  .characterId,
-
-              order:
-                order as
-                  | "hold_position"
-                  | "commit_reserve"
-                  | "press_attack"
-                  | "order_retreat",
-            });
-          },
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
-    await modelContext.registerTool(
-      {
-        name:
-          "retreat_army",
-
-        description:
-          "Retreat an army through the canonical deterministic retreat resolver.",
-
-        inputSchema:
-          armyInputSchema,
-
-        execute:
-          async ({
-            army_id,
           }) =>
-            retreatArmyImmediately(
-              army_id
+            submitPlayerBattleCrisisOrder(
+              session_id,
+              player_id,
+              battle_id,
+              army_id,
+              order as
+                BattleOrderType
             ),
       },
 
@@ -931,111 +1031,38 @@ export async function registerWebMCPTools():
     );
 
     //
-    // CONQUEST
+    // ========================================================
+    // ECONOMY / SIEGE
+    // ========================================================
     //
 
     await modelContext.registerTool(
       {
         name:
-          "capture_settlement",
+          "recruit_units",
 
         description:
-          "Establish military control over an enemy settlement after hostile defenders are removed. Political ownership remains unchanged.",
+          "Recruit units as this player's canonical character using the normal settlement authorization and economy rules.",
 
         inputSchema:
-          armySettlementInputSchema,
+          recruitSchema,
 
         execute:
           async ({
-            army_id,
+            session_id,
+            player_id,
             settlement_id,
+            unit_type,
+            blocks,
           }) =>
-            captureSettlement(
-              army_id,
-              settlement_id
-            ),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
-
-    await modelContext.registerTool(
-      {
-        name:
-          "raid_settlement",
-
-        description:
-          "Begin a one-day raid against an enemy settlement. Completion is resolved by canonical simulation time.",
-
-        inputSchema:
-          armySettlementInputSchema,
-
-        execute:
-          async ({
-            army_id,
-            settlement_id,
-          }) =>
-            raidSettlement(
-              army_id,
-              settlement_id
-            ),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
-
-    await modelContext.registerTool(
-      {
-        name:
-          "sack_settlement",
-
-        description:
-          "Sack an occupied settlement controlled by the acting army's kingdom.",
-
-        inputSchema:
-          armySettlementInputSchema,
-
-        execute:
-          async ({
-            army_id,
-            settlement_id,
-          }) =>
-            sackSettlement(
-              army_id,
-              settlement_id
-            ),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
-    await modelContext.registerTool(
-      {
-        name:
-          "fortify",
-
-        description:
-          "Begin construction of the next fortification level at a controlled settlement. Resources are reserved immediately and construction completes through canonical simulation time.",
-
-        inputSchema:
-          resourcesInputSchema,
-
-        execute:
-          async ({
-            settlement_id,
-          }) =>
-            fortify({
-              settlementId:
+            recruitPlayerUnits(
+              session_id,
+              player_id,
               settlement_id,
-          }),
+              unit_type as
+                UnitType,
+              blocks
+            ),
       },
 
       {
@@ -1043,55 +1070,31 @@ export async function registerWebMCPTools():
           controller.signal,
       }
     );
-    await modelContext.registerTool(
-      {
-        name:
-          "repair_fortification",
 
-        description:
-          "Repair damaged fortifications at a controlled settlement. Repair cost and duration scale with the percentage of fortification damage.",
-
-        inputSchema:
-          resourcesInputSchema,
-
-        execute:
-          async ({
-            settlement_id,
-          }) =>
-            repairFortification({
-              settlementId:
-              settlement_id,
-          }),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
     await modelContext.registerTool(
       {
         name:
           "start_siege",
 
         description:
-          "Begin a persistent siege against a fortified enemy settlement while an active war exists.",
+          "Start a canonical siege using an army controlled by this player.",
 
         inputSchema:
-          armySettlementInputSchema,
+          siegeSchema,
 
         execute:
           async ({
+            session_id,
+            player_id,
             army_id,
             settlement_id,
           }) =>
-            startSiege({
-              armyId:
-                army_id,
-
-              settlementId:
-                settlement_id,
-            }),
+            startPlayerSiege(
+              session_id,
+              player_id,
+              army_id,
+              settlement_id
+            ),
       },
 
       {
@@ -1100,55 +1103,35 @@ export async function registerWebMCPTools():
       }
     );
 
-    await modelContext.registerTool(
-      {
-        name:
-          "inspect_sieges",
-
-        description:
-          "Inspect all currently active persistent sieges.",
-
-        inputSchema:
-          emptyInputSchema,
-
-        annotations: {
-          readOnlyHint:
-            true,
-        },
-
-        execute:
-          async () =>
-            inspectActiveSieges(),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
+    //
+    // ========================================================
+    // COMMUNICATION
+    // ========================================================
+    //
 
     await modelContext.registerTool(
       {
         name:
-          "inspect_siege",
+          "send_message",
 
         description:
-          "Inspect a siege including its phase, war linkage, attacker armies and fortification integrity.",
+          "Send a physical courier message from this player's character to another settled character.",
 
         inputSchema:
-          siegeInputSchema,
-
-        annotations: {
-          readOnlyHint:
-            true,
-        },
+          messageSchema,
 
         execute:
           async ({
-            siege_id,
+            session_id,
+            player_id,
+            recipient_character_id,
+            content,
           }) =>
-            inspectSiege(
-              siege_id
+            sendPlayerMessage(
+              session_id,
+              player_id,
+              recipient_character_id,
+              content
             ),
       },
 
@@ -1161,20 +1144,26 @@ export async function registerWebMCPTools():
     await modelContext.registerTool(
       {
         name:
-          "lift_siege",
+          "send_envoy",
 
         description:
-          "Lift an active persistent siege and release its attacking armies.",
+          "Send a diplomatic proposal by physical courier. NPC interpretation is handled by the World Director layer.",
 
         inputSchema:
-          siegeInputSchema,
+          envoySchema,
 
         execute:
           async ({
-            siege_id,
+            session_id,
+            player_id,
+            recipient_character_id,
+            proposal,
           }) =>
-            liftSiege(
-              siege_id
+            sendPlayerEnvoy(
+              session_id,
+              player_id,
+              recipient_character_id,
+              proposal
             ),
       },
 
@@ -1184,55 +1173,31 @@ export async function registerWebMCPTools():
       }
     );
 
-    await modelContext.registerTool(
-      {
-        name:
-          "inspect_wars",
-
-        description:
-          "Inspect canonical wars and their participating realms.",
-
-        inputSchema:
-          emptyInputSchema,
-
-        annotations: {
-          readOnlyHint:
-            true,
-        },
-
-        execute:
-          async () =>
-            inspectWars(),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
+    //
+    // ========================================================
+    // COMMAND CYCLE
+    // ========================================================
+    //
 
     await modelContext.registerTool(
       {
         name:
-          "inspect_strategic_economy",
+          "pass_command_window",
 
         description:
-          "Inspect a kingdom's treasury, military burden, trade disruption, supply horizon and mobilization pressure.",
+          "Finish issuing commands for this player's current command window. This does not advance one hour; execution begins only after all required players pass.",
 
         inputSchema:
-          kingdomInputSchema,
-
-        annotations: {
-          readOnlyHint:
-            true,
-        },
+          playerSchema,
 
         execute:
           async ({
-            kingdom_id,
+            session_id,
+            player_id,
           }) =>
-            inspectKingdomEconomy(
-              kingdom_id
+            passPlayerCommandWindow(
+              session_id,
+              player_id
             ),
       },
 
@@ -1242,51 +1207,13 @@ export async function registerWebMCPTools():
       }
     );
 
-    await modelContext.registerTool(
-      {
-        name:
-          "inspect_road_security",
-
-        description:
-          "Inspect a map road's current SAFE, THREATENED, RAIDED or BLOCKED strategic security state and trade multiplier.",
-
-        inputSchema:
-          roadInputSchema,
-
-        annotations: {
-          readOnlyHint:
-            true,
-        },
-
-        execute:
-          async ({
-            edge_id,
-          }) =>
-            inspectRoad(
-              edge_id
-            ),
-      },
-
-      {
-        signal:
-          controller.signal,
-      }
-    );
     console.log(
-      "[WebMCP] all tools registered"
+      "[WebMCP] player-scoped tools registered"
     );
 
     return true;
   } catch (error) {
-    if (
-      controller.signal.aborted &&
-      error instanceof
-        DOMException &&
-      error.name ===
-        "AbortError"
-    ) {
-      return false;
-    }
+    controller.abort();
 
     registrationController =
       null;
@@ -1295,27 +1222,20 @@ export async function registerWebMCPTools():
   }
 }
 
-//
-// ============================================================
-// UNREGISTER
-// ============================================================
-//
-
 export function unregisterWebMCPTools():
   void {
-  const controller =
-    registrationController;
-
-  registrationController =
-    null;
-
   if (
-    !controller ||
-    controller.signal
-      .aborted
+    !registrationController
   ) {
     return;
   }
 
-  controller.abort();
+  registrationController.abort();
+
+  registrationController =
+    null;
+
+  console.log(
+    "[WebMCP] tools unregistered"
+  );
 }
