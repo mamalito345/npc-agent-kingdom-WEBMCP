@@ -6,8 +6,6 @@ import type {
   WorldMinute,
 } from "@/types/simulation";
 
-
-
 import type {
   Settlement,
 } from "@/types/settlement";
@@ -20,6 +18,10 @@ import type {
 import type {
   ResourceStockpile,
 } from "@/types/resources";
+
+import type {
+  GameSessionState,
+} from "@/types/session";
 
 import type {
   Army,
@@ -50,21 +52,18 @@ export interface Kingdom {
 
   settlementIds: string[];
 
-  /**
+  /*
    * Canonical army references.
    *
-   * Real army state lives in:
-   * WorldState.armies
+   * Actual army state lives in
+   * WorldState.armies.
    */
   armyIds: string[];
 
   treasury: number;
 
-  /**
-   * Legacy compatibility field.
-   *
-   * Do NOT use as the Package 3
-   * canonical military source of truth.
+  /*
+   * Legacy compatibility only.
    */
   army: number;
 
@@ -72,10 +71,11 @@ export interface Kingdom {
 
   stability: number;
 
-  relations: Record<
-    string,
-    number
-  >;
+  relations:
+    Record<
+      string,
+      number
+    >;
 }
 
 export interface Character {
@@ -85,30 +85,29 @@ export interface Character {
 
   kingdomId: string;
 
-  rank: CharacterRank;
+  rank:
+    CharacterRank;
 
-  /**
-   * Last/current settled location.
+  /*
+   * Last settled location.
    *
-   * Precise travelling position:
-   * WorldState.simulation.entityPositions
+   * Exact physical position lives in:
+   * simulation.entityPositions.
    */
   locationId: string;
 
   treasury: number;
 
-  /**
-   * Legacy compatibility field.
-   *
-   * Real armies live in:
-   * WorldState.armies
+  /*
+   * Legacy compatibility only.
    */
   army: number;
 
-  relationships: Record<
-    string,
-    number
-  >;
+  relationships:
+    Record<
+      string,
+      number
+    >;
 }
 
 export type LocationType =
@@ -125,9 +124,19 @@ export interface Location {
 
   kingdomId: string;
 
-  type: LocationType;
+  type:
+    LocationType;
 }
 
+/*
+ * Legacy local-player projection.
+ *
+ * Do not use this as the canonical
+ * multiplayer player model.
+ *
+ * Canonical multiplayer state:
+ * WorldState.session.players
+ */
 export interface PlayerState {
   characterId: string;
 
@@ -140,25 +149,26 @@ export interface SimulationState {
 
   paused: boolean;
 
-  /**
-   * Canonical exact position for
-   * every moving entity:
+  /*
+   * Canonical physical position for:
    *
-   * character
-   * courier
-   * army
-   * future diplomat
-   * future scout
+   * characters
+   * armies
+   * couriers
+   * scouts
+   * diplomats
    */
-  entityPositions: Record<
-    string,
-    Position
-  >;
+  entityPositions:
+    Record<
+      string,
+      Position
+    >;
 
-  activeMovements: Record<
-    string,
-    ActiveMovement
-  >;
+  activeMovements:
+    Record<
+      string,
+      ActiveMovement
+    >;
 
   scheduledEvents:
     ScheduledEvent[];
@@ -166,57 +176,59 @@ export interface SimulationState {
   resolvedEvents:
     ResolvedEvent[];
 
-  nextSequence: number;
+  nextSequence:
+    number;
 }
 
 export interface WorldState {
-  kingdoms: Record<
-    string,
-    Kingdom
-  >;
+  kingdoms:
+    Record<
+      string,
+      Kingdom
+    >;
 
-  characters: Record<
-    string,
-    Character
-  >;
+  characters:
+    Record<
+      string,
+      Character
+    >;
 
-  locations: Record<
-    string,
-    Location
-  >;
+  locations:
+    Record<
+      string,
+      Location
+    >;
 
-  settlements: Record<
-    string,
-    Settlement
-  >;
+  settlements:
+    Record<
+      string,
+      Settlement
+    >;
 
-  armyContacts: Record<
-    string,
-    ArmyContact
-  >;
-  battles: Record<
-    string,
-    PersistentBattle
-  >;
+  armyContacts:
+    Record<
+      string,
+      ArmyContact
+    >;
 
-  sieges: Record<
-    string,
-    PersistentSiege
-  >;
+  battles:
+    Record<
+      string,
+      PersistentBattle
+    >;
 
-  battleResults: Record<
-    string,
-    BattleResult
-  >;
+  sieges:
+    Record<
+      string,
+      PersistentSiege
+    >;
 
-  /**
-   * Reservation ledger.
-   *
-   * Settlement.resources = physical total.
-   *
-   * Available resources:
-   * total - reserved
-   */
+  battleResults:
+    Record<
+      string,
+      BattleResult
+    >;
+
   settlementResourceReservations:
     Record<
       string,
@@ -229,46 +241,66 @@ export interface WorldState {
       SettlementOperation
     >;
 
-  unitBlocks: Record<
-    string,
-    UnitBlock
-  >;
+  unitBlocks:
+    Record<
+      string,
+      UnitBlock
+    >;
 
-  armies: Record<
-    string,
-    Army
-  >;
+  armies:
+    Record<
+      string,
+      Army
+    >;
+
   fortificationOrders:
     Record<
       string,
       FortificationOrder
     >;
+
   fortificationRepairOrders:
     Record<
       string,
       FortificationRepairOrder
     >;
-  recruitmentOrders: Record<
-    string,
-    RecruitmentOrder
-  >;
 
-  wars: Record<
-    string,
-    War
-  >;
+  recruitmentOrders:
+    Record<
+      string,
+      RecruitmentOrder
+    >;
 
-  couriers: Record<
-    string,
-    Courier
-  >;
+  wars:
+    Record<
+      string,
+      War
+    >;
 
-  messages: Record<
-    string,
-    WorldMessage
-  >;
+  couriers:
+    Record<
+      string,
+      Courier
+    >;
 
-  player: PlayerState;
+  messages:
+    Record<
+      string,
+      WorldMessage
+    >;
+
+  /*
+   * Canonical multiplayer /
+   * command-system state.
+   */
+  session:
+    GameSessionState;
+
+  /*
+   * Legacy UI projection.
+   */
+  player:
+    PlayerState;
 
   simulation:
     SimulationState;

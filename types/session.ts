@@ -1,0 +1,268 @@
+import type {
+  WorldMinute,
+} from "@/types/simulation";
+
+export type PlayerControllerType =
+  | "human"
+  | "webmcp_llm";
+
+export interface PlayerSlot {
+  id: string;
+
+  controllerType:
+    PlayerControllerType;
+
+  characterId: string;
+
+  kingdomId: string;
+
+  displayName: string;
+
+  active: boolean;
+}
+
+export type CommandCyclePhase =
+  | "planning"
+  | "executing"
+  | "interrupted";
+
+export type StrategicOrderType =
+  | "move_character"
+  | "move_army"
+  | "intercept_army"
+  | "hold_army";
+
+export type StrategicOrderStatus =
+  | "queued"
+  | "executing"
+  | "completed"
+  | "cancelled"
+  | "failed";
+
+export interface MoveCharacterOrderPayload {
+  characterId: string;
+
+  destinationNodeId:
+    string;
+}
+
+export interface MoveArmyOrderPayload {
+  armyId: string;
+
+  destinationNodeId:
+    string;
+}
+
+export interface InterceptArmyOrderPayload {
+  armyId: string;
+
+  targetArmyId:
+    string;
+}
+
+export interface HoldArmyOrderPayload {
+  armyId: string;
+}
+
+export type StrategicOrderPayload =
+  | MoveCharacterOrderPayload
+  | MoveArmyOrderPayload
+  | InterceptArmyOrderPayload
+  | HoldArmyOrderPayload;
+
+export interface StrategicOrder {
+  id: string;
+
+  playerId: string;
+
+  type:
+    StrategicOrderType;
+
+  payload:
+    StrategicOrderPayload;
+
+  issuedAt:
+    WorldMinute;
+
+  updatedAt:
+    WorldMinute;
+
+  status:
+    StrategicOrderStatus;
+
+  failureReason?:
+    string;
+}
+
+export type CommandInterruptType =
+  | "BATTLE_STARTED"
+  | "BATTLE_CRISIS"
+  | "BATTLE_ENDED"
+  | "ARMY_ARRIVED"
+  | "CHARACTER_ARRIVED"
+  | "ENEMY_SIGHTED"
+  | "INTERCEPTION"
+  | "SIEGE_STARTED"
+  | "SIEGE_ENDED"
+  | "IMPORTANT_MESSAGE"
+  | "ORDER_FAILED"
+  | "MAJOR_WORLD_EVENT";
+
+export interface CommandInterrupt {
+  id: string;
+
+  type:
+    CommandInterruptType;
+
+  createdAt:
+    WorldMinute;
+
+  affectedPlayerIds:
+    string[];
+
+  message: string;
+
+  resolvedPlayerIds:
+    string[];
+}
+
+export interface CommandCycleState {
+  phase:
+    CommandCyclePhase;
+
+  /*
+   * Order in which players receive
+   * planning / interrupt windows.
+   */
+  playerOrder:
+    string[];
+
+  /*
+   * Players required to respond in
+   * the current command window.
+   */
+  requiredPlayerIds:
+    string[];
+
+  /*
+   * Players who already pressed PASS.
+   */
+  readyPlayerIds:
+    string[];
+
+  currentPlayerId?:
+    string;
+
+  windowOpenedAt:
+    WorldMinute;
+
+  executionStartedAt?:
+    WorldMinute;
+
+  interrupt?:
+    CommandInterrupt;
+}
+
+export type KnowledgeSource =
+  | "direct_observation"
+  | "courier"
+  | "scout"
+  | "strategic_briefing"
+  | "system";
+
+export type KnowledgeConfidence =
+  | "confirmed"
+  | "high"
+  | "medium"
+  | "low"
+  | "rumor";
+
+export interface KnownWorldFact {
+  id: string;
+
+  subjectId: string;
+
+  kind:
+    | "army"
+    | "character"
+    | "settlement"
+    | "kingdom"
+    | "battle"
+    | "message"
+    | "event";
+
+  observedAt:
+    WorldMinute;
+
+  deliveredAt:
+    WorldMinute;
+
+  source:
+    KnowledgeSource;
+
+  confidence:
+    KnowledgeConfidence;
+
+  summary: string;
+
+  /*
+   * Structured but intentionally
+   * incomplete information.
+   *
+   * Never assume this equals the
+   * canonical world's exact state.
+   */
+  data:
+    Record<
+      string,
+      string | number | boolean | null
+    >;
+}
+
+export interface PlayerKnowledgeState {
+  playerId: string;
+
+  facts:
+    KnownWorldFact[];
+
+  lastStrategicBriefingAt:
+    WorldMinute;
+
+  nextStrategicBriefingAt:
+    WorldMinute;
+}
+
+export interface GameSessionState {
+  id: string;
+
+  name: string;
+
+  mapId: string;
+
+  startedAt:
+    WorldMinute;
+
+  players:
+    Record<
+      string,
+      PlayerSlot
+    >;
+
+  localPlayerId:
+    string;
+
+  commandCycle:
+    CommandCycleState;
+
+  orders:
+    Record<
+      string,
+      StrategicOrder
+    >;
+
+  knowledge:
+    Record<
+      string,
+      PlayerKnowledgeState
+    >;
+}

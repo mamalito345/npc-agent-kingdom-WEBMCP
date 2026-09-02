@@ -1,47 +1,104 @@
-import { mapEdges, mapNodes } from "@/data/map";
-import type { MapEdge, MapNode } from "@/types/map";
+import {
+  mapEdges,
+  mapNodes,
+} from "@/data/map";
 
-export function getMapNode(nodeId: string): MapNode | undefined {
-  return mapNodes[nodeId];
+import type {
+  MapEdge,
+  MapNode,
+} from "@/types/map";
+
+export function getMapNode(
+  nodeId: string
+): MapNode | undefined {
+  return mapNodes[
+    nodeId
+  ];
 }
 
-export function getMapEdge(edgeId: string): MapEdge | undefined {
-  return mapEdges[edgeId];
+export function getMapEdge(
+  edgeId: string
+): MapEdge | undefined {
+  return mapEdges[
+    edgeId
+  ];
 }
 
-export function getMapNodes(): MapNode[] {
-  return Object.values(mapNodes);
+export function getMapNodes():
+  MapNode[] {
+  return Object.values(
+    mapNodes
+  );
 }
 
-export function getMapEdges(): MapEdge[] {
-  return Object.values(mapEdges);
+export function getMapEdges():
+  MapEdge[] {
+  return Object.values(
+    mapEdges
+  );
 }
 
-export function getConnectedEdges(nodeId: string): MapEdge[] {
-  return Object.values(mapEdges)
+export function getConnectedEdges(
+  nodeId: string
+): MapEdge[] {
+  return Object.values(
+    mapEdges
+  )
     .filter(
       (edge) =>
-        edge.fromNodeId === nodeId ||
-        edge.toNodeId === nodeId
+        edge.fromNodeId ===
+          nodeId ||
+        edge.toNodeId ===
+          nodeId
     )
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort(
+      (a, b) =>
+        a.id.localeCompare(
+          b.id
+        )
+    );
 }
 
 export function getOtherNodeId(
   edge: MapEdge,
   nodeId: string
 ): string | null {
-  if (edge.fromNodeId === nodeId) {
+  if (
+    edge.fromNodeId ===
+    nodeId
+  ) {
     return edge.toNodeId;
   }
 
-  if (edge.toNodeId === nodeId) {
+  if (
+    edge.toNodeId ===
+    nodeId
+  ) {
     return edge.fromNodeId;
   }
 
   return null;
 }
 
-export function getEffectiveEdgeDistance(edge: MapEdge): number {
-  return edge.distanceKm * edge.travelModifier;
+export function getPhysicalEdgeDistance(
+  edge: MapEdge
+): number {
+  return Math.max(
+    0,
+    edge.distanceKm
+  );
+}
+
+export function getEffectiveEdgeDistance(
+  edge: MapEdge
+): number {
+  return (
+    getPhysicalEdgeDistance(
+      edge
+    ) *
+    Math.max(
+      0,
+      edge.travelModifier
+    )
+  );
 }

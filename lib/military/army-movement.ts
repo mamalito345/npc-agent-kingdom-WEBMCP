@@ -19,7 +19,6 @@ export type MoveArmyError =
   | "ARMY_NOT_FOUND"
   | "ARMY_DESTROYED"
   | "ARMY_IN_BATTLE"
-  | "ARMY_ALREADY_MOVING"
   | "ARMY_NOT_AT_NODE"
   | "DESTINATION_NOT_FOUND"
   | "ROUTE_NOT_FOUND"
@@ -28,19 +27,76 @@ export type MoveArmyError =
 export type MoveArmyResult =
   | {
       ok: false;
+
       error:
         MoveArmyError;
     }
   | {
       ok: true;
-      movementId: string;
+
+      movementId:
+        string;
+
       estimatedArrivalAt:
+        number;
+
+      physicalDistanceKm:
+        number;
+
+      effectiveDistanceKm:
         number;
     };
 
+export function stopArmyMovement(
+  armyId:
+    string
+): boolean {
+  const world =
+    getRuntimeWorldState();
+
+  const movement =
+    world.simulation
+      .activeMovements[
+        armyId
+      ];
+
+  if (!movement) {
+    return false;
+  }
+
+  updateRuntimeWorldState(
+    (current) => {
+      const activeMovements = {
+        ...current
+          .simulation
+          .activeMovements,
+      };
+
+      delete activeMovements[
+        armyId
+      ];
+
+      return {
+        ...current,
+
+        simulation: {
+          ...current
+            .simulation,
+
+          activeMovements,
+        },
+      };
+    }
+  );
+
+  return true;
+}
+
 export function moveArmy(
-  armyId: string,
-  destinationNodeId: string
+  armyId:
+    string,
+  destinationNodeId:
+    string
 ): MoveArmyResult {
   const world =
     getRuntimeWorldState();
@@ -53,6 +109,7 @@ export function moveArmy(
   if (!army) {
     return {
       ok: false,
+
       error:
         "ARMY_NOT_FOUND",
     };
@@ -64,6 +121,7 @@ export function moveArmy(
   ) {
     return {
       ok: false,
+
       error:
         "ARMY_DESTROYED",
     };
@@ -75,21 +133,9 @@ export function moveArmy(
   ) {
     return {
       ok: false,
+
       error:
         "ARMY_IN_BATTLE",
-    };
-  }
-
-  if (
-    world.simulation
-      .activeMovements[
-        armyId
-      ]
-  ) {
-    return {
-      ok: false,
-      error:
-        "ARMY_ALREADY_MOVING",
     };
   }
 
@@ -106,6 +152,7 @@ export function moveArmy(
   ) {
     return {
       ok: false,
+
       error:
         "ARMY_NOT_AT_NODE",
     };
@@ -118,6 +165,7 @@ export function moveArmy(
   ) {
     return {
       ok: false,
+
       error:
         "DESTINATION_NOT_FOUND",
     };
@@ -129,6 +177,7 @@ export function moveArmy(
   ) {
     return {
       ok: false,
+
       error:
         "ALREADY_AT_DESTINATION",
     };
@@ -143,6 +192,7 @@ export function moveArmy(
   if (!route) {
     return {
       ok: false,
+
       error:
         "ROUTE_NOT_FOUND",
     };
@@ -164,9 +214,13 @@ export function moveArmy(
           6,
           "0"
         )}`,
+
       armyId,
+
       route,
+
       ARMY_BASE_SPEED_KM_PER_HOUR,
+
       now
     );
 
@@ -189,7 +243,8 @@ export function moveArmy(
       },
 
       simulation: {
-        ...current.simulation,
+        ...current
+          .simulation,
 
         activeMovements: {
           ...current
@@ -212,5 +267,13 @@ export function moveArmy(
     estimatedArrivalAt:
       movement
         .estimatedArrivalAt,
+
+    physicalDistanceKm:
+      route
+        .totalDistanceKm,
+
+    effectiveDistanceKm:
+      route
+        .effectiveDistanceKm,
   };
 }

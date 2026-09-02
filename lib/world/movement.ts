@@ -8,7 +8,9 @@ import {
   getMapEdge,
 } from "@/lib/map/graph";
 
-import type { Route } from "@/types/map";
+import type {
+  Route,
+} from "@/types/map";
 
 import type {
   ActiveMovement,
@@ -16,25 +18,34 @@ import type {
   WorldMinute,
 } from "@/types/simulation";
 
-export const PLAYER_BASE_SPEED_KM_PER_HOUR = 8;
+export const PLAYER_BASE_SPEED_KM_PER_HOUR =
+  8;
 
 export function calculateTravelDurationMinutes(
   route: Route,
   speedKmPerHour: number
 ): number {
-  if (route.totalDistanceKm <= 0) {
+  if (
+    route.effectiveDistanceKm <=
+    0
+  ) {
     return 0;
   }
 
-  if (speedKmPerHour <= 0) {
+  if (
+    speedKmPerHour <=
+    0
+  ) {
     throw new Error(
       "Movement speed must be greater than zero."
     );
   }
 
   return Math.ceil(
-    (route.totalDistanceKm /
-      speedKmPerHour) *
+    (
+      route.effectiveDistanceKm /
+      speedKmPerHour
+    ) *
       60
   );
 }
@@ -46,76 +57,134 @@ export function createMovement(
   speedKmPerHour: number,
   startedAt: WorldMinute
 ): ActiveMovement {
+  if (
+    route.nodeIds.length ===
+    0
+  ) {
+    throw new Error(
+      "Movement route must contain at least one node."
+    );
+  }
+
   const durationMinutes =
     calculateTravelDurationMinutes(
       route,
       speedKmPerHour
     );
 
+  const destinationNodeId =
+    route.nodeIds[
+      route.nodeIds.length -
+        1
+    ];
+
+  if (!destinationNodeId) {
+    throw new Error(
+      "Movement destination node could not be resolved."
+    );
+  }
+
   return {
     id,
+
     entityId,
 
-    routeNodeIds: route.nodeIds,
-    routeEdgeIds: route.edgeIds,
+    routeNodeIds: [
+      ...route.nodeIds,
+    ],
 
-    currentEdgeIndex: 0,
+    routeEdgeIds: [
+      ...route.edgeIds,
+    ],
+
+    currentEdgeIndex:
+      0,
 
     speedKmPerHour,
 
     startedAt,
 
     estimatedArrivalAt:
-      startedAt + durationMinutes,
+      startedAt +
+      durationMinutes,
 
-    destinationNodeId:
-      route.nodeIds[
-        route.nodeIds.length - 1
-      ],
+    destinationNodeId,
   };
 }
 
 function getMovementEdgeDistances(
-  movement: ActiveMovement
+  movement:
+    ActiveMovement
 ): number[] {
-  return movement.routeEdgeIds.map(
-    (edgeId) => {
-      const edge = getMapEdge(edgeId);
+  return movement
+    .routeEdgeIds
+    .map(
+      (edgeId) => {
+        const edge =
+          getMapEdge(
+            edgeId
+          );
 
-      if (!edge) {
-        throw new Error(
-          `Movement references unknown edge: ${edgeId}`
+        if (!edge) {
+          throw new Error(
+            `Movement references unknown edge: ${edgeId}`
+          );
+        }
+
+        return getEffectiveEdgeDistance(
+          edge
         );
       }
-
-      return getEffectiveEdgeDistance(edge);
-    }
-  );
+    );
 }
 
 export function getMovementTotalDistanceKm(
-  movement: ActiveMovement
+  movement:
+    ActiveMovement
 ): number {
   return getMovementEdgeDistances(
     movement
   ).reduce(
-    (total, distance) =>
-      total + distance,
+    (
+      total,
+      distance
+    ) =>
+      total +
+      distance,
     0
   );
 }
 
 export function getMovementPositionAtTime(
-  movement: ActiveMovement,
-  worldTime: WorldMinute
+  movement:
+    ActiveMovement,
+  worldTime:
+    WorldMinute
 ): Position {
+  const firstNodeId =
+    movement
+      .routeNodeIds[0];
+
+  if (!firstNodeId) {
+    throw new Error(
+      `Movement ${movement.id} has no origin node.`
+    );
+  }
+
   if (
-    worldTime <= movement.startedAt ||
-    movement.routeEdgeIds.length === 0
+    worldTime <=
+      movement.startedAt ||
+    movement
+      .routeEdgeIds
+      .length ===
+      0
   ) {
     return {
-      kind: "node",
-      nodeId: movement.routeNodeIds[0],
+      kind:
+        "node",
+
+      nodeId:
+        firstNodeId,
     };
   }
 
@@ -124,14 +193,18 @@ export function getMovementPositionAtTime(
     movement.estimatedArrivalAt
   ) {
     return {
-      kind: "node",
+      kind:
+        "node",
+
       nodeId:
-        movement.destinationNodeId,
+        movement
+          .destinationNodeId,
     };
   }
 
   const totalDuration =
-    movement.estimatedArrivalAt -
+    movement
+      .estimatedArrivalAt -
     movement.startedAt;
 
   const elapsed =
@@ -139,53 +212,85 @@ export function getMovementPositionAtTime(
     movement.startedAt;
 
   const timeProgress =
-    elapsed / totalDuration;
+    elapsed /
+    totalDuration;
 
   const edgeDistances =
-    getMovementEdgeDistances(movement);
+    getMovementEdgeDistances(
+      movement
+    );
 
   const totalDistance =
     edgeDistances.reduce(
-      (total, distance) =>
-        total + distance,
+      (
+        total,
+        distance
+      ) =>
+        total +
+        distance,
       0
     );
 
   const travelledDistance =
-    totalDistance * timeProgress;
+    totalDistance *
+    timeProgress;
 
-  let cumulativeDistance = 0;
+  let cumulativeDistance =
+    0;
 
   for (
     let index = 0;
-    index < edgeDistances.length;
+    index <
+      edgeDistances.length;
     index += 1
   ) {
     const edgeDistance =
-      edgeDistances[index];
+      edgeDistances[
+        index
+      ];
+
+    if (
+      edgeDistance ===
+      undefined
+    ) {
+      continue;
+    }
 
     const edgeEnd =
       cumulativeDistance +
       edgeDistance;
 
     if (
-      travelledDistance < edgeEnd
+      travelledDistance <
+      edgeEnd
     ) {
       const distanceOnEdge =
         travelledDistance -
         cumulativeDistance;
 
       const progress =
-        edgeDistance === 0
+        edgeDistance ===
+        0
           ? 1
           : distanceOnEdge /
             edgeDistance;
 
       const edgeId =
-        movement.routeEdgeIds[index];
+        movement
+          .routeEdgeIds[
+            index
+          ];
+
+      if (!edgeId) {
+        throw new Error(
+          `Movement ${movement.id} has inconsistent route edge state.`
+        );
+      }
 
       const edge =
-        getMapEdge(edgeId);
+        getMapEdge(
+          edgeId
+        );
 
       if (!edge) {
         throw new Error(
@@ -194,7 +299,16 @@ export function getMovementPositionAtTime(
       }
 
       const routeFromNode =
-        movement.routeNodeIds[index];
+        movement
+          .routeNodeIds[
+            index
+          ];
+
+      if (!routeFromNode) {
+        throw new Error(
+          `Movement ${movement.id} has inconsistent route node state.`
+        );
+      }
 
       const direction =
         edge.fromNodeId ===
@@ -203,55 +317,83 @@ export function getMovementPositionAtTime(
           : "backward";
 
       return {
-        kind: "edge",
+        kind:
+          "edge",
+
         edgeId,
-        progress: Math.max(
-          0,
-          Math.min(1, progress)
-        ),
+
+        progress:
+          Math.max(
+            0,
+            Math.min(
+              1,
+              progress
+            )
+          ),
+
         direction,
       };
     }
 
-    cumulativeDistance = edgeEnd;
+    cumulativeDistance =
+      edgeEnd;
   }
 
   return {
-    kind: "node",
+    kind:
+      "node",
+
     nodeId:
-      movement.destinationNodeId,
+      movement
+        .destinationNodeId,
   };
 }
 
 export function getNextMovementBoundaryTime(
-  movement: ActiveMovement,
-  currentTime: WorldMinute
+  movement:
+    ActiveMovement,
+  currentTime:
+    WorldMinute
 ): WorldMinute | undefined {
   const edgeDistances =
-    getMovementEdgeDistances(movement);
+    getMovementEdgeDistances(
+      movement
+    );
 
   const totalDistance =
     edgeDistances.reduce(
-      (total, distance) =>
-        total + distance,
+      (
+        total,
+        distance
+      ) =>
+        total +
+        distance,
       0
     );
 
   const totalDuration =
-    movement.estimatedArrivalAt -
+    movement
+      .estimatedArrivalAt -
     movement.startedAt;
 
   if (
-    totalDistance <= 0 ||
-    totalDuration <= 0
+    totalDistance <=
+      0 ||
+    totalDuration <=
+      0
   ) {
     return undefined;
   }
 
-  let cumulativeDistance = 0;
+  let cumulativeDistance =
+    0;
 
-  for (const edgeDistance of edgeDistances) {
-    cumulativeDistance += edgeDistance;
+  for (
+    const edgeDistance
+    of edgeDistances
+  ) {
+    cumulativeDistance +=
+      edgeDistance;
 
     const boundaryProgress =
       cumulativeDistance /
@@ -264,7 +406,10 @@ export function getNextMovementBoundaryTime(
             boundaryProgress
       );
 
-    if (boundaryTime > currentTime) {
+    if (
+      boundaryTime >
+      currentTime
+    ) {
       return boundaryTime;
     }
   }
@@ -273,33 +418,45 @@ export function getNextMovementBoundaryTime(
 }
 
 export function getNextWorldMovementBoundaryTime(
-  currentTime: WorldMinute
+  currentTime:
+    WorldMinute
 ): WorldMinute | undefined {
-  const movements = Object.values(
-    getRuntimeWorldState()
-      .simulation.activeMovements
-  );
+  const movements =
+    Object.values(
+      getRuntimeWorldState()
+        .simulation
+        .activeMovements
+    );
 
   let next:
-    | WorldMinute
-    | undefined;
+    WorldMinute |
+    undefined;
 
-  for (const movement of movements) {
+  for (
+    const movement
+    of movements
+  ) {
     const boundary =
       getNextMovementBoundaryTime(
         movement,
         currentTime
       );
 
-    if (boundary === undefined) {
+    if (
+      boundary ===
+      undefined
+    ) {
       continue;
     }
 
     if (
-      next === undefined ||
-      boundary < next
+      next ===
+        undefined ||
+      boundary <
+        next
     ) {
-      next = boundary;
+      next =
+        boundary;
     }
   }
 
@@ -307,135 +464,167 @@ export function getNextWorldMovementBoundaryTime(
 }
 
 export function advanceMovementPositionsTo(
-  worldTime: WorldMinute
+  worldTime:
+    WorldMinute
 ): void {
-  updateRuntimeWorldState((current) => {
-    const entityPositions = {
-      ...current.simulation
-        .entityPositions,
-    };
+  updateRuntimeWorldState(
+    (current) => {
+      const entityPositions = {
+        ...current
+          .simulation
+          .entityPositions,
+      };
 
-    for (
-      const movement of Object.values(
-        current.simulation
-          .activeMovements
-      )
-    ) {
-      entityPositions[
-        movement.entityId
-      ] =
-        getMovementPositionAtTime(
-          movement,
-          worldTime
-        );
+      for (
+        const movement
+        of Object.values(
+          current
+            .simulation
+            .activeMovements
+        )
+      ) {
+        entityPositions[
+          movement.entityId
+        ] =
+          getMovementPositionAtTime(
+            movement,
+            worldTime
+          );
+      }
+
+      return {
+        ...current,
+
+        simulation: {
+          ...current
+            .simulation,
+
+          entityPositions,
+        },
+      };
     }
-
-    return {
-      ...current,
-
-      simulation: {
-        ...current.simulation,
-        entityPositions,
-      },
-    };
-  });
+  );
 }
 
 export function resolveCompletedMovements(
-  worldTime: WorldMinute
+  worldTime:
+    WorldMinute
 ): void {
-  updateRuntimeWorldState((current) => {
-    const activeMovements = {
-      ...current.simulation
-        .activeMovements,
-    };
-
-    const entityPositions = {
-      ...current.simulation
-        .entityPositions,
-    };
-
-    let player = current.player;
-
-    let characters =
-      current.characters;
-
-    let charactersChanged = false;
-
-    for (
-      const movement of Object.values(
-        current.simulation
-          .activeMovements
-      )
-    ) {
-      if (
-        movement.estimatedArrivalAt >
-        worldTime
-      ) {
-        continue;
-      }
-
-      entityPositions[
-        movement.entityId
-      ] = {
-        kind: "node",
-        nodeId:
-          movement.destinationNodeId,
+  updateRuntimeWorldState(
+    (current) => {
+      const activeMovements = {
+        ...current
+          .simulation
+          .activeMovements,
       };
 
-      delete activeMovements[
-        movement.entityId
-      ];
+      const entityPositions = {
+        ...current
+          .simulation
+          .entityPositions,
+      };
 
-      if (
-        movement.entityId ===
-        current.player.characterId
+      let player =
+        current.player;
+
+      let characters =
+        current.characters;
+
+      let charactersChanged =
+        false;
+
+      for (
+        const movement
+        of Object.values(
+          current
+            .simulation
+            .activeMovements
+        )
       ) {
-        player = {
-          ...player,
+        if (
+          movement
+            .estimatedArrivalAt >
+          worldTime
+        ) {
+          continue;
+        }
 
-          locationId:
-            movement.destinationNodeId,
+        entityPositions[
+          movement.entityId
+        ] = {
+          kind:
+            "node",
+
+          nodeId:
+            movement
+              .destinationNodeId,
         };
-      }
 
-      const character =
-        current.characters[
+        delete activeMovements[
           movement.entityId
         ];
 
-      if (character) {
-        if (!charactersChanged) {
-          characters = {
-            ...current.characters,
-          };
+        if (
+          movement.entityId ===
+          current
+            .player
+            .characterId
+        ) {
+          player = {
+            ...player,
 
-          charactersChanged = true;
+            locationId:
+              movement
+                .destinationNodeId,
+          };
         }
 
-        characters[
-          movement.entityId
-        ] = {
-          ...character,
+        const character =
+          current.characters[
+            movement.entityId
+          ];
 
-          locationId:
-            movement.destinationNodeId,
-        };
+        if (character) {
+          if (
+            !charactersChanged
+          ) {
+            characters = {
+              ...current
+                .characters,
+            };
+
+            charactersChanged =
+              true;
+          }
+
+          characters[
+            movement.entityId
+          ] = {
+            ...character,
+
+            locationId:
+              movement
+                .destinationNodeId,
+          };
+        }
       }
+
+      return {
+        ...current,
+
+        player,
+
+        characters,
+
+        simulation: {
+          ...current
+            .simulation,
+
+          activeMovements,
+
+          entityPositions,
+        },
+      };
     }
-
-    return {
-      ...current,
-
-      player,
-      characters,
-
-      simulation: {
-        ...current.simulation,
-
-        activeMovements,
-        entityPositions,
-      },
-    };
-  });
+  );
 }

@@ -1,3 +1,7 @@
+import {
+  getActiveGameMap,
+} from "@/lib/map/map-registry";
+
 export interface VisualMapConfig {
   imageUrl: string;
 
@@ -12,17 +16,26 @@ export interface VisualMapConfig {
   initialZoom: number;
 }
 
-export const visualMapConfig: VisualMapConfig = {
+const activeMap =
+  getActiveGameMap();
+
+export const visualMapConfig:
+  VisualMapConfig = {
   imageUrl:
-    "/maps/world-map.png",
+    activeMap.image.url,
 
-  width: 5000,
+  width:
+    activeMap.image.width,
 
-  height: 3200,
+  height:
+    activeMap.image.height,
 
-  minZoom: 0.25,
+  minZoom:
+    activeMap.camera.minZoom,
 
-  maxZoom: 2.5,
+  maxZoom:
+    activeMap.camera.maxZoom,
 
-  initialZoom: 0.55,
+  initialZoom:
+    activeMap.camera.initialZoom,
 };

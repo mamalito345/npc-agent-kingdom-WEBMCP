@@ -20,6 +20,10 @@ import {
   demoUnitBlocks,
 } from "@/data/demo-military";
 
+import {
+  createInitialSession,
+} from "@/data/session";
+
 import type {
   ActiveMovement,
   Position,
@@ -38,7 +42,8 @@ type Listener =
 const INITIAL_WORLD_TIME_MINUTES =
   8 * 60;
 
-let worldState: WorldState = {
+let worldState:
+  WorldState = {
   kingdoms,
 
   characters,
@@ -54,32 +59,52 @@ let worldState: WorldState = {
     ...demoUnitBlocks,
   },
 
-  fortificationOrders: {},
+  fortificationOrders:
+    {},
 
-  fortificationRepairOrders: {},
+  fortificationRepairOrders:
+    {},
 
-  settlementOperations: {},
-  
+  settlementOperations:
+    {},
+
   armies: {
     ...demoArmies,
   },
 
-  recruitmentOrders: {},
+  recruitmentOrders:
+    {},
 
-  wars: {},
+  wars:
+    {},
 
-  armyContacts: {},
+  armyContacts:
+    {},
 
-  battles: {},
+  battles:
+    {},
 
-  sieges: {},
+  sieges:
+    {},
 
-  battleResults: {},
+  battleResults:
+    {},
 
-  couriers: {},
+  couriers:
+    {},
 
-  messages: {},
+  messages:
+    {},
 
+  session:
+    createInitialSession(
+      INITIAL_WORLD_TIME_MINUTES
+    ),
+
+  /*
+   * Temporary local-player
+   * compatibility projection.
+   */
   player: {
     characterId:
       "lord_edwyn",
@@ -92,7 +117,8 @@ let worldState: WorldState = {
     worldTimeMinutes:
       INITIAL_WORLD_TIME_MINUTES,
 
-    paused: true,
+    paused:
+      true,
 
     entityPositions: {
       lord_edwyn: {
@@ -106,20 +132,27 @@ let worldState: WorldState = {
       ...demoArmyPositions,
     },
 
-    activeMovements: {},
+    activeMovements:
+      {},
 
-    scheduledEvents: [],
+    scheduledEvents:
+      [],
 
-    resolvedEvents: [],
+    resolvedEvents:
+      [],
 
-    nextSequence: 1,
+    nextSequence:
+      1,
   },
 };
 
 const listeners =
-  new Set<Listener>();
+  new Set<
+    Listener
+  >();
 
-function emitWorldStateChange(): void {
+function emitWorldStateChange():
+  void {
   for (
     const listener
     of listeners
@@ -135,7 +168,8 @@ export function getRuntimeWorldState():
 
 export function updateRuntimeWorldState(
   updater: (
-    current: WorldState
+    current:
+      WorldState
   ) => WorldState
 ): void {
   worldState =
@@ -148,11 +182,9 @@ export function updateRuntimeWorldState(
 
 export function getWorldTime():
   WorldMinute {
-  return (
-    worldState
-      .simulation
-      .worldTimeMinutes
-  );
+  return worldState
+    .simulation
+    .worldTimeMinutes;
 }
 
 export function setWorldTime(
@@ -173,7 +205,8 @@ export function setWorldTime(
 }
 
 export function setWorldPaused(
-  paused: boolean
+  paused:
+    boolean
 ): void {
   updateRuntimeWorldState(
     (current) => ({
@@ -189,20 +222,21 @@ export function setWorldPaused(
 }
 
 export function getEntityPosition(
-  entityId: string
+  entityId:
+    string
 ): Position | undefined {
-  return (
-    worldState
-      .simulation
-      .entityPositions[
-        entityId
-      ]
-  );
+  return worldState
+    .simulation
+    .entityPositions[
+      entityId
+    ];
 }
 
 export function setEntityPosition(
-  entityId: string,
-  position: Position
+  entityId:
+    string,
+  position:
+    Position
 ): void {
   updateRuntimeWorldState(
     (current) => ({
@@ -249,7 +283,8 @@ export function setActiveMovement(
 }
 
 export function removeActiveMovement(
-  entityId: string
+  entityId:
+    string
 ): void {
   updateRuntimeWorldState(
     (current) => {
@@ -294,7 +329,8 @@ export function replaceScheduledEvents(
 }
 
 export function appendResolvedEvent(
-  event: ResolvedEvent
+  event:
+    ResolvedEvent
 ): void {
   updateRuntimeWorldState(
     (current) => ({
@@ -341,8 +377,15 @@ export function allocateSimulationSequence():
   return sequence;
 }
 
+/*
+ * Legacy UI compatibility.
+ *
+ * Final arrival position is still
+ * driven by physical movement.
+ */
 export function setPlayerSettledLocation(
-  locationId: string
+  locationId:
+    string
 ): void {
   const characterId =
     worldState
@@ -376,7 +419,8 @@ export function setPlayerSettledLocation(
 }
 
 export function subscribeWorldState(
-  listener: Listener
+  listener:
+    Listener
 ): () => void {
   listeners.add(
     listener

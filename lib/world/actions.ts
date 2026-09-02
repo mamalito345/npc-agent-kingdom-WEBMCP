@@ -22,157 +22,167 @@ import {
   createMovement,
 } from "@/lib/world/movement";
 
-import {
-  advanceWorldUntil,
-} from "@/lib/world/simulation";
-
 import type {
   ActiveMovement,
-  SimulationInterrupt,
 } from "@/types/simulation";
 
 export type TravelError =
   | "LOCATION_NOT_FOUND"
+  | "CHARACTER_NOT_FOUND"
   | "ROUTE_NOT_FOUND"
-  | "ALREADY_MOVING";
+  | "ALREADY_MOVING"
+  | "NOT_AT_NODE"
+  | "ALREADY_AT_DESTINATION";
 
-export type BeginTravelResult =
+export type BeginCharacterTravelResult =
   | {
       ok: false;
-      error: TravelError;
+
+      error:
+        TravelError;
     }
   | {
       ok: true;
 
-      destinationId: string;
+      characterId:
+        string;
 
-      departedAt: number;
+      destinationId:
+        string;
 
-      estimatedArrivalAt: number;
+      departedAt:
+        number;
 
-      durationMinutes: number;
+      estimatedArrivalAt:
+        number;
 
-      movement: ActiveMovement | null;
+      durationMinutes:
+        number;
+
+      physicalDistanceKm:
+        number;
+
+      effectiveDistanceKm:
+        number;
+
+      movement:
+        ActiveMovement;
     };
 
-export type TravelResult =
-  | {
-      ok: false;
-      error: TravelError;
-    }
-  | {
-      ok: true;
-
-      destinationId: string;
-
-      departedAt: number;
-
-      arrivedAt: number | null;
-
-      durationMinutes: number;
-
-      interrupted: boolean;
-
-      currentTime: number;
-
-      interrupt?:
-        SimulationInterrupt;
-    };
-
-export function beginTravelTo(
-  locationId: string
-): BeginTravelResult {
+export function beginCharacterTravel(
+  characterId:
+    string,
+  locationId:
+    string
+): BeginCharacterTravelResult {
   const destination =
-    getLocation(locationId);
+    getLocation(
+      locationId
+    );
 
   if (!destination) {
     return {
       ok: false,
-      error: "LOCATION_NOT_FOUND",
+
+      error:
+        "LOCATION_NOT_FOUND",
     };
   }
 
   const destinationNode =
-    getMapNode(locationId);
+    getMapNode(
+      locationId
+    );
 
   if (!destinationNode) {
     return {
       ok: false,
-      error: "ROUTE_NOT_FOUND",
+
+      error:
+        "ROUTE_NOT_FOUND",
     };
   }
 
   const world =
     getRuntimeWorldState();
 
-  const playerCharacterId =
-    world.player.characterId;
-
-  const activeMovement =
-    world.simulation
-      .activeMovements[
-      playerCharacterId
+  const character =
+    world.characters[
+      characterId
     ];
 
-  if (activeMovement) {
+  if (!character) {
     return {
       ok: false,
-      error: "ALREADY_MOVING",
+
+      error:
+        "CHARACTER_NOT_FOUND",
+    };
+  }
+
+  if (
+    world.simulation
+      .activeMovements[
+        characterId
+      ]
+  ) {
+    return {
+      ok: false,
+
+      error:
+        "ALREADY_MOVING",
     };
   }
 
   const currentPosition =
     world.simulation
       .entityPositions[
-      playerCharacterId
-    ];
+        characterId
+      ];
 
   if (
     !currentPosition ||
-    currentPosition.kind !== "node"
+    currentPosition.kind !==
+      "node"
   ) {
     return {
       ok: false,
-      error: "ALREADY_MOVING",
+
+      error:
+        "NOT_AT_NODE",
     };
   }
-
-  const departedAt =
-    world.simulation
-      .worldTimeMinutes;
 
   if (
     currentPosition.nodeId ===
     destinationNode.id
   ) {
     return {
-      ok: true,
+      ok: false,
 
-      destinationId:
-        destinationNode.id,
-
-      departedAt,
-
-      estimatedArrivalAt:
-        departedAt,
-
-      durationMinutes: 0,
-
-      movement: null,
+      error:
+        "ALREADY_AT_DESTINATION",
     };
   }
 
-  const route = findRoute(
-    currentPosition.nodeId,
-    destinationNode.id
-  );
+  const route =
+    findRoute(
+      currentPosition.nodeId,
+      destinationNode.id
+    );
 
   if (!route) {
     return {
       ok: false,
-      error: "ROUTE_NOT_FOUND",
+
+      error:
+        "ROUTE_NOT_FOUND",
     };
   }
+
+  const departedAt =
+    world.simulation
+      .worldTimeMinutes;
 
   const durationMinutes =
     calculateTravelDurationMinutes(
@@ -185,11 +195,14 @@ export function beginTravelTo(
 
   const movement =
     createMovement(
-      `movement-${sequence
+      `character-movement-${sequence
         .toString()
-        .padStart(6, "0")}`,
+        .padStart(
+          6,
+          "0"
+        )}`,
 
-      playerCharacterId,
+      characterId,
 
       route,
 
@@ -198,10 +211,14 @@ export function beginTravelTo(
       departedAt
     );
 
-  setActiveMovement(movement);
+  setActiveMovement(
+    movement
+  );
 
   return {
     ok: true,
+
+    characterId,
 
     destinationId:
       destinationNode.id,
@@ -209,96 +226,43 @@ export function beginTravelTo(
     departedAt,
 
     estimatedArrivalAt:
-      movement.estimatedArrivalAt,
+      movement
+        .estimatedArrivalAt,
 
     durationMinutes,
+
+    physicalDistanceKm:
+      route
+        .totalDistanceKm,
+
+    effectiveDistanceKm:
+      route
+        .effectiveDistanceKm,
 
     movement,
   };
 }
 
-export function travelTo(
-  locationId: string
-): TravelResult {
-  const startResult =
-    beginTravelTo(locationId);
+export function beginTravelTo(
+  locationId:
+    string
+): BeginCharacterTravelResult {
+  const characterId =
+    getRuntimeWorldState()
+      .player
+      .characterId;
 
-  if (!startResult.ok) {
-    return startResult;
-  }
-
-  if (!startResult.movement) {
-    return {
-      ok: true,
-
-      destinationId:
-        startResult.destinationId,
-
-      departedAt:
-        startResult.departedAt,
-
-      arrivedAt:
-        startResult.departedAt,
-
-      durationMinutes: 0,
-
-      interrupted: false,
-
-      currentTime:
-        startResult.departedAt,
-    };
-  }
-
-  const advanceResult =
-    advanceWorldUntil(
-      startResult.estimatedArrivalAt
-    );
-
-  if (
-    !advanceResult.reachedTarget
-  ) {
-    return {
-      ok: true,
-
-      destinationId:
-        startResult.destinationId,
-
-      departedAt:
-        startResult.departedAt,
-
-      arrivedAt: null,
-
-      durationMinutes:
-        startResult.durationMinutes,
-
-      interrupted: true,
-
-      currentTime:
-        advanceResult.currentTime,
-
-      interrupt:
-        advanceResult.interrupt,
-    };
-  }
-
-  return {
-    ok: true,
-
-    destinationId:
-      startResult.destinationId,
-
-    departedAt:
-      startResult.departedAt,
-
-    arrivedAt:
-      advanceResult.currentTime,
-
-    durationMinutes:
-      startResult.durationMinutes,
-
-    interrupted: false,
-
-    currentTime:
-      advanceResult.currentTime,
-  };
+  return beginCharacterTravel(
+    characterId,
+    locationId
+  );
 }
+
+/*
+ * Compatibility alias only.
+ *
+ * travelTo DOES NOT advance time.
+ * It only starts physical movement.
+ */
+export const travelTo =
+  beginTravelTo;
