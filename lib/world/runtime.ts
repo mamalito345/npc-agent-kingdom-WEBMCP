@@ -60,6 +60,8 @@ let worldState: WorldState = {
 
   armyContacts: {},
 
+  battles: {},
+
   battleResults: {},
 
   couriers: {},

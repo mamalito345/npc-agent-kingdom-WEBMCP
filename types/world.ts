@@ -30,6 +30,7 @@ import type {
   UnitBlock,
   FortificationOrder,
   FortificationRepairOrder,
+  PersistentBattle,
   War,
 } from "@/types/military";
 
@@ -191,6 +192,10 @@ export interface WorldState {
   armyContacts: Record<
     string,
     ArmyContact
+  >;
+  battles: Record<
+    string,
+    PersistentBattle
   >;
 
   battleResults: Record<

@@ -4,6 +4,15 @@ import {
 } from "@/lib/world/events";
 
 import {
+  getNextBattleBoundary,
+  processBattlePhases,
+} from "@/lib/military/battle-processing";
+
+import {
+  getPendingBattleDecisionInterrupt,
+} from "@/lib/military/battle-decisions";
+
+import {
   getNextFortificationRepairBoundary,
   processFortificationRepairs,
 } from "@/lib/military/fortification-repair-completion";
@@ -164,6 +173,20 @@ function getEarliestRelevantMoment(
   //
   // 5. Daily economy
   //
+  const battleBoundary =
+    getNextBattleBoundary();
+
+  if (
+    battleBoundary !==
+      undefined &&
+    battleBoundary >
+      currentTime &&
+    battleBoundary <
+      nextMoment
+  ) {
+    nextMoment =
+      battleBoundary;
+  }
   const dailyBoundary =
     getNextDailyBoundary(
       currentTime
@@ -242,6 +265,19 @@ function processSimulationMoment(
   processFortificationRepairs(
     worldTime
   );
+  const battleInterrupt =
+    processBattlePhases(
+      worldTime
+    );
+
+  if (
+    battleInterrupt
+  ) {
+    return {
+      interrupt:
+        battleInterrupt,
+    };
+  }
    //
   // Army contact occurs after
   // movement has resolved.
@@ -291,6 +327,22 @@ export function advanceWorldUntil(
     currentTime <
     targetTime
   ) {
+    const pendingBattleDecision =
+      getPendingBattleDecisionInterrupt();
+
+    if (
+      pendingBattleDecision
+    ) {
+      return {
+        reachedTarget:
+          false,
+
+        currentTime,
+
+        interrupt:
+          pendingBattleDecision,
+      };
+ }
     //
     // Resolve events that are
     // already due now.

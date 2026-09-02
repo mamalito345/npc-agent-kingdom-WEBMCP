@@ -320,3 +320,104 @@ export interface FortificationRepairOrder {
   status:
     FortificationRepairOrderStatus;
 }
+
+export type BattlePhase =
+  | "contact"
+  | "deployment"
+  | "engagement"
+  | "crisis"
+  | "resolution"
+  | "retreat"
+  | "ended";
+export type BattleOrderType =
+  | "hold_position"
+  | "commit_reserve"
+  | "press_attack"
+  | "order_retreat";
+
+export type BattleDecisionActor =
+  | "player"
+  | "commander";
+
+export interface BattleOrder {
+  id: string;
+
+  battleId: string;
+
+  armyId: string;
+
+  actorType:
+    BattleDecisionActor;
+
+  actorId: string;
+
+  type:
+    BattleOrderType;
+
+  issuedAt:
+    WorldMinute;
+}
+
+export interface PendingBattleDecision {
+  id: string;
+
+  battleId: string;
+
+  armyId: string;
+
+  requestedAt:
+    WorldMinute;
+
+  availableOrders:
+    BattleOrderType[];
+}
+export type PersistentBattleStatus =
+  | "active"
+  | "ended";
+
+export interface BattleHistoryEntry {
+  id: string;
+
+  timestamp: WorldMinute;
+
+  type:
+    | "battle_started"
+    | "phase_changed"
+    | "decision_requested"
+    | "order_issued"
+    | "battle_ended";
+
+  summary: string;
+}
+
+export interface PersistentBattle {
+  id: string;
+
+  contactId?: string;
+
+  nodeId: string;
+
+  attackerArmyIds: string[];
+
+  defenderArmyIds: string[];
+
+  startedAt: WorldMinute;
+
+  currentPhase: BattlePhase;
+
+  nextPhaseAt?: WorldMinute;
+
+  status:
+    PersistentBattleStatus;
+
+  activeOrders:
+    BattleOrder[];
+
+  pendingDecision?:
+    PendingBattleDecision;
+
+  history:
+    BattleHistoryEntry[];
+
+  finalBattleResultId?: string;
+}
