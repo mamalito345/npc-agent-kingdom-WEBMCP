@@ -6,6 +6,7 @@ import type {
   CharacterPresenceContext,
   ConversationSession,
 } from "@/types/conversation";
+import type { LlmPlayerRuntimeState } from "@/types/actors";
 
 export type PlayerControllerType = "human" | "webmcp_llm";
 
@@ -46,6 +47,8 @@ export interface MoveArmyOrderPayload {
 export interface InterceptArmyOrderPayload {
   armyId: string;
   targetArmyId: string;
+  interceptNodeId: string;
+  knowledgeFactId: string;
 }
 
 export interface HoldArmyOrderPayload {
@@ -163,5 +166,6 @@ export interface GameSessionState {
   characterKnowledge: Record<string, CharacterKnowledgeState>;
   presenceContexts: Record<string, CharacterPresenceContext>;
 
+  llmPlayers: LlmPlayerRuntimeState;
   director: DirectorState;
 }

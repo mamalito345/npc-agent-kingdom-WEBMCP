@@ -90,6 +90,12 @@ export function createInitialSession(
     memories: {},
     characterKnowledge: {},
     presenceContexts: {},
+    llmPlayers: {
+      plans: {},
+      activePlanByPlayerId: {},
+      decisions: [],
+      lastActivationAt: {},
+    },
     director: {
       proposals: {},
       lastContextAt: undefined,
