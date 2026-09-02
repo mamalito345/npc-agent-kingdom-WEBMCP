@@ -17,6 +17,7 @@ import type {
   DirectorModelAdapter,
 } from "../types/director";
 
+async function main(): Promise<void> {
 //
 // =====================================================
 // DIRECTOR IS NOT PLAYER
@@ -372,3 +373,10 @@ console.log(
 console.log(
   "D WORLD DIRECTOR / GM BOUNDARY: PASS"
 );
+
+}
+
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

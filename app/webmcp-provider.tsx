@@ -7,13 +7,25 @@ import {
   unregisterWebMCPTools,
 } from "@/lib/webmcp/register-tools";
 
+import {
+  registerConversationWebMCPTools,
+  unregisterConversationWebMCPTools,
+} from "@/lib/webmcp/register-conversation-tools";
+
 export default function WebMCPProvider() {
   useEffect(() => {
     let disposed = false;
 
-    void registerWebMCPTools()
-      .then((registered) => {
-        console.log("[WebMCP] registration result:", registered);
+    void Promise.all([
+      registerWebMCPTools(),
+      registerConversationWebMCPTools(),
+    ])
+      .then(([coreRegistered, conversationRegistered]) => {
+        console.log("[WebMCP] core registration:", coreRegistered);
+        console.log(
+          "[WebMCP] conversation registration:",
+          conversationRegistered
+        );
       })
       .catch((error) => {
         if (
@@ -24,11 +36,15 @@ export default function WebMCPProvider() {
           return;
         }
 
-        console.error("[WebMCP] tool registration failed:", error);
+        console.error(
+          "[WebMCP] tool registration failed:",
+          error
+        );
       });
 
     return () => {
       disposed = true;
+      unregisterConversationWebMCPTools();
       unregisterWebMCPTools();
     };
   }, []);

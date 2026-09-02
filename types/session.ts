@@ -1,39 +1,24 @@
+import type { WorldMinute } from "@/types/simulation";
+import type { DirectorState } from "@/types/director";
 import type {
-  WorldMinute,
-} from "@/types/simulation";
+  CharacterKnowledgeState,
+  CharacterMemory,
+  CharacterPresenceContext,
+  ConversationSession,
+} from "@/types/conversation";
 
-import type {
-  DirectorState,
-} from "@/types/director";
-
-export type PlayerControllerType =
-  | "human"
-  | "webmcp_llm";
+export type PlayerControllerType = "human" | "webmcp_llm";
 
 export interface PlayerSlot {
-  id:
-    string;
-
-  controllerType:
-    PlayerControllerType;
-
-  characterId:
-    string;
-
-  kingdomId:
-    string;
-
-  displayName:
-    string;
-
-  active:
-    boolean;
+  id: string;
+  controllerType: PlayerControllerType;
+  characterId: string;
+  kingdomId: string;
+  displayName: string;
+  active: boolean;
 }
 
-export type CommandCyclePhase =
-  | "planning"
-  | "executing"
-  | "interrupted";
+export type CommandCyclePhase = "planning" | "executing" | "interrupted";
 
 export type StrategicOrderType =
   | "move_character"
@@ -49,32 +34,22 @@ export type StrategicOrderStatus =
   | "failed";
 
 export interface MoveCharacterOrderPayload {
-  characterId:
-    string;
-
-  destinationNodeId:
-    string;
+  characterId: string;
+  destinationNodeId: string;
 }
 
 export interface MoveArmyOrderPayload {
-  armyId:
-    string;
-
-  destinationNodeId:
-    string;
+  armyId: string;
+  destinationNodeId: string;
 }
 
 export interface InterceptArmyOrderPayload {
-  armyId:
-    string;
-
-  targetArmyId:
-    string;
+  armyId: string;
+  targetArmyId: string;
 }
 
 export interface HoldArmyOrderPayload {
-  armyId:
-    string;
+  armyId: string;
 }
 
 export type StrategicOrderPayload =
@@ -84,38 +59,17 @@ export type StrategicOrderPayload =
   | HoldArmyOrderPayload;
 
 export interface StrategicOrder {
-  id:
-    string;
-
-  playerId:
-    string;
-
-  type:
-    StrategicOrderType;
-
-  payload:
-    StrategicOrderPayload;
-
-  issuedAt:
-    WorldMinute;
-
-  updatedAt:
-    WorldMinute;
-
-  status:
-    StrategicOrderStatus;
-
-  movementId?:
-    string;
-
-  startedAt?:
-    WorldMinute;
-
-  completedAt?:
-    WorldMinute;
-
-  failureReason?:
-    string;
+  id: string;
+  playerId: string;
+  type: StrategicOrderType;
+  payload: StrategicOrderPayload;
+  issuedAt: WorldMinute;
+  updatedAt: WorldMinute;
+  status: StrategicOrderStatus;
+  movementId?: string;
+  startedAt?: WorldMinute;
+  completedAt?: WorldMinute;
+  failureReason?: string;
 }
 
 export type CommandInterruptType =
@@ -134,49 +88,23 @@ export type CommandInterruptType =
   | "MAJOR_WORLD_EVENT";
 
 export interface CommandInterrupt {
-  id:
-    string;
-
-  type:
-    CommandInterruptType;
-
-  createdAt:
-    WorldMinute;
-
-  affectedPlayerIds:
-    string[];
-
-  message:
-    string;
-
-  resolvedPlayerIds:
-    string[];
+  id: string;
+  type: CommandInterruptType;
+  createdAt: WorldMinute;
+  affectedPlayerIds: string[];
+  message: string;
+  resolvedPlayerIds: string[];
 }
 
 export interface CommandCycleState {
-  phase:
-    CommandCyclePhase;
-
-  playerOrder:
-    string[];
-
-  requiredPlayerIds:
-    string[];
-
-  readyPlayerIds:
-    string[];
-
-  currentPlayerId?:
-    string;
-
-  windowOpenedAt:
-    WorldMinute;
-
-  executionStartedAt?:
-    WorldMinute;
-
-  interrupt?:
-    CommandInterrupt;
+  phase: CommandCyclePhase;
+  playerOrder: string[];
+  requiredPlayerIds: string[];
+  readyPlayerIds: string[];
+  currentPlayerId?: string;
+  windowOpenedAt: WorldMinute;
+  executionStartedAt?: WorldMinute;
+  interrupt?: CommandInterrupt;
 }
 
 export type KnowledgeSource =
@@ -194,12 +122,8 @@ export type KnowledgeConfidence =
   | "rumor";
 
 export interface KnownWorldFact {
-  id:
-    string;
-
-  subjectId:
-    string;
-
+  id: string;
+  subjectId: string;
   kind:
     | "army"
     | "character"
@@ -208,89 +132,36 @@ export interface KnownWorldFact {
     | "battle"
     | "message"
     | "event";
-
-  observedAt:
-    WorldMinute;
-
-  deliveredAt:
-    WorldMinute;
-
-  source:
-    KnowledgeSource;
-
-  confidence:
-    KnowledgeConfidence;
-
-  summary:
-    string;
-
-  data:
-    Record<
-      string,
-      string |
-      number |
-      boolean |
-      null
-    >;
+  observedAt: WorldMinute;
+  deliveredAt: WorldMinute;
+  source: KnowledgeSource;
+  confidence: KnowledgeConfidence;
+  summary: string;
+  data: Record<string, string | number | boolean | null>;
 }
 
 export interface PlayerKnowledgeState {
-  playerId:
-    string;
-
-  facts:
-    KnownWorldFact[];
-
-  lastStrategicBriefingAt:
-    WorldMinute;
-
-  nextStrategicBriefingAt:
-    WorldMinute;
+  playerId: string;
+  facts: KnownWorldFact[];
+  lastStrategicBriefingAt: WorldMinute;
+  nextStrategicBriefingAt: WorldMinute;
 }
 
 export interface GameSessionState {
-  id:
-    string;
+  id: string;
+  name: string;
+  mapId: string;
+  startedAt: WorldMinute;
+  players: Record<string, PlayerSlot>;
+  localPlayerId: string;
+  commandCycle: CommandCycleState;
+  orders: Record<string, StrategicOrder>;
+  knowledge: Record<string, PlayerKnowledgeState>;
 
-  name:
-    string;
+  conversations: Record<string, ConversationSession>;
+  memories: Record<string, CharacterMemory[]>;
+  characterKnowledge: Record<string, CharacterKnowledgeState>;
+  presenceContexts: Record<string, CharacterPresenceContext>;
 
-  mapId:
-    string;
-
-  startedAt:
-    WorldMinute;
-
-  players:
-    Record<
-      string,
-      PlayerSlot
-    >;
-
-  localPlayerId:
-    string;
-
-  commandCycle:
-    CommandCycleState;
-
-  orders:
-    Record<
-      string,
-      StrategicOrder
-    >;
-
-  knowledge:
-    Record<
-      string,
-      PlayerKnowledgeState
-    >;
-
-  /*
-   * World Director is deliberately not
-   * a PlayerSlot.
-   *
-   * WORLD DIRECTOR !== PLAYER.
-   */
-  director:
-    DirectorState;
+  director: DirectorState;
 }
