@@ -30,9 +30,7 @@ function makeArmy(
 ): Army {
   return {
     id,
-
     ownerId,
-
     commanderId,
 
     unitIds: [
@@ -61,6 +59,53 @@ function makeArmy(
     status:
       "field",
   };
+}
+
+function assertTwoSidedOrders(
+  battleId: string
+): void {
+  const battle =
+    getRuntimeWorldState()
+      .battles[
+        battleId
+      ];
+
+  assert.ok(
+    battle
+  );
+
+  assert.equal(
+    battle.activeOrders.length,
+    2
+  );
+
+  const attackerOrder =
+    battle.activeOrders.find(
+      (order) =>
+        battle.attackerArmyIds
+          .includes(
+            order.armyId
+          )
+    );
+
+  const defenderOrder =
+    battle.activeOrders.find(
+      (order) =>
+        battle.defenderArmyIds
+          .includes(
+            order.armyId
+          )
+    );
+
+  assert.ok(
+    attackerOrder,
+    "Attacker side must have an order."
+  );
+
+  assert.ok(
+    defenderOrder,
+    "Defender side must have an order."
+  );
 }
 
 //
@@ -193,9 +238,6 @@ updateRuntimeWorldState(
           .simulation
           .entityPositions,
 
-        //
-        // Player physically present.
-        //
         [playerId]: {
           kind:
             "node",
@@ -224,7 +266,7 @@ updateRuntimeWorldState(
   })
 );
 
-const started =
+const playerBattleStart =
   startBattle({
     attackerArmyId:
       playerArmy.id,
@@ -233,44 +275,47 @@ const started =
       enemyArmy.id,
   });
 
-if (!started.ok) {
+assert.equal(
+  playerBattleStart.ok,
+  true
+);
+
+if (
+  !playerBattleStart.ok
+) {
   throw new Error(
     "Player battle failed to start."
   );
 }
 
-assert.equal(
-  started.ok,
-  true
+console.log(
+  "PASS: player-present battle started"
 );
 
 assert.equal(
-  started.battle
+  playerBattleStart
+    .battle
     .currentPhase,
   "contact"
 );
 
 assert.equal(
-  started.battle
+  playerBattleStart
+    .battle
     .status,
   "active"
 );
 
-console.log(
-  "PASS: player-present battle started"
-);
-
 //
-// Phase timings:
+// =====================================================
+// ADVANCE TO CRISIS
+// =====================================================
 //
-// contact       45
-// deployment    75
-// engagement   180
+// contact      45
+// deployment   75
+// engagement  180
 //
-// crisis begins after:
-//
-// 45 + 75 + 180
-// = 300 minutes
+// crisis starts at +300
 //
 
 const crisisTime =
@@ -302,23 +347,29 @@ console.log(
   "PASS: player-present battle interrupted at crisis"
 );
 
-let battle =
+let playerBattle =
   getRuntimeWorldState()
     .battles[
-      started.battle.id
+      playerBattleStart
+        .battle.id
     ];
 
+assert.ok(
+  playerBattle
+);
+
 assert.equal(
-  battle.currentPhase,
+  playerBattle.currentPhase,
   "crisis"
 );
 
 assert.ok(
-  battle.pendingDecision
+  playerBattle.pendingDecision
 );
 
 assert.equal(
-  battle.pendingDecision
+  playerBattle
+    .pendingDecision
     ?.armyId,
   playerArmy.id
 );
@@ -329,7 +380,30 @@ console.log(
 
 //
 // =====================================================
-// WORLD MUST REMAIN BLOCKED
+// ENEMY COMMANDER MUST ALREADY HAVE DECIDED
+// =====================================================
+//
+
+const enemyCommanderOrderBeforePlayer =
+  playerBattle.activeOrders.find(
+    (order) =>
+      order.actorType ===
+        "commander" &&
+      order.armyId ===
+        enemyArmy.id
+  );
+
+assert.ok(
+  enemyCommanderOrderBeforePlayer
+);
+
+console.log(
+  "PASS: opposing commander decided before player interrupt"
+);
+
+//
+// =====================================================
+// WORLD BLOCKED WHILE PLAYER DECISION PENDING
 // =====================================================
 //
 
@@ -367,7 +441,8 @@ console.log(
 const playerOrder =
   submitBattleOrder({
     battleId:
-      started.battle.id,
+      playerBattleStart
+        .battle.id,
 
     armyId:
       playerArmy.id,
@@ -391,38 +466,55 @@ console.log(
   "PASS: player submitted canonical battle order"
 );
 
-battle =
+playerBattle =
   getRuntimeWorldState()
     .battles[
-      started.battle.id
+      playerBattleStart
+        .battle.id
     ];
 
 assert.equal(
-  battle.pendingDecision,
+  playerBattle.pendingDecision,
   undefined
 );
 
-assert.equal(
-  battle.activeOrders.length,
-  1
+assertTwoSidedOrders(
+  playerBattle.id
+);
+
+const persistedPlayerOrder =
+  playerBattle.activeOrders.find(
+    (order) =>
+      order.actorType ===
+        "player" &&
+      order.armyId ===
+        playerArmy.id
+  );
+
+assert.ok(
+  persistedPlayerOrder
 );
 
 assert.equal(
-  battle.activeOrders[
-    0
-  ].actorType,
-  "player"
-);
-
-assert.equal(
-  battle.activeOrders[
-    0
-  ].type,
+  persistedPlayerOrder.type,
   "hold_position"
 );
 
+const persistedEnemyCommanderOrder =
+  playerBattle.activeOrders.find(
+    (order) =>
+      order.actorType ===
+        "commander" &&
+      order.armyId ===
+        enemyArmy.id
+  );
+
+assert.ok(
+  persistedEnemyCommanderOrder
+);
+
 console.log(
-  "PASS: player order persisted in battle state"
+  "PASS: player and opposing commander orders persisted"
 );
 
 //
@@ -446,10 +538,6 @@ console.log(
   )
 );
 
-//
-// If something interrupted us,
-// fail with useful information.
-//
 if (
   !resumed.reachedTarget
 ) {
@@ -469,32 +557,67 @@ assert.equal(
   true
 );
 
-battle =
+playerBattle =
   getRuntimeWorldState()
     .battles[
-      started.battle.id
+      playerBattleStart
+        .battle.id
     ];
 
 assert.equal(
-  battle.status,
+  playerBattle.status,
   "ended"
 );
 
 assert.equal(
-  battle.currentPhase,
+  playerBattle.currentPhase,
   "ended"
 );
 
 assert.ok(
-  battle.finalBattleResultId
+  playerBattle.finalBattleResultId
+);
+
+assertTwoSidedOrders(
+  playerBattle.id
 );
 
 console.log(
-  "PASS: battle resumed after player decision"
+  "PASS: player battle resumed and resolved"
+);
+
+//
+// =====================================================
+// PLAYER BATTLE HISTORY
+// =====================================================
+//
+
+assert.ok(
+  playerBattle.history.some(
+    (entry) =>
+      entry.type ===
+      "decision_requested"
+  )
+);
+
+assert.ok(
+  playerBattle.history.some(
+    (entry) =>
+      entry.type ===
+      "order_issued"
+  )
+);
+
+assert.ok(
+  playerBattle.history.some(
+    (entry) =>
+      entry.type ===
+      "battle_ended"
+  )
 );
 
 console.log(
-  "PASS: player battle eventually resolved"
+  "PASS: player battle history recorded"
 );
 
 //
@@ -513,7 +636,7 @@ const scenarioBStart =
     .worldTimeMinutes +
   60;
 
-const commanderUnit:
+const commanderUnitA:
   UnitBlock = {
   id:
     "c2-commander-unit-a",
@@ -525,7 +648,7 @@ const commanderUnit:
     250,
 };
 
-const commanderEnemyUnit:
+const commanderUnitB:
   UnitBlock = {
   id:
     "c2-commander-unit-b",
@@ -537,19 +660,19 @@ const commanderEnemyUnit:
     250,
 };
 
-const commanderArmy =
+const commanderArmyA =
   makeArmy(
     "c2-commander-army-a",
     playerCharacter.kingdomId,
-    commanderUnit.id,
+    commanderUnitA.id,
     "npc-commander-a"
   );
 
-const commanderEnemyArmy =
+const commanderArmyB =
   makeArmy(
     "c2-commander-army-b",
     enemyKingdomId!,
-    commanderEnemyUnit.id,
+    commanderUnitB.id,
     "npc-commander-b"
   );
 
@@ -566,21 +689,21 @@ updateRuntimeWorldState(
     unitBlocks: {
       ...current.unitBlocks,
 
-      [commanderUnit.id]:
-        commanderUnit,
+      [commanderUnitA.id]:
+        commanderUnitA,
 
-      [commanderEnemyUnit.id]:
-        commanderEnemyUnit,
+      [commanderUnitB.id]:
+        commanderUnitB,
     },
 
     armies: {
       ...current.armies,
 
-      [commanderArmy.id]:
-        commanderArmy,
+      [commanderArmyA.id]:
+        commanderArmyA,
 
-      [commanderEnemyArmy.id]:
-        commanderEnemyArmy,
+      [commanderArmyB.id]:
+        commanderArmyB,
     },
 
     simulation: {
@@ -597,7 +720,7 @@ updateRuntimeWorldState(
           .entityPositions,
 
         //
-        // Player deliberately absent.
+        // Player physically absent.
         //
         [playerId]: {
           kind:
@@ -607,7 +730,7 @@ updateRuntimeWorldState(
             "riverhold",
         },
 
-        [commanderArmy.id]: {
+        [commanderArmyA.id]: {
           kind:
             "node",
 
@@ -615,7 +738,7 @@ updateRuntimeWorldState(
             "stoneford",
         },
 
-        [commanderEnemyArmy.id]: {
+        [commanderArmyB.id]: {
           kind:
             "node",
 
@@ -627,40 +750,36 @@ updateRuntimeWorldState(
   })
 );
 
-const commanderBattle =
+const commanderBattleStart =
   startBattle({
     attackerArmyId:
-      commanderArmy.id,
+      commanderArmyA.id,
 
     defenderArmyId:
-      commanderEnemyArmy.id,
+      commanderArmyB.id,
   });
 
+assert.equal(
+  commanderBattleStart.ok,
+  true
+);
+
 if (
-  !commanderBattle.ok
+  !commanderBattleStart.ok
 ) {
   throw new Error(
     "Commander battle failed to start."
   );
 }
 
-assert.equal(
-  commanderBattle.ok,
-  true
-);
-
 console.log(
   "PASS: commander battle started"
 );
 
 //
-// Player is absent.
-//
-// Therefore reaching CRISIS must:
-//
-// NOT create external interrupt
-// commander must decide automatically
-// same submitBattleOrder() path used
+// =====================================================
+// ABSENT PLAYER → BOTH COMMANDERS AUTO-DECIDE
+// =====================================================
 //
 
 const commanderAdvance =
@@ -706,64 +825,89 @@ assert.equal(
   undefined
 );
 
-const finishedCommanderBattle =
+const commanderBattle =
   getRuntimeWorldState()
     .battles[
-      commanderBattle
+      commanderBattleStart
         .battle.id
     ];
 
+assert.ok(
+  commanderBattle
+);
+
 assert.equal(
-  finishedCommanderBattle
-    .status,
+  commanderBattle.status,
   "ended"
 );
 
 assert.equal(
-  finishedCommanderBattle
-    .currentPhase,
+  commanderBattle.currentPhase,
   "ended"
 );
 
 assert.equal(
-  finishedCommanderBattle
-    .pendingDecision,
+  commanderBattle.pendingDecision,
   undefined
 );
 
-assert.equal(
-  finishedCommanderBattle
-    .activeOrders.length,
-  1
+assertTwoSidedOrders(
+  commanderBattle.id
 );
 
-assert.equal(
-  finishedCommanderBattle
-    .activeOrders[
-      0
-    ].actorType,
-  "commander"
-);
+const commanderOrders =
+  commanderBattle
+    .activeOrders
+    .filter(
+      (order) =>
+        order.actorType ===
+        "commander"
+    );
 
 assert.equal(
-  finishedCommanderBattle
-    .activeOrders[
-      0
-    ].armyId,
-  commanderArmy.id
+  commanderOrders.length,
+  2
+);
+
+const attackerCommanderOrder =
+  commanderOrders.find(
+    (order) =>
+      commanderBattle
+        .attackerArmyIds
+        .includes(
+          order.armyId
+        )
+  );
+
+const defenderCommanderOrder =
+  commanderOrders.find(
+    (order) =>
+      commanderBattle
+        .defenderArmyIds
+        .includes(
+          order.armyId
+        )
+  );
+
+assert.ok(
+  attackerCommanderOrder
 );
 
 assert.ok(
-  finishedCommanderBattle
+  defenderCommanderOrder
+);
+
+assert.ok(
+  commanderBattle
     .finalBattleResultId
 );
 
 console.log(
-  "PASS: absent player caused deterministic commander order"
+  "PASS: both sides received deterministic commander orders"
 );
 
 console.log(
-  "PASS: commander used same canonical battle order path"
+  "PASS: commanders used same canonical battle order path"
 );
 
 console.log(
@@ -772,39 +916,41 @@ console.log(
 
 //
 // =====================================================
-// HISTORY VALIDATION
+// COMMANDER HISTORY VALIDATION
 // =====================================================
 //
 
-assert.ok(
-  battle.history.some(
-    (entry) =>
-      entry.type ===
-      "decision_requested"
-  )
-);
-
-assert.ok(
-  battle.history.some(
-    (entry) =>
-      entry.type ===
-      "order_issued"
-  )
-);
-
-assert.ok(
-  finishedCommanderBattle
+const commanderOrderHistory =
+  commanderBattle
     .history
-    .some(
+    .filter(
       (entry) =>
         entry.type ===
         "order_issued"
-    )
+    );
+
+assert.equal(
+  commanderOrderHistory.length,
+  2
+);
+
+assert.ok(
+  commanderBattle.history.some(
+    (entry) =>
+      entry.type ===
+      "battle_ended"
+  )
 );
 
 console.log(
-  "PASS: battle decision/order history recorded"
+  "PASS: commander decision/order history recorded"
 );
+
+//
+// =====================================================
+// FINAL
+// =====================================================
+//
 
 console.log("");
 
@@ -813,7 +959,7 @@ console.log(
 );
 
 console.log(
-  "PACKAGE 3 C2.2 BATTLE DECISION: PASS"
+  "PACKAGE 3 C2.2/C2.3 BATTLE DECISION: PASS"
 );
 
 console.log(

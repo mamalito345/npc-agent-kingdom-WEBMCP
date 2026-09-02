@@ -8,6 +8,10 @@ import {
 } from "@/lib/military/battle-decisions";
 
 import {
+  calculateBattleSidePower,
+} from "@/lib/military/battle-side-power";
+
+import {
   fightArmies,
 } from "@/lib/military/battle";
 
@@ -90,12 +94,127 @@ function createHistoryEntry(
   };
 }
 
+function appendOperationalPowerSnapshot(
+  battleId: string,
+  worldTime: WorldMinute
+): void {
+  const current =
+    getRuntimeWorldState();
+
+  const battle =
+    current.battles[
+      battleId
+    ];
+
+  if (
+    !battle ||
+    battle.status !==
+      "active"
+  ) {
+    return;
+  }
+
+  const attacker =
+    calculateBattleSidePower(
+      battle,
+      "attacker"
+    );
+
+  const defender =
+    calculateBattleSidePower(
+      battle,
+      "defender"
+    );
+
+  const attackerOrder =
+    attacker.order?.type ??
+    "none";
+
+  const defenderOrder =
+    defender.order?.type ??
+    "none";
+
+  updateRuntimeWorldState(
+    (state) => {
+      const latest =
+        state.battles[
+          battleId
+        ];
+
+      if (!latest) {
+        return state;
+      }
+
+      return {
+        ...state,
+
+        battles: {
+          ...state.battles,
+
+          [battleId]: {
+            ...latest,
+
+            history: [
+              ...latest.history,
+
+              {
+                id:
+                  `${battleId}-history-${(
+                    latest
+                      .history
+                      .length +
+                    1
+                  )
+                    .toString()
+                    .padStart(
+                      3,
+                      "0"
+                    )}`,
+
+                timestamp:
+                  worldTime,
+
+                type:
+                  "phase_changed",
+
+                summary:
+                  [
+                    "Operational battle power calculated.",
+                    `Attacker armies=${attacker.armyIds.length}`,
+                    `power=${attacker.totalPower.toFixed(2)}`,
+                    `order=${attackerOrder}.`,
+                    `Defender armies=${defender.armyIds.length}`,
+                    `power=${defender.totalPower.toFixed(2)}`,
+                    `order=${defenderOrder}.`,
+                  ].join(
+                    " "
+                  ),
+              },
+            ],
+          },
+        },
+      };
+    }
+  );
+}
+
 function finishPersistentBattle(
   battle:
     PersistentBattle,
   worldTime:
     WorldMinute
 ): void {
+  //
+  // IMPORTANT:
+  //
+  // C2.3 makes participation + orders
+  // multi-army.
+  //
+  // C2.4 will replace THIS legacy
+  // representative 1v1 casualty resolver
+  // with the full side casualty/outcome
+  // resolver.
+  //
   const attackerArmyId =
     battle.attackerArmyIds[
       0
@@ -159,7 +278,9 @@ function finishPersistentBattle(
               {
                 id:
                   `${battle.id}-history-${(
-                    existing.history.length +
+                    existing
+                      .history
+                      .length +
                     1
                   )
                     .toString()
@@ -310,11 +431,6 @@ export function processBattlePhases(
       }
     );
 
-    //
-    // C2.2:
-    // CRISIS is the first
-    // meaningful decision point.
-    //
     if (
       nextPhase ===
       "crisis"
@@ -337,6 +453,21 @@ export function processBattlePhases(
       if (interrupt) {
         return interrupt;
       }
+    }
+
+    //
+    // Both sides should have their
+    // operational orders by the time
+    // RESOLUTION starts.
+    //
+    if (
+      nextPhase ===
+      "resolution"
+    ) {
+      appendOperationalPowerSnapshot(
+        battle.id,
+        worldTime
+      );
     }
   }
 

@@ -13,6 +13,12 @@ import {
   resolveCommanderDecision,
 } from "@/lib/military/commander-policy";
 
+import {
+  getBattleSideForArmy,
+  sideHasBattleOrder,
+  type BattleSide,
+} from "@/lib/military/battle-side-power";
+
 import type {
   BattleOrderType,
   PersistentBattle,
@@ -30,153 +36,41 @@ const AVAILABLE_OPERATIONAL_ORDERS:
   "order_retreat",
 ];
 
-function shouldCreateDecision(
-  battle:
-    PersistentBattle
-): boolean {
+function getCommanderArmyForSide(
+  battle: PersistentBattle,
+  side: BattleSide
+): string | undefined {
+  const world =
+    getRuntimeWorldState();
+
+  const armyIds =
+    side === "attacker"
+      ? battle.attackerArmyIds
+      : battle.defenderArmyIds;
+
+  //
+  // Prefer an army that actually
+  // has a character commander.
+  //
+  const commandedArmy =
+    armyIds.find(
+      (armyId) =>
+        world.armies[
+          armyId
+        ]?.commanderId !==
+        undefined
+    );
+
   return (
-    battle.status ===
-      "active" &&
-    battle.currentPhase ===
-      "crisis" &&
-    !battle.pendingDecision &&
-    battle.activeOrders.length ===
-      0
+    commandedArmy ??
+    armyIds[0]
   );
 }
 
-export function processBattleDecision(
-  battle:
-    PersistentBattle
-): SimulationInterrupt | undefined {
-  if (
-    !shouldCreateDecision(
-      battle
-    )
-  ) {
-    return undefined;
-  }
-
-  const playerPresent =
-    isPlayerPresentAtBattle(
-      battle
-    );
-
-  const playerArmyId =
-    playerPresent
-      ? getPlayerControlledArmyId(
-          battle
-        )
-      : undefined;
-
-  if (
-    playerPresent &&
-    playerArmyId
-  ) {
-    const sequence =
-      allocateSimulationSequence();
-
-    const now =
-      getRuntimeWorldState()
-        .simulation
-        .worldTimeMinutes;
-
-    const decisionId =
-      `battle-decision-${sequence
-        .toString()
-        .padStart(
-          6,
-          "0"
-        )}`;
-
-    updateRuntimeWorldState(
-      (current) => {
-        const latest =
-          current.battles[
-            battle.id
-          ];
-
-        if (!latest) {
-          return current;
-        }
-
-        return {
-          ...current,
-
-          battles: {
-            ...current.battles,
-
-            [battle.id]: {
-              ...latest,
-
-              pendingDecision: {
-                id:
-                  decisionId,
-
-                battleId:
-                  battle.id,
-
-                armyId:
-                  playerArmyId,
-
-                requestedAt:
-                  now,
-
-                availableOrders: [
-                  ...AVAILABLE_OPERATIONAL_ORDERS,
-                ],
-              },
-
-              history: [
-                ...latest.history,
-
-                {
-                  id:
-                    `${battle.id}-history-${(
-                      latest
-                        .history
-                        .length +
-                      1
-                    )
-                      .toString()
-                      .padStart(
-                        3,
-                        "0"
-                      )}`,
-
-                  timestamp:
-                    now,
-
-                  type:
-                    "decision_requested",
-
-                  summary:
-                    `Player decision requested for ${playerArmyId}.`,
-                },
-              ],
-            },
-          },
-        };
-      }
-    );
-
-    return {
-      eventId:
-        decisionId,
-
-      type:
-        "BATTLE_DECISION",
-
-      message:
-        `Battle ${battle.id} requires a decision.`,
-    };
-  }
-
-  const commanderArmyId =
-    battle.attackerArmyIds[
-      0
-    ];
-
+function createPendingDecision(
+  battle: PersistentBattle,
+  armyId: string
+): string {
   const sequence =
     allocateSimulationSequence();
 
@@ -184,6 +78,14 @@ export function processBattleDecision(
     getRuntimeWorldState()
       .simulation
       .worldTimeMinutes;
+
+  const decisionId =
+    `battle-decision-${sequence
+      .toString()
+      .padStart(
+        6,
+        "0"
+      )}`;
 
   updateRuntimeWorldState(
     (current) => {
@@ -207,18 +109,12 @@ export function processBattleDecision(
 
             pendingDecision: {
               id:
-                `battle-decision-${sequence
-                  .toString()
-                  .padStart(
-                    6,
-                    "0"
-                  )}`,
+                decisionId,
 
               battleId:
                 battle.id,
 
-              armyId:
-                commanderArmyId,
+              armyId,
 
               requestedAt:
                 now,
@@ -227,10 +123,69 @@ export function processBattleDecision(
                 ...AVAILABLE_OPERATIONAL_ORDERS,
               ],
             },
+
+            history: [
+              ...latest.history,
+
+              {
+                id:
+                  `${battle.id}-history-${(
+                    latest
+                      .history
+                      .length +
+                    1
+                  )
+                    .toString()
+                    .padStart(
+                      3,
+                      "0"
+                    )}`,
+
+                timestamp:
+                  now,
+
+                type:
+                  "decision_requested",
+
+                summary:
+                  `Battle decision requested for ${armyId}.`,
+              },
+            ],
           },
         },
       };
     }
+  );
+
+  return decisionId;
+}
+
+function resolveCommanderSide(
+  battle: PersistentBattle,
+  side: BattleSide
+): void {
+  if (
+    sideHasBattleOrder(
+      battle,
+      side
+    )
+  ) {
+    return;
+  }
+
+  const armyId =
+    getCommanderArmyForSide(
+      battle,
+      side
+    );
+
+  if (!armyId) {
+    return;
+  }
+
+  createPendingDecision(
+    battle,
+    armyId
   );
 
   const refreshed =
@@ -239,12 +194,194 @@ export function processBattleDecision(
         battle.id
       ];
 
+  if (!refreshed) {
+    return;
+  }
+
   resolveCommanderDecision(
     refreshed,
-    commanderArmyId
+    armyId
+  );
+}
+
+function createPlayerInterrupt(
+  battle: PersistentBattle,
+  armyId: string
+): SimulationInterrupt {
+  const decisionId =
+    createPendingDecision(
+      battle,
+      armyId
+    );
+
+  return {
+    eventId:
+      decisionId,
+
+    type:
+      "BATTLE_DECISION",
+
+    message:
+      `Battle ${battle.id} requires a decision.`,
+  };
+}
+
+export function processBattleDecision(
+  battle: PersistentBattle
+): SimulationInterrupt | undefined {
+  if (
+    battle.status !==
+      "active" ||
+    battle.currentPhase !==
+      "crisis"
+  ) {
+    return undefined;
+  }
+
+  if (
+    battle.pendingDecision
+  ) {
+    return {
+      eventId:
+        battle
+          .pendingDecision
+          .id,
+
+      type:
+        "BATTLE_DECISION",
+
+      message:
+        `Battle ${battle.id} is waiting for a decision.`,
+    };
+  }
+
+  const playerPresent =
+    isPlayerPresentAtBattle(
+      battle
+    );
+
+  const playerArmyId =
+    playerPresent
+      ? getPlayerControlledArmyId(
+          battle
+        )
+      : undefined;
+
+  const playerSide =
+    playerArmyId
+      ? getBattleSideForArmy(
+          battle,
+          playerArmyId
+        )
+      : undefined;
+
+  //
+  // ==================================================
+  // NO PLAYER AT BATTLE
+  // ==================================================
+  //
+  // Both sides use the SAME canonical
+  // submitBattleOrder path through
+  // resolveCommanderDecision().
+  //
+  if (
+    !playerArmyId ||
+    !playerSide
+  ) {
+    let refreshed =
+      getRuntimeWorldState()
+        .battles[
+          battle.id
+        ];
+
+    if (!refreshed) {
+      return undefined;
+    }
+
+    resolveCommanderSide(
+      refreshed,
+      "attacker"
+    );
+
+    refreshed =
+      getRuntimeWorldState()
+        .battles[
+          battle.id
+        ];
+
+    if (!refreshed) {
+      return undefined;
+    }
+
+    resolveCommanderSide(
+      refreshed,
+      "defender"
+    );
+
+    return undefined;
+  }
+
+  //
+  // ==================================================
+  // PLAYER PRESENT
+  // ==================================================
+  //
+  // Resolve the OTHER side first.
+  //
+  // This is important:
+  //
+  // when player order is later submitted,
+  // both sides already have their orders.
+  //
+  const otherSide:
+    BattleSide =
+    playerSide ===
+    "attacker"
+      ? "defender"
+      : "attacker";
+
+  let refreshed =
+    getRuntimeWorldState()
+      .battles[
+        battle.id
+      ];
+
+  if (!refreshed) {
+    return undefined;
+  }
+
+  resolveCommanderSide(
+    refreshed,
+    otherSide
   );
 
-  return undefined;
+  refreshed =
+    getRuntimeWorldState()
+      .battles[
+        battle.id
+      ];
+
+  if (!refreshed) {
+    return undefined;
+  }
+
+  //
+  // Player side may already have an
+  // order for some reason.
+  //
+  if (
+    sideHasBattleOrder(
+      refreshed,
+      playerSide
+    )
+  ) {
+    return undefined;
+  }
+
+  return createPlayerInterrupt(
+    refreshed,
+    playerArmyId
+  );
 }
 
 export function getPendingBattleDecisionInterrupt():
