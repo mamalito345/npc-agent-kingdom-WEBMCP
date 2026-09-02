@@ -115,7 +115,7 @@ const forwardRoute:
     TEST_EDGE_ID,
   ],
 
-  physicalDistanceKm,
+  totalDistanceKm: physicalDistanceKm,
 
   effectiveDistanceKm,
 };
@@ -131,7 +131,7 @@ const backwardRoute:
     TEST_EDGE_ID,
   ],
 
-  physicalDistanceKm,
+  totalDistanceKm: physicalDistanceKm,
 
   effectiveDistanceKm,
 };

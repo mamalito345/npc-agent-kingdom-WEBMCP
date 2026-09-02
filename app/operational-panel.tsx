@@ -14,6 +14,8 @@ import {
 import {
   getMapInteractionState,
   clearMapDestination,
+  selectMapArmy,
+  selectMapSettlement,
   subscribeMapInteraction,
 } from "@/lib/ui/map-interaction";
 
@@ -305,6 +307,21 @@ export default function OperationalPanel() {
       ]
     );
 
+  function closeInspector(): void {
+    clearMapDestination();
+    selectMapArmy(null);
+    selectMapSettlement(null);
+    setBorderConfirm(false);
+    setMessage(null);
+  }
+
+  if (
+    !selectedArmy &&
+    !selectedSettlement
+  ) {
+    return null;
+  }
+
   function confirmMove(
     forceBorder:
       boolean
@@ -368,14 +385,29 @@ export default function OperationalPanel() {
   }
 
   return (
-    <aside className="fixed bottom-5 right-[450px] top-5 z-[70] w-[330px] overflow-y-auto rounded-2xl border border-neutral-700/70 bg-[#0b0d0f]/94 p-4 text-neutral-100 shadow-2xl backdrop-blur">
-      <div className="mb-4 border-b border-neutral-800 pb-3">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400">
-          Field Command
+    <aside className="fixed bottom-4 right-4 top-[88px] z-[90] w-[360px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-neutral-700/80 bg-[#0b0d0f]/96 p-4 text-neutral-100 shadow-[0_24px_80px_rgba(0,0,0,0.7)] backdrop-blur-xl">
+      <div className="mb-4 flex items-start justify-between gap-3 border-b border-neutral-800 pb-3">
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400">
+            {selectedArmy
+              ? "Army Inspector"
+              : "Settlement Inspector"}
+          </div>
+          <div className="mt-1 text-xs text-neutral-500">
+            {selectedArmy
+              ? "Click a settlement on the map to preview a route."
+              : "Select an army token to issue movement orders."}
+          </div>
         </div>
-        <div className="mt-1 text-xs text-neutral-500">
-          Select an army, then click a settlement on the map.
-        </div>
+
+        <button
+          type="button"
+          onClick={closeInspector}
+          className="shrink-0 rounded-lg border border-neutral-700 bg-neutral-950/80 px-2.5 py-1.5 text-xs text-neutral-300 hover:border-neutral-500 hover:text-white"
+          aria-label="Close inspector"
+        >
+          ✕
+        </button>
       </div>
 
       {message ? (
@@ -771,11 +803,7 @@ export default function OperationalPanel() {
             Select one of your controllable army tokens, then click this settlement again to create a physical route preview.
           </div>
         </section>
-      ) : (
-        <section className="rounded-xl border border-dashed border-neutral-800 p-5 text-sm leading-6 text-neutral-500">
-          Select an army or settlement on the map. Hidden transit nodes remain canonical underneath; the player interacts only with meaningful game objects.
-        </section>
-      )}
+      ) : null}
     </aside>
   );
 }
