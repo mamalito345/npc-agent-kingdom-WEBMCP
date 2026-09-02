@@ -6,6 +6,10 @@ import type {
   WorldMinute,
 } from "@/types/simulation";
 
+import type {
+  DirectorEventRuntimeState,
+} from "@/types/events";
+
 export type DirectorProposalType =
   | "npc_character_travel"
   | "npc_army_move"
@@ -23,77 +27,44 @@ export type DirectorProposalStatus =
   | "failed";
 
 export interface NpcCharacterTravelProposalPayload {
-  characterId:
-    string;
-
-  destinationNodeId:
-    string;
+  characterId: string;
+  destinationNodeId: string;
 }
 
 export interface NpcArmyMoveProposalPayload {
-  armyId:
-    string;
-
-  destinationNodeId:
-    string;
+  armyId: string;
+  destinationNodeId: string;
 }
 
 export interface NpcRecruitUnitsProposalPayload {
-  characterId:
-    string;
-
-  settlementId:
-    string;
-
-  unitType:
-    UnitType;
-
-  blocks:
-    number;
+  characterId: string;
+  settlementId: string;
+  unitType: UnitType;
+  blocks: number;
 }
 
 export interface NpcStartSiegeProposalPayload {
-  armyId:
-    string;
-
-  settlementId:
-    string;
+  armyId: string;
+  settlementId: string;
 }
 
 export interface NpcSendMessageProposalPayload {
-  senderCharacterId:
-    string;
-
-  recipientCharacterId:
-    string;
-
-  content:
-    string;
+  senderCharacterId: string;
+  recipientCharacterId: string;
+  content: string;
 }
 
 export interface ScheduleWorldInterruptProposalPayload {
-  executeAt:
-    WorldMinute;
-
-  interruptType:
-    string;
-
-  message:
-    string;
+  executeAt: WorldMinute;
+  interruptType: string;
+  message: string;
 }
 
 export interface KingdomRelationDeltaProposalPayload {
-  kingdomId:
-    string;
-
-  targetKingdomId:
-    string;
-
-  delta:
-    number;
-
-  reason:
-    string;
+  kingdomId: string;
+  targetKingdomId: string;
+  delta: number;
+  reason: string;
 }
 
 export type DirectorKnowledgeKind =
@@ -120,37 +91,15 @@ export type DirectorKnowledgeConfidence =
   | "rumor";
 
 export interface PlayerKnowledgeReportProposalPayload {
-  playerId:
-    string;
-
-  subjectId:
-    string;
-
-  kind:
-    DirectorKnowledgeKind;
-
-  source:
-    DirectorKnowledgeSource;
-
-  confidence:
-    DirectorKnowledgeConfidence;
-
-  summary:
-    string;
-
-  observedAt?:
-    WorldMinute;
-
-  deliveredAt?:
-    WorldMinute;
-
-  data?: Record<
-    string,
-    string |
-    number |
-    boolean |
-    null
-  >;
+  playerId: string;
+  subjectId: string;
+  kind: DirectorKnowledgeKind;
+  source: DirectorKnowledgeSource;
+  confidence: DirectorKnowledgeConfidence;
+  summary: string;
+  observedAt?: WorldMinute;
+  deliveredAt?: WorldMinute;
+  data?: Record<string, string | number | boolean | null>;
 }
 
 export type DirectorProposalPayload =
@@ -164,164 +113,78 @@ export type DirectorProposalPayload =
   | PlayerKnowledgeReportProposalPayload;
 
 export interface DirectorProposalDraft {
-  type:
-    DirectorProposalType;
-
-  reason:
-    string;
-
-  payload:
-    DirectorProposalPayload;
+  type: DirectorProposalType;
+  reason: string;
+  payload: DirectorProposalPayload;
 }
 
 export interface DirectorProposal {
-  id:
-    string;
-
-  type:
-    DirectorProposalType;
-
-  reason:
-    string;
-
-  payload:
-    DirectorProposalPayload;
-
-  proposedAt:
-    WorldMinute;
-
-  updatedAt:
-    WorldMinute;
-
-  status:
-    DirectorProposalStatus;
-
-  rejectionReason?:
-    string;
-
-  failureReason?:
-    string;
-
-  resultSummary?:
-    string;
+  id: string;
+  type: DirectorProposalType;
+  reason: string;
+  payload: DirectorProposalPayload;
+  proposedAt: WorldMinute;
+  updatedAt: WorldMinute;
+  status: DirectorProposalStatus;
+  rejectionReason?: string;
+  failureReason?: string;
+  resultSummary?: string;
 }
 
 export interface DirectorState {
-  proposals:
-    Record<
-      string,
-      DirectorProposal
-    >;
-
-  lastContextAt?:
-    WorldMinute;
-
-  lastTurnAt?:
-    WorldMinute;
-
-  lastAppliedProposalId?:
-    string;
+  proposals: Record<string, DirectorProposal>;
+  events: DirectorEventRuntimeState;
+  lastContextAt?: WorldMinute;
+  lastTurnAt?: WorldMinute;
+  lastAppliedProposalId?: string;
 }
 
 export interface DirectorContext {
-  worldTimeMinutes:
-    WorldMinute;
+  worldTimeMinutes: WorldMinute;
 
   session: {
-    id:
-      string;
-
-    mapId:
-      string;
-
-    commandPhase:
-      string;
-
-    players:
-      Array<{
-        id:
-          string;
-
-        characterId:
-          string;
-
-        kingdomId:
-          string;
-
-        controllerType:
-          string;
-      }>;
+    id: string;
+    mapId: string;
+    commandPhase: string;
+    players: Array<{
+      id: string;
+      characterId: string;
+      kingdomId: string;
+      controllerType: string;
+    }>;
   };
 
-  kingdoms:
-    Array<{
-      id:
-        string;
+  kingdoms: Array<{
+    id: string;
+    treasury: number;
+    food: number;
+    stability: number;
+    relations: Record<string, number>;
+  }>;
 
-      treasury:
-        number;
+  armies: Array<{
+    id: string;
+    ownerId: string;
+    commanderId?: string;
+    status: string;
+    position: unknown;
+  }>;
 
-      food:
-        number;
-
-      stability:
-        number;
-
-      relations:
-        Record<
-          string,
-          number
-        >;
-    }>;
-
-  armies:
-    Array<{
-      id:
-        string;
-
-      ownerId:
-        string;
-
-      commanderId?:
-        string;
-
-      status:
-        string;
-
-      position:
-        unknown;
-    }>;
-
-  wars:
-    unknown[];
-
-  battles:
-    unknown[];
-
-  sieges:
-    unknown[];
-
-  recentEvents:
-    unknown[];
-
-  recentMessages:
-    unknown[];
+  wars: unknown[];
+  battles: unknown[];
+  sieges: unknown[];
+  recentEvents: unknown[];
+  recentMessages: unknown[];
 
   directorMemory: {
-    recentProposals:
-      DirectorProposal[];
+    recentProposals: DirectorProposal[];
   };
 
-  rules:
-    string[];
+  rules: string[];
 }
 
 export interface DirectorModelAdapter {
   generateProposals(
-    context:
-      DirectorContext
-  ):
-    Promise<
-      DirectorProposalDraft[]
-    >;
+    context: DirectorContext
+  ): Promise<DirectorProposalDraft[]>;
 }

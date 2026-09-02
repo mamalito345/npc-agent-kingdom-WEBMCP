@@ -115,6 +115,25 @@ export function createInitialSession(
 
     director: {
       proposals: {},
+      events: {
+        instances: {},
+        traces: [],
+        cooldownUntil: {},
+        dailyBudget: {
+          dayIndex: Math.floor(worldTime / (24 * 60)),
+          globalCount: 0,
+          kingdomCounts: {},
+        },
+        nextChecks: {
+          TRAVEL: worldTime,
+          CAMPAIGN: worldTime,
+          BATTLE: worldTime,
+          SIEGE: worldTime,
+          POLITICAL: worldTime,
+          ECONOMIC: worldTime,
+          DIPLOMATIC: worldTime,
+        },
+      },
       lastContextAt: undefined,
       lastTurnAt: undefined,
       lastAppliedProposalId: undefined,
