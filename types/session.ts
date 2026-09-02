@@ -9,8 +9,20 @@ import type {
 import type { LlmPlayerRuntimeState } from "@/types/actors";
 import type { LordRuntimeState } from "@/types/lords";
 import type { PoliticsRuntimeState } from "@/types/politics";
+import type { BorderRuntimeState } from "@/types/borders";
 
 export type PlayerControllerType = "human" | "webmcp_llm";
+
+export type RealmControlRole =
+  | "HUMAN"
+  | "ACTOR_LLM"
+  | "GM";
+
+export interface CampaignControlState {
+  humanPlayerId?: string;
+  actorPlayerId?: string;
+  roleByKingdomId: Record<string, RealmControlRole>;
+}
 
 export interface PlayerSlot {
   id: string;
@@ -44,6 +56,16 @@ export interface MoveCharacterOrderPayload {
 export interface MoveArmyOrderPayload {
   armyId: string;
   destinationNodeId: string;
+
+  /*
+   * false/undefined:
+   *   an unauthorized foreign crossing is rejected before the order is queued.
+   *
+   * true:
+   *   player explicitly accepted the political consequence.
+   *   The incident itself is created only when the army physically crosses.
+   */
+  allowBorderViolation?: boolean;
 }
 
 export interface InterceptArmyOrderPayload {
@@ -171,5 +193,7 @@ export interface GameSessionState {
   llmPlayers: LlmPlayerRuntimeState;
   lords: LordRuntimeState;
   politics: PoliticsRuntimeState;
+  borders: BorderRuntimeState;
+  campaignControl: CampaignControlState;
   director: DirectorState;
 }

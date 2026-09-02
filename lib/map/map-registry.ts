@@ -1,13 +1,22 @@
 import fiveKingdomsRaw
   from "@/data/map/five-kingdoms.json";
 
+import {
+  buildDenseFiveKingdomsMap,
+} from "@/data/map/dense-transit";
+
 import type {
   GameMapDefinition,
 } from "@/types/map";
 
-const fiveKingdoms =
+const sparseFiveKingdoms =
   fiveKingdomsRaw as
     GameMapDefinition;
+
+const fiveKingdoms =
+  buildDenseFiveKingdomsMap(
+    sparseFiveKingdoms
+  );
 
 const maps:
   Record<

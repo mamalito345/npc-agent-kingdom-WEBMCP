@@ -113,6 +113,22 @@ export function createInitialSession(
     lords: createInitialLordRuntimeState(),
     politics: createInitialPoliticsRuntimeState(),
 
+    borders: {
+      incidents: {},
+    },
+
+    campaignControl: {
+      humanPlayerId: "player-edwyn",
+      actorPlayerId: "player-roderic",
+      roleByKingdomId: {
+        northreach: "HUMAN",
+        eastvale: "ACTOR_LLM",
+        westmoor: "GM",
+        southmark: "GM",
+        ironhollow: "GM",
+      },
+    },
+
     director: {
       proposals: {},
       events: {

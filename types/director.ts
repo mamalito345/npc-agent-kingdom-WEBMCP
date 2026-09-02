@@ -10,6 +10,10 @@ import type {
   DirectorEventRuntimeState,
 } from "@/types/events";
 
+import type {
+  RealmControlRole,
+} from "@/types/session";
+
 export type DirectorProposalType =
   | "npc_character_travel"
   | "npc_army_move"
@@ -139,6 +143,125 @@ export interface DirectorState {
   lastAppliedProposalId?: string;
 }
 
+export interface GmWorldSnapshot {
+  worldTimeMinutes: WorldMinute;
+
+  campaignControl: {
+    humanPlayerId?: string;
+    actorPlayerId?: string;
+    roleByKingdomId: Record<
+      string,
+      RealmControlRole
+    >;
+  };
+
+  kingdoms: Array<{
+    id: string;
+    name: string;
+    rulerId: string;
+    treasury: number;
+    food: number;
+    stability: number;
+    relations: Record<string, number>;
+    settlementIds: string[];
+    armyIds: string[];
+  }>;
+
+  settlements: Array<{
+    id: string;
+    name: string;
+    kingdomId: string;
+    controllerKingdomId: string;
+    ownerId?: string;
+    type: string;
+    fortificationLevel: number;
+    resources: {
+      food: number;
+      gold: number;
+      wood: number;
+      stone: number;
+      metal: number;
+    };
+    dailyProduction: {
+      food: number;
+      gold: number;
+      wood: number;
+      stone: number;
+      metal: number;
+    };
+  }>;
+
+  armies: Array<{
+    id: string;
+    ownerId: string;
+    commanderId?: string;
+    commanderName?: string;
+    status: string;
+    soldiers: number;
+    infantry: number;
+    cavalry: number;
+    siege: number;
+    morale: string;
+    supplyState: string;
+    foodSupply: number;
+    fundingState: string;
+    unpaidDays: number;
+    position: unknown;
+    movementDestination?: string;
+    movementEta?: number;
+    independentLordArmy: boolean;
+  }>;
+
+  lords: Array<{
+    characterId: string;
+    name: string;
+    title: string;
+    kingdomId: string;
+    homeSettlementId: string;
+    loyalty: number;
+    politicalPower: number;
+    relationshipToRuler: number;
+    traits: Record<string, number>;
+    controlledSettlementIds: string[];
+    controlledArmyIds: string[];
+  }>;
+
+  lordOrders: unknown[];
+  wars: unknown[];
+  battles: unknown[];
+  sieges: unknown[];
+
+  diplomacy: {
+    agreements: unknown[];
+    promises: unknown[];
+    relationships: unknown[];
+  };
+
+  borders: unknown[];
+
+  realmKnowledge: Array<{
+    playerId: string;
+    kingdomId: string;
+    facts: Array<{
+      subjectId: string;
+      kind: string;
+      deliveredAt: WorldMinute;
+      confidence: string;
+      summary: string;
+    }>;
+  }>;
+
+  activePlans: unknown[];
+  recentMessages: unknown[];
+  recentEvents: unknown[];
+
+  directorRuntime: {
+    eventBudget: unknown;
+    cooldownCount: number;
+    proposalCount: number;
+  };
+}
+
 export interface DirectorContext {
   worldTimeMinutes: WorldMinute;
 
@@ -151,8 +274,11 @@ export interface DirectorContext {
       characterId: string;
       kingdomId: string;
       controllerType: string;
+      realmControlRole: RealmControlRole;
     }>;
   };
+
+  worldSnapshot: GmWorldSnapshot;
 
   kingdoms: Array<{
     id: string;

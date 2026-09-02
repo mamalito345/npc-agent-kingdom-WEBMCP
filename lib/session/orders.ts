@@ -9,6 +9,14 @@ import {
 } from "@/lib/world/movement";
 
 import {
+  findRoute,
+} from "@/lib/map/paths";
+
+import {
+  findFirstUnauthorizedBorderCrossing,
+} from "@/lib/map/border-access";
+
+import {
   playerControlsArmy,
   playerControlsCharacter,
 } from "@/lib/session/players";
@@ -21,25 +29,31 @@ import type {
 
 export interface IssueStrategicOrderInput {
   playerId: string;
-
   type: StrategicOrderType;
-
   payload: StrategicOrderPayload;
 }
 
 export type IssueStrategicOrderResult =
   | {
       ok: false;
-
       error:
         | "PLAYER_NOT_FOUND"
         | "PLAYER_NOT_ACTIVE"
         | "NOT_CURRENT_PLAYER"
-        | "NOT_AUTHORIZED";
+        | "NOT_AUTHORIZED"
+        | "ARMY_NOT_AT_NODE"
+        | "DESTINATION_NOT_REACHABLE"
+        | "BORDER_ACCESS_REQUIRED";
+      border?: {
+        edgeId: string;
+        fromKingdomId: string;
+        toKingdomId: string;
+        crossingNodeId?: string;
+        canForce: true;
+      };
     }
   | {
       ok: true;
-
       order: StrategicOrder;
     };
 
@@ -48,12 +62,7 @@ function validateAuthorization(
 ): boolean {
   switch (input.type) {
     case "move_character": {
-      if (
-        !(
-          "characterId" in
-          input.payload
-        )
-      ) {
+      if (!("characterId" in input.payload)) {
         return false;
       }
 
@@ -66,12 +75,7 @@ function validateAuthorization(
     case "move_army":
     case "intercept_army":
     case "hold_army": {
-      if (
-        !(
-          "armyId" in
-          input.payload
-        )
-      ) {
+      if (!("armyId" in input.payload)) {
         return false;
       }
 
@@ -83,16 +87,71 @@ function validateAuthorization(
   }
 }
 
+function validateMoveBorderPolicy(
+  input: IssueStrategicOrderInput
+): IssueStrategicOrderResult | undefined {
+  if (
+    input.type !== "move_army" ||
+    !("armyId" in input.payload) ||
+    !("destinationNodeId" in input.payload)
+  ) {
+    return undefined;
+  }
+
+  const world = getRuntimeWorldState();
+  const player = world.session.players[input.playerId];
+  const position =
+    world.simulation.entityPositions[input.payload.armyId];
+
+  if (!position || position.kind !== "node") {
+    return {
+      ok: false,
+      error: "ARMY_NOT_AT_NODE",
+    };
+  }
+
+  const route = findRoute(
+    position.nodeId,
+    input.payload.destinationNodeId
+  );
+
+  if (!route) {
+    return {
+      ok: false,
+      error: "DESTINATION_NOT_REACHABLE",
+    };
+  }
+
+  const unauthorized =
+    findFirstUnauthorizedBorderCrossing(
+      route,
+      player.kingdomId
+    );
+
+  if (
+    unauthorized &&
+    !input.payload.allowBorderViolation
+  ) {
+    return {
+      ok: false,
+      error: "BORDER_ACCESS_REQUIRED",
+      border: {
+        ...unauthorized,
+        canForce: true,
+      },
+    };
+  }
+
+  return undefined;
+}
+
 export function issueStrategicOrder(
   input: IssueStrategicOrderInput
 ): IssueStrategicOrderResult {
-  const world =
-    getRuntimeWorldState();
+  const world = getRuntimeWorldState();
 
   const player =
-    world.session.players[
-      input.playerId
-    ];
+    world.session.players[input.playerId];
 
   if (!player) {
     return {
@@ -108,21 +167,11 @@ export function issueStrategicOrder(
     };
   }
 
-  const cycle =
-    world.session.commandCycle;
+  const cycle = world.session.commandCycle;
 
-  /*
-   * Planning / interrupt:
-   * only the current player may issue.
-   *
-   * Execution:
-   * human/UI orders may be queued
-   * without opening a new LLM window.
-   */
   if (
     cycle.phase !== "executing" &&
-    cycle.currentPlayerId !==
-      input.playerId
+    cycle.currentPlayerId !== input.playerId
   ) {
     return {
       ok: false,
@@ -130,71 +179,49 @@ export function issueStrategicOrder(
     };
   }
 
-  if (
-    !validateAuthorization(
-      input
-    )
-  ) {
+  if (!validateAuthorization(input)) {
     return {
       ok: false,
       error: "NOT_AUTHORIZED",
     };
   }
 
+  const borderFailure =
+    validateMoveBorderPolicy(input);
+
+  if (borderFailure) {
+    return borderFailure;
+  }
+
   const sequence =
     allocateSimulationSequence();
 
   const now =
-    getRuntimeWorldState()
-      .simulation
-      .worldTimeMinutes;
+    getRuntimeWorldState().simulation.worldTimeMinutes;
 
-  const order:
-    StrategicOrder = {
+  const order: StrategicOrder = {
     id:
       `strategic-order-${sequence
         .toString()
-        .padStart(
-          6,
-          "0"
-        )}`,
-
-    playerId:
-      input.playerId,
-
-    type:
-      input.type,
-
-    payload:
-      input.payload,
-
-    issuedAt:
-      now,
-
-    updatedAt:
-      now,
-
-    status:
-      "queued",
+        .padStart(6, "0")}`,
+    playerId: input.playerId,
+    type: input.type,
+    payload: input.payload,
+    issuedAt: now,
+    updatedAt: now,
+    status: "queued",
   };
 
-  updateRuntimeWorldState(
-    (current) => ({
-      ...current,
-
-      session: {
-        ...current.session,
-
-        orders: {
-          ...current.session
-            .orders,
-
-          [order.id]:
-            order,
-        },
+  updateRuntimeWorldState((current) => ({
+    ...current,
+    session: {
+      ...current.session,
+      orders: {
+        ...current.session.orders,
+        [order.id]: order,
       },
-    })
-  );
+    },
+  }));
 
   return {
     ok: true,
@@ -205,7 +232,6 @@ export function issueStrategicOrder(
 export type CancelStrategicOrderResult =
   | {
       ok: false;
-
       error:
         | "ORDER_NOT_FOUND"
         | "NOT_AUTHORIZED"
@@ -213,52 +239,38 @@ export type CancelStrategicOrderResult =
     }
   | {
       ok: true;
-
       order: StrategicOrder;
     };
 
 function stopPhysicalEffectOfOrder(
   order: StrategicOrder
 ): void {
-  if (
-    order.status !==
-    "executing"
-  ) {
+  if (order.status !== "executing") {
     return;
   }
 
   switch (order.type) {
     case "move_character": {
-      if (
-        "characterId" in
-        order.payload
-      ) {
+      if ("characterId" in order.payload) {
         stopEntityMovement(
-          order.payload
-            .characterId
+          order.payload.characterId
         );
       }
-
       return;
     }
 
     case "move_army":
     case "intercept_army": {
-      if (
-        "armyId" in
-        order.payload
-      ) {
+      if ("armyId" in order.payload) {
         stopEntityMovement(
           order.payload.armyId
         );
       }
-
       return;
     }
 
-    case "hold_army": {
+    case "hold_army":
       return;
-    }
   }
 }
 
@@ -270,9 +282,7 @@ export function cancelStrategicOrder(
     getRuntimeWorldState();
 
   const order =
-    world.session.orders[
-      orderId
-    ];
+    world.session.orders[orderId];
 
   if (!order) {
     return {
@@ -281,10 +291,7 @@ export function cancelStrategicOrder(
     };
   }
 
-  if (
-    order.playerId !==
-    playerId
-  ) {
+  if (order.playerId !== playerId) {
     return {
       ok: false,
       error: "NOT_AUTHORIZED",
@@ -292,67 +299,38 @@ export function cancelStrategicOrder(
   }
 
   if (
-    order.status ===
-      "completed" ||
-    order.status ===
-      "cancelled" ||
-    order.status ===
-      "failed"
+    order.status === "completed" ||
+    order.status === "cancelled" ||
+    order.status === "failed"
   ) {
     return {
       ok: false,
-      error:
-        "ORDER_ALREADY_FINISHED",
+      error: "ORDER_ALREADY_FINISHED",
     };
   }
 
-  /*
-   * If the order already has a
-   * physical movement, freeze the
-   * entity exactly where it is.
-   *
-   * No teleport back to a node.
-   */
-  stopPhysicalEffectOfOrder(
-    order
-  );
+  stopPhysicalEffectOfOrder(order);
 
   const now =
-    getRuntimeWorldState()
-      .simulation
-      .worldTimeMinutes;
+    getRuntimeWorldState().simulation.worldTimeMinutes;
 
-  const cancelled:
-    StrategicOrder = {
+  const cancelled: StrategicOrder = {
     ...order,
-
-    status:
-      "cancelled",
-
-    updatedAt:
-      now,
-
-    completedAt:
-      now,
+    status: "cancelled",
+    updatedAt: now,
+    completedAt: now,
   };
 
-  updateRuntimeWorldState(
-    (current) => ({
-      ...current,
-
-      session: {
-        ...current.session,
-
-        orders: {
-          ...current.session
-            .orders,
-
-          [orderId]:
-            cancelled,
-        },
+  updateRuntimeWorldState((current) => ({
+    ...current,
+    session: {
+      ...current.session,
+      orders: {
+        ...current.session.orders,
+        [orderId]: cancelled,
       },
-    })
-  );
+    },
+  }));
 
   return {
     ok: true,
@@ -360,93 +338,48 @@ export function cancelStrategicOrder(
   };
 }
 
-/*
- * Player-facing order query.
- *
- * observation.ts
- * WebMCP tools
- * UI
- *
- * all depend on this export.
- */
 export function getPlayerOrders(
   playerId: string
 ): StrategicOrder[] {
   return Object.values(
-    getRuntimeWorldState()
-      .session
-      .orders
+    getRuntimeWorldState().session.orders
   )
-    .filter(
-      (order) =>
-        order.playerId ===
-        playerId
-    )
+    .filter((order) => order.playerId === playerId)
     .sort(
       (a, b) =>
-        a.issuedAt -
-          b.issuedAt ||
-        a.id.localeCompare(
-          b.id
-        )
+        a.issuedAt - b.issuedAt ||
+        a.id.localeCompare(b.id)
     );
 }
 
-/*
- * Useful for simulation /
- * debugging without leaking
- * orders between players.
- */
 export function getStrategicOrder(
   orderId: string
 ): StrategicOrder | undefined {
-  return getRuntimeWorldState()
-    .session
-    .orders[
-      orderId
-    ];
+  return getRuntimeWorldState().session.orders[orderId];
 }
 
 export function getExecutingStrategicOrders():
   StrategicOrder[] {
   return Object.values(
-    getRuntimeWorldState()
-      .session
-      .orders
+    getRuntimeWorldState().session.orders
   )
-    .filter(
-      (order) =>
-        order.status ===
-        "executing"
-    )
+    .filter((order) => order.status === "executing")
     .sort(
       (a, b) =>
-        a.issuedAt -
-          b.issuedAt ||
-        a.id.localeCompare(
-          b.id
-        )
+        a.issuedAt - b.issuedAt ||
+        a.id.localeCompare(b.id)
     );
 }
 
 export function getQueuedStrategicOrders():
   StrategicOrder[] {
   return Object.values(
-    getRuntimeWorldState()
-      .session
-      .orders
+    getRuntimeWorldState().session.orders
   )
-    .filter(
-      (order) =>
-        order.status ===
-        "queued"
-    )
+    .filter((order) => order.status === "queued")
     .sort(
       (a, b) =>
-        a.issuedAt -
-          b.issuedAt ||
-        a.id.localeCompare(
-          b.id
-        )
+        a.issuedAt - b.issuedAt ||
+        a.id.localeCompare(b.id)
     );
 }

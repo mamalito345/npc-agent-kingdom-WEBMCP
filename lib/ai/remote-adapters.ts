@@ -28,6 +28,10 @@ import type {
   EventDirectorSelection,
 } from "@/types/events";
 
+import {
+  buildGmWorldSnapshot,
+} from "@/lib/director/world-snapshot";
+
 export interface JsonTransport {
   post<T>(url: string, body: unknown): Promise<T>;
 }
@@ -65,6 +69,25 @@ export class RemotePlayerLlmAdapter implements LlmPlayerModelAdapter {
       ok: true;
       decision: LlmPlayerDecision;
     }>("/api/ai/player", context);
+
+    return result.decision;
+  }
+}
+
+
+export class RemoteGmRealmAdapter implements LlmPlayerModelAdapter {
+  constructor(private readonly transport: JsonTransport = browserTransport) {}
+
+  async generateDecision(
+    context: LlmPlayerContext
+  ): Promise<LlmPlayerDecision> {
+    const result = await this.transport.post<{
+      ok: true;
+      decision: LlmPlayerDecision;
+    }>("/api/ai/gm-realm", {
+      playerContext: context,
+      worldSnapshot: buildGmWorldSnapshot(),
+    });
 
     return result.decision;
   }

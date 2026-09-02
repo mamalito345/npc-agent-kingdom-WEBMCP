@@ -31,11 +31,40 @@ export function getMapNodes():
   );
 }
 
+export function getVisibleMapNodes():
+  MapNode[] {
+  return getMapNodes()
+    .filter(
+      (node) =>
+        node.hidden !== true
+    );
+}
+
+export function getTransitMapNodes():
+  MapNode[] {
+  return getMapNodes()
+    .filter(
+      (node) =>
+        node.kind ===
+        "transit"
+    );
+}
+
 export function getMapEdges():
   MapEdge[] {
   return Object.values(
     mapEdges
   );
+}
+
+export function getBorderEdges():
+  MapEdge[] {
+  return getMapEdges()
+    .filter(
+      (edge) =>
+        edge.borderCrossing !==
+        undefined
+    );
 }
 
 export function getConnectedEdges(
@@ -100,5 +129,23 @@ export function getEffectiveEdgeDistance(
       0,
       edge.travelModifier
     )
+  );
+}
+
+export function getNodeTerritory(
+  nodeId: string
+): string | undefined {
+  return getMapNode(
+    nodeId
+  )?.territoryKingdomId;
+}
+
+export function isTransitNode(
+  nodeId: string
+): boolean {
+  return (
+    getMapNode(nodeId)
+      ?.kind ===
+    "transit"
   );
 }

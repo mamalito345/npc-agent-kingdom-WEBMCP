@@ -6,34 +6,64 @@ import {
 
 import {
   registerWebMCPTools,
-  unregisterWebMCPTools,
 } from "@/lib/webmcp/register-tools";
 
 import {
   registerConversationWebMCPTools,
-  unregisterConversationWebMCPTools,
 } from "@/lib/webmcp/register-conversation-tools";
 
 import {
   registerLordWebMCPTools,
-  unregisterLordWebMCPTools,
 } from "@/lib/webmcp/register-lord-tools";
 
 import {
   registerPoliticsWebMCPTools,
-  unregisterPoliticsWebMCPTools,
 } from "@/lib/webmcp/register-politics-tools";
+
+import {
+  registerBorderWebMCPTools,
+} from "@/lib/webmcp/register-border-tools";
+
+import {
+  installWebMcpIdentityGuard,
+} from "@/lib/webmcp/identity-guard";
 
 export default function WebMCPProvider() {
   useEffect(() => {
-    let disposed =
-      false;
+    let alive =
+      true;
+
+    const guard =
+      installWebMcpIdentityGuard();
+
+    if (
+      guard ===
+      "failed"
+    ) {
+      console.error(
+        "[WebMCP] refusing to register gameplay tools without identity binding"
+      );
+
+      return;
+    }
+
+    if (
+      guard ===
+      "unavailable"
+    ) {
+      console.log(
+        "[WebMCP] unavailable"
+      );
+
+      return;
+    }
 
     void Promise.all([
       registerWebMCPTools(),
       registerConversationWebMCPTools(),
       registerLordWebMCPTools(),
       registerPoliticsWebMCPTools(),
+      registerBorderWebMCPTools(),
     ])
       .then(
         ([
@@ -41,34 +71,28 @@ export default function WebMCPProvider() {
           conversationRegistered,
           lordRegistered,
           politicsRegistered,
+          borderRegistered,
         ]) => {
+          if (!alive) {
+            return;
+          }
+
           console.log(
-            "[WebMCP] core registration:",
-            coreRegistered
-          );
-          console.log(
-            "[WebMCP] conversation registration:",
-            conversationRegistered
-          );
-          console.log(
-            "[WebMCP] lord registration:",
-            lordRegistered
-          );
-          console.log(
-            "[WebMCP] politics registration:",
-            politicsRegistered
+            "[WebMCP] identity-bound registration:",
+            {
+              guard,
+              coreRegistered,
+              conversationRegistered,
+              lordRegistered,
+              politicsRegistered,
+              borderRegistered,
+            }
           );
         }
       )
       .catch(
         (error) => {
-          if (
-            disposed &&
-            error instanceof
-              DOMException &&
-            error.name ===
-              "AbortError"
-          ) {
+          if (!alive) {
             return;
           }
 
@@ -79,12 +103,18 @@ export default function WebMCPProvider() {
         }
       );
 
+    /*
+     * Intentionally do NOT abort/unregister here.
+     *
+     * React development StrictMode mounts/effect-cleans/remounts components.
+     * Aborting WebMCP registrations during that synthetic cleanup produced
+     * AbortError races and duplicate-registration instability.
+     *
+     * All register modules are already idempotent for the page lifetime and
+     * this provider lives at the application root.
+     */
     return () => {
-      disposed = true;
-      unregisterPoliticsWebMCPTools();
-      unregisterLordWebMCPTools();
-      unregisterConversationWebMCPTools();
-      unregisterWebMCPTools();
+      alive = false;
     };
   }, []);
 

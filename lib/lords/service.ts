@@ -30,6 +30,11 @@ import {
 } from "@/lib/military/recruitment";
 
 import {
+  moveArmy,
+  stopArmyMovement,
+} from "@/lib/military/army-movement";
+
+import {
   spawnCourier,
 } from "@/lib/world/couriers";
 
@@ -51,8 +56,7 @@ export interface IssueCharacterOrderInput {
 }
 
 function responseStatus(
-  response:
-    LordOrderResponseType
+  response: LordOrderResponseType
 ): LordOrderStatus {
   switch (response) {
     case "ACCEPT":
@@ -87,77 +91,88 @@ export function inspectKingdomLords(
 
   const lords =
     Object.values(
-      world.session.lords
-        .profiles
+      world.session.lords.profiles
     )
       .filter(
         (profile) =>
           profile.kingdomId ===
-          access.player
-            .kingdomId
+          access.player.kingdomId
       )
-      .map(
-        (profile) => {
-          const character =
-            world.characters[
-              profile
-                .characterId
-            ];
+      .map((profile) => {
+        const character =
+          world.characters[
+            profile.characterId
+          ];
 
-          return {
-            characterId:
-              profile
-                .characterId,
-            name:
-              character?.name ??
-              profile
-                .characterId,
-            title:
-              profile.title,
-            homeSettlementId:
-              profile
-                .homeSettlementId,
-            controlledSettlementIds:
-              [
-                ...profile
-                  .controlledSettlementIds,
-              ],
-            controlledArmyIds:
-              [
-                ...profile
-                  .controlledArmyIds,
-              ],
-            loyalty:
-              profile.loyalty,
-            politicalPower:
-              profile
-                .politicalPower,
-            relationshipToRuler:
-              profile
-                .relationshipToRuler,
-            basicTraits: {
-              ...profile
-                .basicTraits,
-            },
-            localMilitaryStrength:
-              character?.army ??
-              0,
-            position:
-              world.simulation
-                .entityPositions[
-                  profile
-                    .characterId
-                ] ??
-              null,
-          };
-        }
-      );
+        const armies =
+          profile.controlledArmyIds
+            .map(
+              (armyId) =>
+                world.armies[armyId]
+            )
+            .filter(Boolean);
+
+        return {
+          characterId:
+            profile.characterId,
+          name:
+            character?.name ??
+            profile.characterId,
+          title:
+            profile.title,
+          homeSettlementId:
+            profile.homeSettlementId,
+          controlledSettlementIds:
+            [...profile.controlledSettlementIds],
+          controlledArmyIds:
+            [...profile.controlledArmyIds],
+          loyalty:
+            profile.loyalty,
+          politicalPower:
+            profile.politicalPower,
+          relationshipToRuler:
+            profile.relationshipToRuler,
+          basicTraits: {
+            ...profile.basicTraits,
+          },
+          localMilitaryStrength:
+            armies.reduce(
+              (total, army) =>
+                total +
+                army.unitIds.reduce(
+                  (sum, unitId) =>
+                    sum +
+                    (
+                      world.unitBlocks[unitId]
+                        ?.currentSoldiers ??
+                      0
+                    ),
+                  0
+                ),
+              0
+            ),
+          position:
+            world.simulation.entityPositions[
+              profile.characterId
+            ] ?? null,
+          armyPositions:
+            Object.fromEntries(
+              profile.controlledArmyIds.map(
+                (armyId) => [
+                  armyId,
+                  world.simulation.entityPositions[
+                    armyId
+                  ] ?? null,
+                ]
+              )
+            ),
+        };
+      });
 
   return {
     ok: true as const,
     kingdomId:
-      access.player
-        .kingdomId,
+      access.player.kingdomId,
     lords,
   };
 }
@@ -181,33 +196,52 @@ export function inspectLordOrders(
     orders:
       Object.values(
         getRuntimeWorldState()
-          .session.lords
-          .orders
+          .session.lords.orders
       ).filter(
         (order) =>
-          order.playerId ===
-          playerId
+          order.playerId === playerId
       ),
   };
 }
 
+function resolveLordArmyTarget(
+  order: LordOrderRequest,
+  homeSettlementId: string
+): string | undefined {
+  if (
+    order.type === "DEFEND_SETTLEMENT"
+  ) {
+    return (
+      order.targetSettlementId ??
+      homeSettlementId
+    );
+  }
+
+  if (
+    order.type === "REINFORCE" ||
+    order.type === "BRING_ARMY"
+  ) {
+    return (
+      order.targetNodeId ??
+      order.targetSettlementId
+    );
+  }
+
+  return undefined;
+}
+
 async function applyAcceptedOrderEffect(
-  order:
-    LordOrderRequest
+  order: LordOrderRequest
 ): Promise<
-  LordOrderRequest[
-    "canonicalEffect"
-  ]
+  LordOrderRequest["canonicalEffect"]
 > {
   const world =
     getRuntimeWorldState();
 
   const profile =
-    world.session.lords
-      .profiles[
-        order
-          .lordCharacterId
-      ];
+    world.session.lords.profiles[
+      order.lordCharacterId
+    ];
 
   if (!profile) {
     return {
@@ -218,20 +252,16 @@ async function applyAcceptedOrderEffect(
   }
 
   if (
-    order.type ===
-    "RAISE_TROOPS"
+    order.type === "RAISE_TROOPS"
   ) {
     const result =
       recruitUnits({
         settlementId:
-          profile
-            .homeSettlementId,
-        unitType:
-          "infantry",
+          profile.homeSettlementId,
+        unitType: "infantry",
         blocks: 1,
         actorId:
-          profile
-            .characterId,
+          profile.characterId,
       });
 
     if (result.ok) {
@@ -252,48 +282,105 @@ async function applyAcceptedOrderEffect(
   }
 
   if (
-    order.type ===
-    "HOLD_POSITION"
+    order.type === "HOLD_POSITION"
   ) {
+    for (
+      const armyId
+      of profile.controlledArmyIds
+    ) {
+      stopArmyMovement(
+        armyId
+      );
+    }
+
     return {
       applied: true,
       summary:
-        `${profile.title} committed to hold current positions.`,
+        `${profile.title} committed ${profile.controlledArmyIds.length} household force(s) to hold current positions.`,
+      referenceId:
+        profile.controlledArmyIds[0],
+    };
+  }
+
+  const targetNodeId =
+    resolveLordArmyTarget(
+      order,
+      profile.homeSettlementId
+    );
+
+  if (!targetNodeId) {
+    return {
+      applied: false,
+      summary:
+        `${profile.title} accepted but the military order has no physical target.`,
     };
   }
 
   if (
-    profile
-      .controlledArmyIds
-      .length ===
+    profile.controlledArmyIds.length ===
     0
   ) {
     return {
       applied: false,
       summary:
-        `${profile.title} accepted politically, but no independent field army is currently attached to this lord.`,
+        `${profile.title} accepted politically, but no independent field army is attached to this lord.`,
+    };
+  }
+
+  const results =
+    profile.controlledArmyIds.map(
+      (armyId) => ({
+        armyId,
+        result:
+          moveArmy(
+            armyId,
+            targetNodeId
+          ),
+      })
+    );
+
+  const successful =
+    results.filter(
+      (entry) =>
+        entry.result.ok
+    );
+
+  if (
+    successful.length ===
+    0
+  ) {
+    const firstFailure =
+      results[0];
+
+    return {
+      applied: false,
+      summary:
+        `${profile.title} accepted, but the household army could not move: ${
+          firstFailure &&
+          !firstFailure.result.ok
+            ? firstFailure.result.error
+            : "UNKNOWN"
+        }.`,
     };
   }
 
   return {
-    applied: false,
+    applied: true,
     summary:
-      "Lord-controlled field-army execution is deferred until a lord contingent is attached.",
+      `${profile.title} ordered ${successful.length} household force(s) toward ${targetNodeId}.`,
+    referenceId:
+      successful[0]?.armyId,
   };
 }
 
 async function finalizeDecision(
-  order:
-    LordOrderRequest,
-  decision:
-    GmLordOrderDecision,
-  preserveLegacyResolved:
-    boolean
+  order: LordOrderRequest,
+  decision: GmLordOrderDecision,
+  preserveLegacyResolved: boolean
 ) {
   const now =
     getRuntimeWorldState()
-      .simulation
-      .worldTimeMinutes;
+      .simulation.worldTimeMinutes;
 
   const resolved:
     LordOrderRequest = {
@@ -309,15 +396,13 @@ async function finalizeDecision(
     responseSummary:
       decision.summary,
     requestedCondition:
-      decision
-        .requestedCondition,
+      decision.requestedCondition,
     resolvedAt:
       now,
   };
 
   if (
-    decision.response ===
-      "ACCEPT" ||
+    decision.response === "ACCEPT" ||
     decision.response ===
       "PARTIAL_COMPLIANCE"
   ) {
@@ -328,8 +413,7 @@ async function finalizeDecision(
 
     if (
       !preserveLegacyResolved &&
-      resolved
-        .canonicalEffect
+      resolved.canonicalEffect
         ?.applied
     ) {
       resolved.status =
@@ -343,11 +427,9 @@ async function finalizeDecision(
       session: {
         ...current.session,
         lords: {
-          ...current.session
-            .lords,
+          ...current.session.lords,
           orders: {
-            ...current.session
-              .lords.orders,
+            ...current.session.lords.orders,
             [resolved.id]:
               resolved,
           },
@@ -366,10 +448,9 @@ export async function resolveReceivedLordOrder(
     getRuntimeWorldState();
 
   const order =
-    world.session.lords
-      .orders[
-        orderId
-      ];
+    world.session.lords.orders[
+      orderId
+    ];
 
   if (!order) {
     return {
@@ -380,10 +461,8 @@ export async function resolveReceivedLordOrder(
   }
 
   if (
-    order.status !==
-      "RECEIVED" &&
-    order.status !==
-      "pending"
+    order.status !== "RECEIVED" &&
+    order.status !== "pending"
   ) {
     return {
       ok: false as const,
@@ -393,11 +472,9 @@ export async function resolveReceivedLordOrder(
   }
 
   const profile =
-    world.session.lords
-      .profiles[
-        order
-          .lordCharacterId
-      ];
+    world.session.lords.profiles[
+      order.lordCharacterId
+    ];
 
   if (!profile) {
     return {
@@ -423,8 +500,7 @@ export async function resolveReceivedLordOrder(
     await finalizeDecision(
       order,
       decision,
-      order.status ===
-        "pending"
+      order.status === "pending"
     );
 
   return {
@@ -455,10 +531,9 @@ export async function issueCharacterOrder(
     getRuntimeWorldState();
 
   const profile =
-    world.session.lords
-      .profiles[
-        lordCharacterId
-      ];
+    world.session.lords.profiles[
+      lordCharacterId
+    ];
 
   if (!profile) {
     return {
@@ -470,8 +545,7 @@ export async function issueCharacterOrder(
 
   if (
     profile.kingdomId !==
-    access.player
-      .kingdomId
+    access.player.kingdomId
   ) {
     return {
       ok: false as const,
@@ -485,13 +559,11 @@ export async function issueCharacterOrder(
 
   const now =
     getRuntimeWorldState()
-      .simulation
-      .worldTimeMinutes;
+      .simulation.worldTimeMinutes;
 
   const presence =
     canConverse(
-      access.player
-        .characterId,
+      access.player.characterId,
       lordCharacterId
     );
 
@@ -500,22 +572,17 @@ export async function issueCharacterOrder(
     id:
       `lord-order-${sequence
         .toString()
-        .padStart(
-          6,
-          "0"
-        )}`,
+        .padStart(6, "0")}`,
     playerId,
     rulerCharacterId:
-      access.player
-        .characterId,
+      access.player.characterId,
     lordCharacterId,
     type:
       input.type,
     targetNodeId:
       input.targetNodeId,
     targetSettlementId:
-      input
-        .targetSettlementId,
+      input.targetSettlementId,
     risk:
       Math.max(
         0,
@@ -540,25 +607,20 @@ export async function issueCharacterOrder(
       getRuntimeWorldState();
 
     const senderPosition =
-      latest.simulation
-        .entityPositions[
-          access.player
-            .characterId
-        ];
+      latest.simulation.entityPositions[
+        access.player.characterId
+      ];
 
     const lordPosition =
-      latest.simulation
-        .entityPositions[
-          lordCharacterId
-        ];
+      latest.simulation.entityPositions[
+        lordCharacterId
+      ];
 
     if (
       !senderPosition ||
-      senderPosition.kind !==
-        "node" ||
+      senderPosition.kind !== "node" ||
       !lordPosition ||
-      lordPosition.kind !==
-        "node"
+      lordPosition.kind !== "node"
     ) {
       return {
         ok: false as const,
@@ -569,14 +631,11 @@ export async function issueCharacterOrder(
 
     const dispatch =
       spawnCourier(
-        access.player
-          .characterId,
+        access.player.characterId,
         lordCharacterId,
         `[LORD_ORDER:${order.id}] ${order.type}${order.note ? ` — ${order.note}` : ""}`,
-        senderPosition
-          .nodeId,
-        lordPosition
-          .nodeId
+        senderPosition.nodeId,
+        lordPosition.nodeId
       );
 
     if (!dispatch.ok) {
@@ -597,11 +656,9 @@ export async function issueCharacterOrder(
       session: {
         ...current.session,
         lords: {
-          ...current.session
-            .lords,
+          ...current.session.lords,
           orders: {
-            ...current.session
-              .lords.orders,
+            ...current.session.lords.orders,
             [order.id]:
               order,
           },
@@ -633,13 +690,11 @@ export function markDeliveredLordOrdersReceived():
   for (
     const order
     of Object.values(
-      world.session.lords
-        .orders
+      world.session.lords.orders
     )
   ) {
     if (
-      order.status !==
-      "IN_TRANSIT" ||
+      order.status !== "IN_TRANSIT" ||
       !order.deliveryMessageId
     ) {
       continue;
@@ -648,8 +703,7 @@ export function markDeliveredLordOrdersReceived():
     const message =
       getRuntimeWorldState()
         .messages[
-          order
-            .deliveryMessageId
+          order.deliveryMessageId
         ];
 
     if (
@@ -674,11 +728,9 @@ export function markDeliveredLordOrdersReceived():
         session: {
           ...current.session,
           lords: {
-            ...current.session
-              .lords,
+            ...current.session.lords,
             orders: {
-              ...current.session
-                .lords.orders,
+              ...current.session.lords.orders,
               [received.id]:
                 received,
             },
@@ -689,8 +741,7 @@ export function markDeliveredLordOrdersReceived():
 
     addCharacterKnowledge({
       characterId:
-        order
-          .lordCharacterId,
+        order.lordCharacterId,
       subjectId:
         order.id,
       kind: "event",
@@ -737,8 +788,7 @@ export function importLordRuntimeState(
 
   if (
     !parsed ||
-    typeof parsed !==
-      "object" ||
+    typeof parsed !== "object" ||
     !parsed.profiles ||
     !parsed.orders
   ) {

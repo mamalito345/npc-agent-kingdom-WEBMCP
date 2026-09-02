@@ -1,251 +1,259 @@
 "use client";
 
 import {
-  useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import {
-  getRuntimeWorldState,
+  getWorldState,
   subscribeWorldState,
-} from "@/lib/world/runtime";
+} from "@/lib/world/state";
 
 import {
   humanEndConversation,
-  humanInspectPresentCharacters,
   humanTalkToCharacter,
 } from "@/lib/conversation/human-actions";
 
+import {
+  closeCourtConversation,
+  getSelectedCourtCharacterId,
+  subscribeCourtConversation,
+} from "@/lib/ui/court";
+
 export default function ConversationPanel() {
-  const [, setRevision] = useState(0);
-  const [targetCharacterId, setTargetCharacterId] = useState("");
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(
-    () =>
-      subscribeWorldState(() => {
-        setRevision((value) => value + 1);
-      }),
-    []
-  );
-
-  const world = getRuntimeWorldState();
-  const playerId = world.session.localPlayerId;
-
-  const presentResult =
-    humanInspectPresentCharacters(
-      world.session.id,
-      playerId
+  const world =
+    useSyncExternalStore(
+      subscribeWorldState,
+      getWorldState,
+      getWorldState
     );
 
-  const presentCharacters = presentResult.ok
-    ? presentResult.characters
-    : [];
+  const requestedCharacterId =
+    useSyncExternalStore(
+      subscribeCourtConversation,
+      getSelectedCourtCharacterId,
+      getSelectedCourtCharacterId
+    );
+
+  const [text, setText] =
+    useState("");
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const [error, setError] =
+    useState<string | null>(
+      null
+    );
+
+  const playerId =
+    world.session
+      .localPlayerId;
 
   const activeConversation =
-    Object.values(world.session.conversations).find(
+    Object.values(
+      world.session
+        .conversations
+    ).find(
       (conversation) =>
-        conversation.status === "open" &&
-        conversation.controllerPlayerId === playerId
+        conversation.status ===
+          "open" &&
+        conversation
+          .controllerPlayerId ===
+          playerId
     );
 
-  const selectedTarget =
-    activeConversation?.targetCharacterId ??
-    targetCharacterId ??
-    presentCharacters[0]?.characterId ??
-    "";
+  const targetCharacterId =
+    activeConversation
+      ?.targetCharacterId ??
+    requestedCharacterId;
 
-  async function send(): Promise<void> {
-    const target =
-      activeConversation?.targetCharacterId ||
-      targetCharacterId ||
-      presentCharacters[0]?.characterId;
+  if (!targetCharacterId) {
+    return null;
+  }
 
-    if (!target || !text.trim()) {
+  const target =
+    world.characters[
+      targetCharacterId
+    ];
+
+  async function send():
+    Promise<void> {
+    if (
+      !targetCharacterId ||
+      !text.trim()
+    ) {
       return;
     }
 
     setBusy(true);
     setError(null);
 
-    const result = await humanTalkToCharacter(
-      world.session.id,
-      playerId,
-      target,
-      text,
-      activeConversation?.id
-    );
+    const result =
+      await humanTalkToCharacter(
+        world.session.id,
+        playerId,
+        targetCharacterId,
+        text,
+        activeConversation?.id
+      );
 
     setBusy(false);
 
     if (!result.ok) {
-      setError(result.error);
+      setError(
+        result.error
+      );
       return;
     }
 
     setText("");
-    setTargetCharacterId(target);
   }
 
-  function close(): void {
-    if (!activeConversation) {
-      return;
+  function close():
+    void {
+    if (
+      activeConversation
+    ) {
+      const result =
+        humanEndConversation(
+          world.session.id,
+          playerId,
+          activeConversation.id
+        );
+
+      if (!result.ok) {
+        setError(
+          result.error
+        );
+        return;
+      }
     }
 
-    const result = humanEndConversation(
-      world.session.id,
-      playerId,
-      activeConversation.id
-    );
-
-    if (!result.ok) {
-      setError(result.error);
-    }
+    closeCourtConversation();
   }
 
   return (
-    <aside
-      style={{
-        position: "fixed",
-        left: 12,
-        bottom: 12,
-        zIndex: 40,
-        width: 380,
-        maxHeight: "46vh",
-        overflow: "auto",
-        padding: 12,
-        borderRadius: 10,
-        border: "1px solid rgba(255,255,255,0.2)",
-        background: "rgba(10,10,10,0.92)",
-        color: "white",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>
-        Conversation
-      </div>
+    <div className="fixed inset-0 z-[110] grid place-items-center bg-black/70 p-5 backdrop-blur-sm">
+      <section className="flex max-h-[78vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-amber-800/50 bg-[#0a0c0e] text-neutral-100 shadow-2xl">
+        <header className="flex items-center justify-between border-b border-neutral-800 p-4">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400">
+              Royal Audience
+            </div>
+            <div className="mt-1 text-lg font-semibold">
+              {
+                target?.name ??
+                targetCharacterId
+              }
+            </div>
+          </div>
 
-      {!activeConversation && (
-        <select
-          value={selectedTarget}
-          onChange={(event) =>
-            setTargetCharacterId(event.target.value)
-          }
-          style={{
-            width: "100%",
-            marginBottom: 8,
-            color: "black",
-          }}
-        >
-          {presentCharacters.length === 0 && (
-            <option value="">
-              No present NPC
-            </option>
-          )}
-
-          {presentCharacters.map((character) => (
-            <option
-              key={character.characterId}
-              value={character.characterId}
-            >
-              {character.name} — {character.reason}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {activeConversation && (
-        <div
-          style={{
-            marginBottom: 8,
-            fontSize: 13,
-            opacity: 0.8,
-          }}
-        >
-          Talking to{" "}
-          {world.characters[
-            activeConversation.targetCharacterId
-          ]?.name}
-        </div>
-      )}
-
-      {activeConversation?.turns.map((turn) => (
-        <div
-          key={turn.id}
-          style={{ marginBottom: 7, fontSize: 13 }}
-        >
-          <strong>
-            {world.characters[turn.speakerCharacterId]?.name ??
-              turn.speakerCharacterId}
-            :
-          </strong>{" "}
-          {turn.text}
-        </div>
-      ))}
-
-      <textarea
-        value={text}
-        onChange={(event) =>
-          setText(event.target.value)
-        }
-        placeholder="Speak to a present NPC..."
-        rows={3}
-        style={{
-          width: "100%",
-          color: "black",
-          marginTop: 4,
-        }}
-      />
-
-      {error && (
-        <div
-          style={{
-            color: "#ff9e9e",
-            fontSize: 12,
-            marginTop: 4,
-          }}
-        >
-          {error}
-          {error === "NOT_PRESENT"
-            ? " — use send_message/courier for distant characters."
-            : ""}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          marginTop: 8,
-        }}
-      >
-        <button
-          type="button"
-          disabled={
-            busy ||
-            !(
-              activeConversation?.targetCharacterId ||
-              targetCharacterId ||
-              presentCharacters[0]?.characterId
-            ) ||
-            !text.trim()
-          }
-          onClick={() => void send()}
-        >
-          {busy ? "..." : "Talk"}
-        </button>
-
-        {activeConversation && (
           <button
             type="button"
             onClick={close}
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-white"
           >
-            End
+            Close
           </button>
-        )}
-      </div>
-    </aside>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {!activeConversation ? (
+            <div className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/65 p-3 text-xs leading-5 text-neutral-500">
+              This character is physically present. Speaking begins a bounded GM Character conversation using only the NPC&apos;s available context.
+            </div>
+          ) : null}
+
+          <div className="space-y-3">
+            {activeConversation
+              ?.turns.map(
+                (turn) => {
+                  const speaker =
+                    world.characters[
+                      turn
+                        .speakerCharacterId
+                    ];
+
+                  const playerTurn =
+                    turn
+                      .speakerCharacterId ===
+                    world.session
+                      .players[
+                        playerId
+                      ]
+                      ?.characterId;
+
+                  return (
+                    <div
+                      key={
+                        turn.id
+                      }
+                      className={`max-w-[88%] rounded-xl p-3 text-sm leading-6 ${
+                        playerTurn
+                          ? "ml-auto bg-amber-950/45"
+                          : "bg-neutral-900"
+                      }`}
+                    >
+                      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                        {
+                          speaker?.name ??
+                          turn
+                            .speakerCharacterId
+                        }
+                      </div>
+                      {
+                        turn.text
+                      }
+                    </div>
+                  );
+                }
+              )}
+          </div>
+        </div>
+
+        <footer className="border-t border-neutral-800 p-4">
+          {error ? (
+            <div className="mb-2 rounded border border-red-900 bg-red-950/25 p-2 text-xs text-red-300">
+              {error}
+            </div>
+          ) : null}
+
+          <textarea
+            value={text}
+            onChange={(
+              event
+            ) =>
+              setText(
+                event.target
+                  .value
+              )
+            }
+            placeholder={`Speak to ${target?.name ?? "this character"}...`}
+            rows={3}
+            className="w-full resize-none rounded-xl border border-neutral-700 bg-neutral-950 p-3 text-sm outline-none focus:border-amber-700"
+          />
+
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              disabled={
+                busy ||
+                !text.trim()
+              }
+              onClick={() =>
+                void send()
+              }
+              className="rounded-lg bg-amber-400 px-5 py-2 text-sm font-semibold text-black disabled:opacity-30"
+            >
+              {busy
+                ? "Waiting..."
+                : "Speak"}
+            </button>
+          </div>
+        </footer>
+      </section>
+    </div>
   );
 }

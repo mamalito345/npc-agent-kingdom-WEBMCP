@@ -6,8 +6,8 @@ import {
 } from "../lib/world/runtime";
 
 import {
-  moveArmy,
-} from "../lib/military/army-movement";
+  createMovement,
+} from "../lib/world/movement";
 
 import {
   getNextRoadEncounterBoundary,
@@ -21,17 +21,142 @@ import {
   getDeliveredPlayerKnowledge,
 } from "../lib/session/knowledge";
 
+import {
+  getMapEdges,
+  getEffectiveEdgeDistance,
+  getPhysicalEdgeDistance,
+} from "../lib/map/graph";
+
+import type {
+  Route,
+} from "../types/map";
+
 const ARMY_A =
   "army-northreach-edwyn";
 
 const ARMY_B =
   "army-eastvale-roderic";
 
-//
+const START_TIME =
+  480;
+
+const ARMY_SPEED_KM_PER_HOUR =
+  5;
+
+/*
+ * IMPORTANT REGRESSION NOTE
+ * -------------------------
+ * B2 predates the dense-map migration.
+ *
+ * Old fixture:
+ *   stoneford <-> riverhold
+ * was one direct edge and both endpoints were valid settlement destinations.
+ *
+ * Phase A intentionally inserted hidden transit nodes. `moveArmy()` correctly
+ * rejects a hidden transit node as a player-facing final destination, so a
+ * smoke that tries to move an army directly to a transit endpoint now gets
+ * DESTINATION_NOT_FOUND.
+ *
+ * For this B2 test we are testing the ROAD ENCOUNTER / SIMULATION layer, not
+ * the player destination validator. Therefore we construct two canonical
+ * ActiveMovement objects over one real dense-map edge using the same world
+ * movement primitive (`createMovement`) used by the movement system.
+ *
+ * No production code is changed.
+ */
+
+const directTestEdge =
+  getMapEdges()
+    .filter(
+      (edge) =>
+        edge.distanceKm >
+        0
+    )
+    .sort(
+      (a, b) =>
+        a.id.localeCompare(
+          b.id
+        )
+    )[0];
+
+if (!directTestEdge) {
+  throw new Error(
+    "No canonical map edge is available for the B2 road encounter smoke."
+  );
+}
+
+const NODE_A =
+  directTestEdge.fromNodeId;
+
+const NODE_B =
+  directTestEdge.toNodeId;
+
+const TEST_EDGE_ID =
+  directTestEdge.id;
+
+const physicalDistanceKm =
+  getPhysicalEdgeDistance(
+    directTestEdge
+  );
+
+const effectiveDistanceKm =
+  getEffectiveEdgeDistance(
+    directTestEdge
+  );
+
+const forwardRoute:
+  Route = {
+  nodeIds: [
+    NODE_A,
+    NODE_B,
+  ],
+
+  edgeIds: [
+    TEST_EDGE_ID,
+  ],
+
+  physicalDistanceKm,
+
+  effectiveDistanceKm,
+};
+
+const backwardRoute:
+  Route = {
+  nodeIds: [
+    NODE_B,
+    NODE_A,
+  ],
+
+  edgeIds: [
+    TEST_EDGE_ID,
+  ],
+
+  physicalDistanceKm,
+
+  effectiveDistanceKm,
+};
+
+const movementA =
+  createMovement(
+    "b2-smoke-movement-a",
+    ARMY_A,
+    forwardRoute,
+    ARMY_SPEED_KM_PER_HOUR,
+    START_TIME
+  );
+
+const movementB =
+  createMovement(
+    "b2-smoke-movement-b",
+    ARMY_B,
+    backwardRoute,
+    ARMY_SPEED_KM_PER_HOUR,
+    START_TIME
+  );
+
 // =====================================================
 // CONTROLLED WORLD SETUP
 // =====================================================
-//
 
 updateRuntimeWorldState(
   (world) => {
@@ -41,9 +166,7 @@ updateRuntimeWorldState(
           "player-edwyn"
         ];
 
-    if (
-      !edwynKnowledge
-    ) {
+    if (!edwynKnowledge) {
       throw new Error(
         "player-edwyn knowledge state is missing."
       );
@@ -71,21 +194,17 @@ updateRuntimeWorldState(
     return {
       ...world,
 
-      armyContacts:
-        {},
+      armyContacts: {},
 
-      battles:
-        {},
+      battles: {},
 
-      battleResults:
-        {},
+      battleResults: {},
 
       session: {
         ...world.session,
 
         commandCycle: {
-          ...world
-            .session
+          ...world.session
             .commandCycle,
 
           phase:
@@ -105,15 +224,13 @@ updateRuntimeWorldState(
         },
 
         knowledge: {
-          ...world
-            .session
+          ...world.session
             .knowledge,
 
           "player-edwyn": {
             ...edwynKnowledge,
 
-            facts:
-              [],
+            facts: [],
           },
         },
       },
@@ -140,14 +257,18 @@ updateRuntimeWorldState(
         ...world.simulation,
 
         worldTimeMinutes:
-          480,
+          START_TIME,
 
-        activeMovements:
-          {},
+        activeMovements: {
+          [ARMY_A]:
+            movementA,
+
+          [ARMY_B]:
+            movementB,
+        },
 
         entityPositions: {
-          ...world
-            .simulation
+          ...world.simulation
             .entityPositions,
 
           [ARMY_A]: {
@@ -155,7 +276,7 @@ updateRuntimeWorldState(
               "node",
 
             nodeId:
-              "stoneford",
+              NODE_A,
           },
 
           [ARMY_B]: {
@@ -163,7 +284,7 @@ updateRuntimeWorldState(
               "node",
 
             nodeId:
-              "riverhold",
+              NODE_B,
           },
         },
       },
@@ -172,64 +293,20 @@ updateRuntimeWorldState(
 );
 
 console.log(
-  "PASS: controlled B2 world prepared"
-);
-
-//
-// =====================================================
-// START OPPOSING MOVEMENTS
-// =====================================================
-//
-
-const moveA =
-  moveArmy(
-    ARMY_A,
-    "riverhold"
-  );
-
-if (
-  !moveA.ok
-) {
-  throw new Error(
-    `Army A movement failed: ${moveA.error}`
-  );
-}
-
-const moveB =
-  moveArmy(
-    ARMY_B,
-    "stoneford"
-  );
-
-if (
-  !moveB.ok
-) {
-  throw new Error(
-    `Army B movement failed: ${moveB.error}`
-  );
-}
-
-assert.ok(
-  moveA.movementId
-);
-
-assert.ok(
-  moveB.movementId
+  `PASS: controlled B2 world prepared on dense edge ${TEST_EDGE_ID}`
 );
 
 console.log(
-  "PASS: opposing road movements started"
+  "PASS: opposing canonical ActiveMovements started on same dense-map edge"
 );
 
-//
 // =====================================================
 // ROAD ENCOUNTER BOUNDARY
 // =====================================================
-//
 
 const boundary =
   getNextRoadEncounterBoundary(
-    480
+    START_TIME
   );
 
 if (
@@ -243,18 +320,16 @@ if (
 
 assert.ok(
   boundary >
-    480
+    START_TIME
 );
 
 console.log(
   `PASS: road encounter boundary detected at world minute ${boundary}`
 );
 
-//
 // =====================================================
 // ADVANCE THROUGH ENCOUNTER
 // =====================================================
-//
 
 const advance =
   advanceWorldUntil(
@@ -289,11 +364,9 @@ console.log(
   "PASS: simulation paused on road encounter"
 );
 
-//
 // =====================================================
 // EXACT ROAD POSITION
 // =====================================================
-//
 
 const after =
   getRuntimeWorldState();
@@ -321,7 +394,7 @@ if (
 
 if (
   positionA.kind !==
-    "edge"
+  "edge"
 ) {
   throw new Error(
     "Army A was teleported to a node instead of remaining on the road."
@@ -330,7 +403,7 @@ if (
 
 if (
   positionB.kind !==
-    "edge"
+  "edge"
 ) {
   throw new Error(
     "Army B was teleported to a node instead of remaining on the road."
@@ -339,12 +412,12 @@ if (
 
 assert.equal(
   positionA.edgeId,
-  "stoneford_riverhold"
+  TEST_EDGE_ID
 );
 
 assert.equal(
   positionB.edgeId,
-  "stoneford_riverhold"
+  TEST_EDGE_ID
 );
 
 assert.ok(
@@ -369,11 +442,9 @@ console.log(
   `PASS: armies met at exact road progress ${(positionA.progress * 100).toFixed(2)}%`
 );
 
-//
 // =====================================================
 // PHYSICAL MOVEMENT STOP
 // =====================================================
-//
 
 assert.equal(
   after.simulation
@@ -395,11 +466,9 @@ console.log(
   "PASS: movements stopped without node teleport"
 );
 
-//
 // =====================================================
 // PERSISTENT BATTLE
 // =====================================================
-//
 
 const activeBattle =
   Object.values(
@@ -444,9 +513,7 @@ const activeBattle =
     }
   );
 
-if (
-  !activeBattle
-) {
+if (!activeBattle) {
   throw new Error(
     "Road encounter did not create a persistent battle."
   );
@@ -470,11 +537,9 @@ console.log(
   `PASS: persistent road battle created (${activeBattle.id})`
 );
 
-//
 // =====================================================
 // PLAYER-SCOPED COMMAND INTERRUPT
 // =====================================================
-//
 
 assert.ok(
   advance
@@ -503,11 +568,9 @@ console.log(
   "PASS: affected player command window opened"
 );
 
-//
 // =====================================================
 // DIRECT OBSERVATION KNOWLEDGE
 // =====================================================
-//
 
 const knowledge =
   getDeliveredPlayerKnowledge(
@@ -523,9 +586,7 @@ const enemyFact =
         "direct_observation"
   );
 
-if (
-  !enemyFact
-) {
+if (!enemyFact) {
   throw new Error(
     "Road encounter was not written into player knowledge."
   );
@@ -536,14 +597,16 @@ assert.equal(
   "confirmed"
 );
 
+assert.equal(
+  enemyFact.data.edgeId,
+  TEST_EDGE_ID
+);
+
 console.log(
   "PASS: enemy encounter entered player knowledge immediately"
 );
 
-console.log(
-  ""
-);
-
+console.log("");
 console.log(
   "B2 ROAD ENCOUNTER + SESSION INTERRUPT INTEGRATION: PASS"
 );

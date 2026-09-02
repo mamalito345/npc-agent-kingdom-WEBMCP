@@ -3,6 +3,12 @@ import type {
   LordRuntimeState,
 } from "@/types/lords";
 
+function armyId(
+  characterId: string
+): string {
+  return `army-house-${characterId.replace(/^lord_/, "")}`;
+}
+
 export const initialLordProfiles: Record<string, LordProfile> = {
   lord_merek: {
     characterId: "lord_merek",
@@ -10,7 +16,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Riverhold",
     homeSettlementId: "riverhold",
     controlledSettlementIds: ["riverhold", "highcrest"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_merek")],
     loyalty: 78,
     politicalPower: 72,
     relationshipToRuler: 62,
@@ -30,7 +36,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Frostmere",
     homeSettlementId: "frostmere",
     controlledSettlementIds: ["frostmere"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_rowan")],
     loyalty: 48,
     politicalPower: 46,
     relationshipToRuler: 18,
@@ -50,7 +56,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Greenharbor",
     homeSettlementId: "greenharbor",
     controlledSettlementIds: ["greenharbor", "elmstead"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_theon")],
     loyalty: 69,
     politicalPower: 63,
     relationshipToRuler: 48,
@@ -70,7 +76,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Dawnfort",
     homeSettlementId: "dawnfort",
     controlledSettlementIds: ["dawnfort"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_beric")],
     loyalty: 84,
     politicalPower: 58,
     relationshipToRuler: 30,
@@ -90,7 +96,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Blackfen",
     homeSettlementId: "blackfen",
     controlledSettlementIds: ["blackfen", "reedmere"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_corvin")],
     loyalty: 42,
     politicalPower: 68,
     relationshipToRuler: 20,
@@ -110,7 +116,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Greywatch",
     homeSettlementId: "greywatch",
     controlledSettlementIds: ["greywatch"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_harlan")],
     loyalty: 76,
     politicalPower: 61,
     relationshipToRuler: 44,
@@ -130,7 +136,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Goldmeadow",
     homeSettlementId: "goldmeadow",
     controlledSettlementIds: ["goldmeadow", "redfield"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_cedric")],
     loyalty: 81,
     politicalPower: 70,
     relationshipToRuler: 55,
@@ -150,7 +156,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Southgate",
     homeSettlementId: "southgate",
     controlledSettlementIds: ["southgate"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_tavian")],
     loyalty: 57,
     politicalPower: 56,
     relationshipToRuler: 26,
@@ -170,7 +176,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Emberfall",
     homeSettlementId: "emberfall",
     controlledSettlementIds: ["emberfall", "stonevein"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_durand")],
     loyalty: 71,
     politicalPower: 74,
     relationshipToRuler: 40,
@@ -190,7 +196,7 @@ export const initialLordProfiles: Record<string, LordProfile> = {
     title: "Lord of Ashguard",
     homeSettlementId: "ashguard",
     controlledSettlementIds: ["ashguard"],
-    controlledArmyIds: [],
+    controlledArmyIds: [armyId("lord_malric")],
     loyalty: 22,
     politicalPower: 77,
     relationshipToRuler: 18,

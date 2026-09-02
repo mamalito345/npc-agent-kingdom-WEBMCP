@@ -18,21 +18,36 @@ import {
 } from "@/lib/military/army-queries";
 
 import {
-  getSelectedArmyId,
-  selectArmy,
-  subscribeArmySelection,
-} from "@/lib/ui/army-selection";
+  getRealmControlLabel,
+} from "@/lib/demo/realm-control";
+
+import {
+  getMapInteractionState,
+  selectMapArmy,
+  subscribeMapInteraction,
+} from "@/lib/ui/map-interaction";
 
 const KINGDOM_LABELS:
-  Record<
-    string,
-    string
-  > = {
+  Record<string, string> = {
   northreach: "N",
   eastvale: "E",
   westmoor: "W",
   southmark: "S",
   ironhollow: "I",
+};
+
+const KINGDOM_CLASSES:
+  Record<string, string> = {
+  northreach:
+    "border-sky-300 bg-sky-950/95",
+  eastvale:
+    "border-emerald-300 bg-emerald-950/95",
+  westmoor:
+    "border-stone-300 bg-stone-900/95",
+  southmark:
+    "border-amber-300 bg-amber-950/95",
+  ironhollow:
+    "border-red-300 bg-red-950/95",
 };
 
 export default function ArmyLayer() {
@@ -43,31 +58,37 @@ export default function ArmyLayer() {
       getWorldState
     );
 
-  const selectedArmyId =
+  const interaction =
     useSyncExternalStore(
-      subscribeArmySelection,
-      getSelectedArmyId,
-      getSelectedArmyId
+      subscribeMapInteraction,
+      getMapInteractionState,
+      getMapInteractionState
+    );
+
+  const lordArmyIds =
+    new Set(
+      Object.values(
+        world.session.lords.profiles
+      ).flatMap(
+        (profile) =>
+          profile.controlledArmyIds
+      )
     );
 
   const armies =
     Object.values(
       world.armies
     ).filter(
-      (
-        army
-      ) =>
+      (army) =>
         army.status !==
         "destroyed"
     );
 
-  const battles =
+  const activeBattles =
     Object.values(
       world.battles
     ).filter(
-      (
-        battle
-      ) =>
+      (battle) =>
         battle.status ===
         "active"
     );
@@ -75,9 +96,7 @@ export default function ArmyLayer() {
   return (
     <>
       {armies.map(
-        (
-          army
-        ) => {
+        (army) => {
           const position =
             world.simulation
               .entityPositions[
@@ -98,10 +117,8 @@ export default function ArmyLayer() {
           }
 
           const battle =
-            battles.find(
-              (
-                candidate
-              ) =>
+            activeBattles.find(
+              (candidate) =>
                 candidate
                   .attackerArmyIds
                   .includes(
@@ -114,62 +131,9 @@ export default function ArmyLayer() {
                   )
             );
 
-          const isAttacker =
-            battle
-              ?.attackerArmyIds
-              .includes(
-                army.id
-              ) ??
-            false;
-
-          const isDefender =
-            battle
-              ?.defenderArmyIds
-              .includes(
-                army.id
-              ) ??
-            false;
-
-          /*
-           * VISUAL ONLY.
-           *
-           * frontMomentum stays canonical.
-           * Pixel offsets never enter world state.
-           */
-          let battleOffsetX =
-            0;
-
-          let battleOffsetY =
-            0;
-
-          if (
-            battle &&
-            isAttacker
-          ) {
-            battleOffsetX =
-              -70 +
-              battle.frontMomentum *
-                0.45;
-
-            battleOffsetY =
-              -24;
-          }
-
-          if (
-            battle &&
-            isDefender
-          ) {
-            battleOffsetX =
-              70 +
-              battle.frontMomentum *
-                0.45;
-
-            battleOffsetY =
-              24;
-          }
-
           const selected =
-            selectedArmyId ===
+            interaction
+              .selectedArmyId ===
             army.id;
 
           const moving =
@@ -180,112 +144,100 @@ export default function ArmyLayer() {
                 ]
             );
 
-          const lastRound =
-            battle
-              ?.lastRound;
+          const isLordArmy =
+            lordArmyIds.has(
+              army.id
+            );
 
-          const lastLoss =
-            lastRound
-              ? isAttacker
-                ? lastRound
-                    .attacker
-                    .soldiersLost
-                : lastRound
-                    .defender
-                    .soldiersLost
-              : 0;
+          const controlLabel =
+            isLordArmy
+              ? "GM CHARACTER · LORD"
+              : getRealmControlLabel(
+                  army.ownerId
+                );
 
           return (
             <button
-              key={
-                army.id
-              }
+              key={army.id}
               type="button"
-              title={
-                army.id
-              }
+              title={army.id}
               onPointerDown={(
                 event
-              ) => {
-                event.stopPropagation();
-              }}
+              ) =>
+                event.stopPropagation()
+              }
               onClick={(
                 event
               ) => {
                 event.stopPropagation();
 
-                selectArmy(
-                  army.id
+                selectMapArmy(
+                  selected
+                    ? null
+                    : army.id
                 );
               }}
-              className={`absolute z-40 flex h-16 w-16 flex-col items-center justify-center rounded-lg border-4 shadow-xl transition-all duration-500 ${
+              className={`absolute z-40 grid min-h-14 min-w-14 place-items-center rounded-md border-2 px-2 py-1 shadow-[0_8px_22px_rgba(0,0,0,0.5)] transition ${
                 selected
-                  ? "border-yellow-300 bg-yellow-950"
-                  : army.ownerId ===
-                      "northreach"
-                    ? "border-blue-300 bg-blue-900"
-                    : army.ownerId ===
-                        "ironhollow"
-                      ? "border-red-300 bg-red-950"
-                      : "border-neutral-300 bg-neutral-800"
+                  ? "scale-110 ring-4 ring-yellow-300/70"
+                  : ""
+              } ${
+                KINGDOM_CLASSES[
+                  army.ownerId
+                ] ??
+                "border-neutral-300 bg-neutral-900"
               }`}
               style={{
                 left:
-                  point.x +
-                  battleOffsetX,
-
+                  point.x,
                 top:
-                  point.y +
-                  battleOffsetY,
-
+                  point.y,
                 transform:
                   "translate(-50%, -50%)",
               }}
             >
-              {battle && (
-                <span className="absolute -top-6 whitespace-nowrap rounded bg-red-950/90 px-2 py-0.5 text-[9px] font-bold text-red-200">
-                  {isAttacker
-                    ? "ATTACK →"
-                    : "← DEFEND"}
-                </span>
-              )}
-
-              <span className="text-lg font-black">
-                ⚔
-                {
-                  KINGDOM_LABELS[
-                    army.ownerId
-                  ] ??
-                  "?"
-                }
+              <span className="text-sm font-black">
+                {isLordArmy
+                  ? "♜"
+                  : "⚔"}{" "}
+                {KINGDOM_LABELS[
+                  army.ownerId
+                ] ?? "?"}
               </span>
 
-              <span className="text-[10px] font-semibold">
-                {
-                  getArmySoldierCount(
-                    army.id
-                  )
-                }
+              <span className="text-[9px] font-semibold text-white/80">
+                {getArmySoldierCount(
+                  army.id
+                ).toLocaleString()}
               </span>
 
-              {moving && (
-                <span className="absolute -bottom-5 rounded bg-black/80 px-1 text-[9px] text-white">
-                  MOVING
+              {moving ? (
+                <span className="absolute -bottom-4 rounded bg-black/80 px-1.5 text-[8px] text-neutral-200">
+                  MARCHING
                 </span>
-              )}
+              ) : null}
 
-              {battle && (
-                <span className="absolute -bottom-6 whitespace-nowrap rounded bg-black/85 px-2 py-0.5 text-[9px] text-white">
-                  H
-                  {
-                    battle.battleHour
-                  }
-                  {lastLoss >
-                  0
-                    ? ` • -${lastLoss}`
-                    : ""}
+              {battle ? (
+                <span className="absolute -top-4 rounded bg-red-700 px-1.5 text-[8px] font-bold text-white">
+                  BATTLE
                 </span>
-              )}
+              ) : null}
+
+              <span
+                className={`absolute -right-2 -top-2 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[8px] ${
+                  isLordArmy
+                    ? "border-violet-300 bg-violet-950 text-violet-100"
+                    : controlLabel === "ACTOR LLM"
+                      ? "border-cyan-300 bg-cyan-950 text-cyan-100"
+                      : controlLabel === "GM CONTROLLED"
+                        ? "border-violet-300 bg-violet-950 text-violet-100"
+                        : "border-amber-300 bg-amber-950 text-amber-100"
+                }`}
+              >
+                {isLordArmy
+                  ? "LORD · GM"
+                  : controlLabel}
+              </span>
             </button>
           );
         }

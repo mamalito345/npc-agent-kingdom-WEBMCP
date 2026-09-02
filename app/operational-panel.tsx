@@ -12,171 +12,54 @@ import {
 } from "@/lib/world/state";
 
 import {
-  getSelectedArmyId,
-  selectArmy,
-  subscribeArmySelection,
-} from "@/lib/ui/army-selection";
+  getMapInteractionState,
+  clearMapDestination,
+  subscribeMapInteraction,
+} from "@/lib/ui/map-interaction";
+
+import {
+  buildArmyRoutePreview,
+  formatDuration,
+} from "@/lib/map/route-preview";
 
 import {
   getArmySoldierCount,
+  getArmyUnits,
 } from "@/lib/military/army-queries";
 
 import {
-  getKingdomStrategicEconomy,
-} from "@/lib/economy/strategic-metrics";
+  getRealmControlLabel,
+} from "@/lib/demo/realm-control";
 
 import {
-  submitBattleOrder,
-} from "@/lib/military/battle-orders";
+  issuePlayerArmyMove,
+} from "@/lib/session/player-actions";
 
 import {
-  setBattleTactic,
-} from "@/lib/military/battle-tactic-orders";
+  forcePlayerArmyBorderMove,
+} from "@/lib/session/border-player-actions";
 
-import {
-  moveArmy,
-} from "@/lib/military/army-movement";
-
-import {
-  startBattle,
-} from "@/lib/military/battle-state";
-
-import {
-  startSiege,
-} from "@/lib/military/siege";
-
-import {
-  getPlayerControlledArmyId,
-  isPlayerPresentAtBattle,
-} from "@/lib/military/player-presence";
-
-import type {
-  BattleOrderType,
-  BattleTactic,
-  PersistentBattle,
-} from "@/types/military";
-
-const ORDER_LABELS:
-  Record<
-    BattleOrderType,
-    string
-  > = {
-  hold_position:
-    "Hold Position",
-
-  commit_reserve:
-    "Commit Reserve",
-
-  press_attack:
-    "Press Attack",
-
-  order_retreat:
-    "Retreat",
-};
-
-const TACTIC_LABELS:
-  Record<
-    BattleTactic,
-    string
-  > = {
-  hold_ground:
-    "Hold Ground",
-
-  aggressive_push:
-    "Aggressive Push",
-
-  shield_wall:
-    "Shield Wall",
-
-  cavalry_flank:
-    "Cavalry Flank",
-
-  commit_reserve:
-    "Commit Reserve",
-
-  counterattack:
-    "Counterattack",
-
-  seize_high_ground:
-    "Seize High Ground",
-
-  orderly_retreat:
-    "Orderly Retreat",
-
-  desperate_assault:
-    "Desperate Assault",
-};
-
-const NORMAL_TACTICS:
-  BattleTactic[] = [
-  "hold_ground",
-  "aggressive_push",
-  "shield_wall",
-  "cavalry_flank",
-  "counterattack",
-  "seize_high_ground",
-  "orderly_retreat",
-  "desperate_assault",
-];
-
-function momentumPercent(
-  momentum:
-    number
+function unitCount(
+  armyId: string,
+  type:
+    "infantry" |
+    "cavalry" |
+    "siege"
 ): number {
-  return Math.max(
-    0,
-    Math.min(
-      100,
-      (
-        momentum +
-        100
-      ) /
-        2
+  return getArmyUnits(
+    armyId
+  )
+    .filter(
+      (unit) =>
+        unit.type ===
+        type
     )
-  );
-}
-
-function getSideSoldiers(
-  battle:
-    PersistentBattle,
-  side:
-    "attacker" |
-    "defender"
-): number {
-  const world =
-    getWorldState();
-
-  const ids =
-    side ===
-    "attacker"
-      ? battle
-          .attackerArmyIds
-      : battle
-          .defenderArmyIds;
-
-  return ids.reduce(
-    (
-      total,
-      armyId
-    ) => {
-      const army =
-        world.armies[
-          armyId
-        ];
-
-      if (!army) {
-        return total;
-      }
-
-      return (
+    .reduce(
+      (total, unit) =>
         total +
-        getArmySoldierCount(
-          armyId
-        )
-      );
-    },
-    0
-  );
+        unit.currentSoldiers,
+      0
+    );
 }
 
 export default function OperationalPanel() {
@@ -187,1121 +70,712 @@ export default function OperationalPanel() {
       getWorldState
     );
 
-  const selectedArmyId =
+  const interaction =
     useSyncExternalStore(
-      subscribeArmySelection,
-      getSelectedArmyId,
-      getSelectedArmyId
+      subscribeMapInteraction,
+      getMapInteractionState,
+      getMapInteractionState
     );
 
-  const [
-    destinationId,
-    setDestinationId,
-  ] =
-    useState(
-      "riverhold"
+  const [message, setMessage] =
+    useState<string | null>(
+      null
     );
 
-  const [
-    actionMessage,
-    setActionMessage,
-  ] =
-    useState<
-      string | null
-    >(null);
+  const [borderConfirm, setBorderConfirm] =
+    useState(false);
 
-  const playerCharacter =
-    world.characters[
-      world.player
-        .characterId
+  const playerId =
+    world.session
+      .localPlayerId;
+
+  const player =
+    world.session.players[
+      playerId
     ];
 
-  const kingdomId =
-    playerCharacter
-      ?.kingdomId;
-
-  const economy =
-    useMemo(
-      () =>
-        kingdomId
-          ? getKingdomStrategicEconomy(
-              kingdomId
-            )
-          : null,
-      [
-        kingdomId,
-        world,
-      ]
-    );
-
-  const ownArmies =
-    kingdomId
-      ? Object.values(
-          world.armies
-        ).filter(
-          (army) =>
-            army.ownerId ===
-              kingdomId &&
-            army.status !==
-              "destroyed"
-        )
-      : [];
-
-  const enemyArmies =
-    kingdomId
-      ? Object.values(
-          world.armies
-        ).filter(
-          (army) =>
-            army.ownerId !==
-              kingdomId &&
-            army.status !==
-              "destroyed"
-        )
-      : [];
-
   const selectedArmy =
-    selectedArmyId
+    interaction.selectedArmyId
       ? world.armies[
-          selectedArmyId
+          interaction
+            .selectedArmyId
         ]
       : undefined;
 
-  const selectedArmyPosition =
-    selectedArmyId
-      ? world
-          .simulation
-          .entityPositions[
-            selectedArmyId
+  const selectedSettlement =
+    interaction
+      .selectedSettlementId
+      ? world.settlements[
+          interaction
+            .selectedSettlementId
+        ]
+      : undefined;
+
+  const destinationSettlement =
+    interaction
+      .destinationSettlementId
+      ? world.settlements[
+          interaction
+            .destinationSettlementId
+        ]
+      : undefined;
+
+  const routePreview =
+    selectedArmy &&
+    destinationSettlement
+      ? buildArmyRoutePreview(
+          selectedArmy.id,
+          destinationSettlement
+            .locationId
+        )
+      : null;
+
+  const isIndependentLordArmy =
+    selectedArmy
+      ? Object.values(
+          world.session.lords
+            .profiles
+        ).some(
+          (profile) =>
+            profile
+              .controlledArmyIds
+              .includes(
+                selectedArmy.id
+              )
+        )
+      : false;
+
+  const canPlayerOrderSelectedArmy =
+    Boolean(
+      selectedArmy &&
+      player &&
+      selectedArmy.ownerId ===
+        player.kingdomId &&
+      !isIndependentLordArmy
+    );
+
+  const armyMovement =
+    selectedArmy
+      ? world.simulation
+          .activeMovements[
+            selectedArmy.id
           ]
       : undefined;
 
-  const enemiesAtSelectedArmyNode =
-    selectedArmyPosition
-      ?.kind ===
-    "node"
-      ? enemyArmies.filter(
-          (army) => {
-            const position =
-              world
-                .simulation
-                .entityPositions[
-                  army.id
-                ];
-
-            return (
-              position
-                ?.kind ===
-                "node" &&
-              position.nodeId ===
-                selectedArmyPosition
-                  .nodeId
-            );
-          }
-        )
-      : [];
-
-  const settlementsAtSelectedArmyNode =
-    selectedArmyPosition
-      ?.kind ===
-    "node"
+  const lordProfile =
+    selectedArmy
       ? Object.values(
-          world.settlements
-        ).filter(
-          (settlement) =>
-            settlement
-              .locationId ===
-            selectedArmyPosition
-              .nodeId
+          world.session.lords
+            .profiles
+        ).find(
+          (profile) =>
+            profile
+              .controlledArmyIds
+              .includes(
+                selectedArmy.id
+              )
         )
-      : [];
+      : undefined;
 
-  const hostileSettlementsAtSelectedArmyNode =
-    settlementsAtSelectedArmyNode.filter(
-      (settlement) => {
-        const controller =
-          settlement
-            .controllerKingdomId ??
-          settlement.kingdomId;
+  const commander =
+    selectedArmy
+      ?.commanderId
+      ? world.characters[
+          selectedArmy
+            .commanderId
+        ]
+      : undefined;
 
-        return (
-          selectedArmy !==
-            undefined &&
-          controller !==
+  const armyPresenceContext =
+    selectedArmy
+      ? Object.values(
+          world.session
+            .presenceContexts
+        ).find(
+          (context) =>
+            context.active &&
+            context.kind ===
+              "army" &&
+            context.referenceId ===
+              selectedArmy.id
+        )
+      : undefined;
+
+  const charactersInArmy =
+    armyPresenceContext
+      ? armyPresenceContext
+          .characterIds
+          .map(
+            (characterId) =>
+              world.characters[
+                characterId
+              ]
+          )
+          .filter(Boolean)
+      : commander
+        ? [commander]
+        : [];
+
+  const controlLabel =
+    selectedArmy
+      ? isIndependentLordArmy
+        ? "GM CHARACTER · LORD"
+        : getRealmControlLabel(
             selectedArmy.ownerId
+          )
+      : undefined;
+
+  const soldierCount =
+    selectedArmy
+      ? getArmySoldierCount(
+          selectedArmy.id
+        )
+      : 0;
+
+  const sizeLabel =
+    soldierCount >= 5000
+      ? "GREAT HOST"
+      : soldierCount >= 2500
+        ? "FIELD ARMY"
+        : soldierCount >= 1000
+          ? "HOST"
+          : soldierCount >= 500
+            ? "HOUSEHOLD FORCE"
+            : "DETACHMENT";
+
+  const settlementLord =
+    selectedSettlement
+      ? Object.values(
+          world.session.lords
+            .profiles
+        ).find(
+          (profile) =>
+            profile
+              .controlledSettlementIds
+              .includes(
+                selectedSettlement.id
+              )
+        )
+      : undefined;
+
+  const settlementLordCharacter =
+    settlementLord
+      ? world.characters[
+          settlementLord
+            .characterId
+        ]
+      : undefined;
+
+  const selectedSettlementName =
+    selectedSettlement
+      ? world.locations[
+          selectedSettlement
+            .locationId
+        ]?.name ??
+        selectedSettlement.id
+      : undefined;
+
+  const armyPower =
+    useMemo(
+      () => {
+        if (!selectedArmy) {
+          return 0;
+        }
+
+        return Math.round(
+          unitCount(
+            selectedArmy.id,
+            "infantry"
+          ) *
+            1 +
+            unitCount(
+              selectedArmy.id,
+              "cavalry"
+            ) *
+              1.4 +
+            unitCount(
+              selectedArmy.id,
+              "siege"
+            ) *
+              55
         );
+      },
+      [
+        selectedArmy,
+      ]
+    );
+
+  function confirmMove(
+    forceBorder:
+      boolean
+  ): void {
+    if (
+      !selectedArmy ||
+      !destinationSettlement
+    ) {
+      return;
+    }
+
+    const result =
+      forceBorder
+        ? forcePlayerArmyBorderMove(
+            world.session.id,
+            playerId,
+            selectedArmy.id,
+            destinationSettlement
+              .locationId
+          )
+        : issuePlayerArmyMove(
+            world.session.id,
+            playerId,
+            selectedArmy.id,
+            destinationSettlement
+              .locationId
+          );
+
+    if (!result.ok) {
+      if (
+        result.error ===
+        "BORDER_ACCESS_REQUIRED"
+      ) {
+        setBorderConfirm(
+          true
+        );
+
+        setMessage(
+          `Military access is not granted. Entering ${result.border?.toKingdomId ?? "foreign territory"} will create a border violation when the army physically crosses.`
+        );
+
+        return;
       }
-    );
 
-  const activeBattles =
-    Object.values(
-      world.battles
-    ).filter(
-      (battle) =>
-        battle.status ===
-        "active"
-    );
-
-  const activeSieges =
-    Object.values(
-      world.sieges
-    ).filter(
-      (siege) =>
-        siege.status ===
-        "active"
-    );
-
-  function handleMoveArmy() {
-    if (
-      !selectedArmyId
-    ) {
-      setActionMessage(
-        "Select an army first."
+      setMessage(
+        `ACTION REJECTED — ${result.error}`
       );
 
       return;
     }
 
-    const result =
-      moveArmy(
-        selectedArmyId,
-        destinationId
-      );
-
-    if (!result.ok) {
-      setActionMessage(
-        `Move failed: ${result.error}`
-      );
-
-      return;
-    }
-
-    setActionMessage(
-      `Army moving. ETA minute ${result.estimatedArrivalAt}.`
+    setBorderConfirm(
+      false
     );
-  }
 
-  function handleStartBattle(
-    enemyArmyId:
-      string
-  ) {
-    if (
-      !selectedArmyId
-    ) {
-      return;
-    }
-
-    const result =
-      startBattle({
-        attackerArmyId:
-          selectedArmyId,
-
-        defenderArmyId:
-          enemyArmyId,
-      });
-
-    if (!result.ok) {
-      setActionMessage(
-        `Battle failed: ${result.error}`
-      );
-
-      return;
-    }
-
-    setActionMessage(
-      `Battle started: ${result.battle.id}`
+    setMessage(
+      `ORDER CREATED — ${selectedArmy.id} → ${destinationSettlement.locationId}`
     );
-  }
 
-  function handleStartSiege(
-    settlementId:
-      string
-  ) {
-    if (
-      !selectedArmyId
-    ) {
-      return;
-    }
-
-    const result =
-      startSiege({
-        armyId:
-          selectedArmyId,
-
-        settlementId,
-      });
-
-    if (!result.ok) {
-      setActionMessage(
-        `Siege failed: ${result.error}`
-      );
-
-      return;
-    }
-
-    setActionMessage(
-      `Siege started: ${result.siege.id}`
-    );
-  }
-
-  function issueOrder(
-    battleId:
-      string,
-    armyId:
-      string,
-    order:
-      BattleOrderType
-  ) {
-    const result =
-      submitBattleOrder({
-        battleId,
-
-        armyId,
-
-        actorType:
-          "player",
-
-        actorId:
-          world.player
-            .characterId,
-
-        order,
-      });
-
-    if (!result.ok) {
-      setActionMessage(
-        `Order failed: ${result.error}`
-      );
-
-      return;
-    }
-
-    setActionMessage(
-      `Battle order: ${ORDER_LABELS[order]}`
-    );
-  }
-
-  function changeTactic(
-    battleId:
-      string,
-    armyId:
-      string,
-    tactic:
-      BattleTactic
-  ) {
-    const result =
-      setBattleTactic({
-        battleId,
-
-        armyId,
-
-        tactic,
-      });
-
-    if (!result.ok) {
-      setActionMessage(
-        result.reason
-          ? `Tactic failed: ${result.reason}`
-          : `Tactic failed: ${result.error}`
-      );
-
-      return;
-    }
-
-    setActionMessage(
-      `Tactic changed to ${TACTIC_LABELS[tactic]}.`
-    );
+    clearMapDestination();
   }
 
   return (
-    <aside className="fixed bottom-4 left-4 z-[100] max-h-[82vh] w-[430px] overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-950/95 p-4 text-sm text-neutral-100 shadow-2xl backdrop-blur">
-      <div className="mb-4">
-        <div className="text-lg font-bold">
-          Operational Command
+    <aside className="fixed bottom-5 right-[450px] top-5 z-[70] w-[330px] overflow-y-auto rounded-2xl border border-neutral-700/70 bg-[#0b0d0f]/94 p-4 text-neutral-100 shadow-2xl backdrop-blur">
+      <div className="mb-4 border-b border-neutral-800 pb-3">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400">
+          Field Command
         </div>
-
-        <div className="text-xs text-neutral-400">
-          Army movement, battle tactics and sieges
+        <div className="mt-1 text-xs text-neutral-500">
+          Select an army, then click a settlement on the map.
         </div>
       </div>
 
-      {actionMessage && (
-        <div className="mb-4 rounded border border-neutral-700 bg-neutral-900 p-2 text-xs">
-          {actionMessage}
+      {message ? (
+        <div className="mb-4 rounded-lg border border-neutral-700 bg-neutral-900 p-3 text-xs leading-5 text-neutral-300">
+          {message}
         </div>
-      )}
+      ) : null}
 
-      {economy && (
-        <section className="mb-5">
-          <h3 className="mb-2 font-semibold">
-            Strategic Economy
-          </h3>
-
-          <div className="grid grid-cols-2 gap-1 text-xs">
-            <span>
-              Treasury
-            </span>
-
-            <span>
-              {economy.treasury.toFixed(
-                0
-              )}
-            </span>
-
-            <span>
-              Trade/day
-            </span>
-
-            <span>
-              {economy.dailyTradeIncome.toFixed(
-                1
-              )}
-            </span>
-
-            <span>
-              Military/day
-            </span>
-
-            <span>
-              {economy.dailyMilitaryGoldCost.toFixed(
-                1
-              )}
-            </span>
-
-            <span>
-              Mobilization
-            </span>
-
-            <span className="uppercase">
-              {
-                economy.mobilizationLevel
-              }
-            </span>
-          </div>
-        </section>
-      )}
-
-      <section className="mb-5">
-        <h3 className="mb-2 font-semibold">
-          Your Armies
-        </h3>
-
-        {ownArmies.length ===
-        0 ? (
-          <div className="rounded border border-neutral-800 p-3 text-xs text-neutral-500">
-            No armies.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {ownArmies.map(
-              (army) => {
-                const position =
-                  world
-                    .simulation
-                    .entityPositions[
-                      army.id
-                    ];
-
-                const selected =
-                  selectedArmyId ===
-                  army.id;
-
-                return (
-                  <button
-                    key={
-                      army.id
-                    }
-                    type="button"
-                    onClick={() =>
-                      selectArmy(
-                        army.id
-                      )
-                    }
-                    className={`w-full rounded border p-3 text-left ${
-                      selected
-                        ? "border-yellow-400 bg-yellow-950/20"
-                        : "border-neutral-800 bg-neutral-900"
-                    }`}
-                  >
-                    <div className="font-semibold">
-                      {
-                        army.id
-                      }
-                    </div>
-
-                    <div className="text-xs text-neutral-400">
-                      {
-                        getArmySoldierCount(
-                          army.id
-                        )
-                      }{" "}
-                      soldiers
-                    </div>
-
-                    <div className="text-xs text-neutral-500">
-                      Status:{" "}
-                      {
-                        army.status
-                      }
-                    </div>
-
-                    <div className="text-xs text-neutral-500">
-                      Position:{" "}
-                      {position
-                        ?.kind ===
-                      "node"
-                        ? position.nodeId
-                        : position
-                              ?.kind ===
-                            "edge"
-                          ? `${position.edgeId} ${(position.progress * 100).toFixed(0)}%`
-                          : "unknown"}
-                    </div>
-                  </button>
-                );
-              }
-            )}
-          </div>
-        )}
-      </section>
-
-      {selectedArmy && (
-        <section className="mb-5 rounded border border-blue-900 bg-blue-950/20 p-3">
-          <h3 className="mb-3 font-semibold text-blue-300">
+      {selectedArmy ? (
+        <section>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
             Selected Army
-          </h3>
-
-          <div className="mb-3 text-xs">
-            {
-              selectedArmy.id
-            }
           </div>
 
-          <label className="mb-1 block text-xs text-neutral-400">
-            Destination
-          </label>
+          <h2 className="mt-1 text-lg font-semibold">
+            {commander?.name
+              ? `${commander.name}'s Host`
+              : selectedArmy.id}
+          </h2>
 
-          <select
-            value={
-              destinationId
-            }
-            onChange={(
-              event
-            ) =>
-              setDestinationId(
-                event.target
-                  .value
-              )
-            }
-            className="mb-2 w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-2 text-sm"
-          >
-            {Object.values(
-              world.locations
-            ).map(
-              (
-                location
-              ) => (
-                <option
-                  key={
-                    location.id
-                  }
-                  value={
-                    location.id
-                  }
-                >
-                  {
-                    location.name
-                  }
-                </option>
-              )
-            )}
-          </select>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2 py-1 text-[10px] font-semibold">
+              {sizeLabel}
+            </span>
 
-          <button
-            type="button"
-            onClick={
-              handleMoveArmy
-            }
-            disabled={
-              selectedArmy.status ===
-                "battle" ||
-              selectedArmy.status ===
-                "siege"
-            }
-            className="w-full rounded bg-blue-700 px-3 py-2 font-semibold hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Move Army
-          </button>
+            <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${
+              controlLabel === "ACTOR LLM"
+                ? "border-cyan-700 bg-cyan-950/40 text-cyan-200"
+                : controlLabel?.startsWith("GM")
+                  ? "border-violet-700 bg-violet-950/40 text-violet-200"
+                  : "border-amber-700 bg-amber-950/40 text-amber-200"
+            }`}>
+              {controlLabel}
+            </span>
+          </div>
 
-          {enemiesAtSelectedArmyNode.length >
-            0 && (
-            <div className="mt-4">
-              <div className="mb-2 text-xs font-semibold text-red-300">
-                Enemy armies here
+          {lordProfile ? (
+            <div className="mt-2 text-xs text-violet-300">
+              Household army of {
+                lordProfile.title
+              }
+            </div>
+          ) : (
+            <div className="mt-2 text-xs text-amber-300">
+              Realm / royal field army
+            </div>
+          )}
+
+          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg bg-neutral-900 p-3">
+              <div className="text-neutral-500">
+                Soldiers
+              </div>
+              <div className="mt-1 text-lg font-semibold">
+                {getArmySoldierCount(
+                  selectedArmy.id
+                ).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-neutral-900 p-3">
+              <div className="text-neutral-500">
+                Power
+              </div>
+              <div className="mt-1 text-lg font-semibold">
+                {armyPower.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-neutral-900 p-3">
+              <div className="text-neutral-500">
+                Morale
+              </div>
+              <div className="mt-1 uppercase">
+                {selectedArmy.morale}
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-neutral-900 p-3">
+              <div className="text-neutral-500">
+                Supply
+              </div>
+              <div className="mt-1 uppercase">
+                {selectedArmy.supply.state}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 text-xs">
+            <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+              Command & Characters
+            </div>
+
+            <div className="space-y-2">
+              {charactersInArmy.length > 0 ? (
+                charactersInArmy.map((character) => (
+                  <div
+                    key={character.id}
+                    className="flex items-center justify-between rounded bg-neutral-950/70 px-2 py-2"
+                  >
+                    <span>
+                      {character.rank === "lord" ? "♜ " : "♔ "}
+                      {character.name}
+                    </span>
+                    <span className="text-[10px] uppercase text-neutral-500">
+                      {character.id === selectedArmy.commanderId
+                        ? "Commander"
+                        : "With army"}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-neutral-500">
+                  No explicitly attached character presence.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-y-2 border-t border-neutral-800 pt-3">
+              <span className="text-neutral-500">
+                Infantry
+              </span>
+              <span>
+                {unitCount(
+                  selectedArmy.id,
+                  "infantry"
+                ).toLocaleString()}
+              </span>
+
+              <span className="text-neutral-500">
+                Cavalry
+              </span>
+              <span>
+                {unitCount(
+                  selectedArmy.id,
+                  "cavalry"
+                ).toLocaleString()}
+              </span>
+
+              <span className="text-neutral-500">
+                Siege
+              </span>
+              <span>
+                {unitCount(
+                  selectedArmy.id,
+                  "siege"
+                ).toLocaleString()}
+              </span>
+            </div>
+          </div>
+
+          {armyMovement ? (
+            <div className="mt-3 rounded-lg border border-cyan-900 bg-cyan-950/25 p-3 text-xs">
+              <div className="font-semibold text-cyan-200">
+                MARCHING
+              </div>
+              <div className="mt-1 text-neutral-400">
+                Destination: {
+                  armyMovement.destinationNodeId
+                }
+              </div>
+              <div className="mt-1 text-neutral-500">
+                ETA minute {
+                  Math.ceil(
+                    armyMovement
+                      .estimatedArrivalAt
+                  )
+                }
+              </div>
+            </div>
+          ) : null}
+
+          {isIndependentLordArmy ? (
+            <div className="mt-4 rounded-lg border border-violet-900 bg-violet-950/20 p-3 text-xs leading-5 text-violet-200">
+              This force belongs to an independent major lord. The ruler cannot directly puppet it. Use a character order; the GM Character decides compliance.
+            </div>
+          ) : null}
+
+          {routePreview?.ok ? (
+            <div className="mt-4 rounded-xl border border-yellow-800/60 bg-yellow-950/15 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-yellow-300">
+                Route Preview
               </div>
 
-              <div className="space-y-2">
-                {enemiesAtSelectedArmyNode.map(
-                  (
-                    enemy
-                  ) => (
+              <div className="mt-2 text-sm font-semibold">
+                → {
+                  routePreview
+                    .preview
+                    .destinationName
+                }
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-y-2 text-xs">
+                <span className="text-neutral-500">
+                  Distance
+                </span>
+                <span>
+                  {
+                    routePreview
+                      .preview
+                      .physicalDistanceKm
+                  } km
+                </span>
+
+                <span className="text-neutral-500">
+                  Effective
+                </span>
+                <span>
+                  {
+                    routePreview
+                      .preview
+                      .effectiveDistanceKm
+                      .toFixed(0)
+                  } km
+                </span>
+
+                <span className="text-neutral-500">
+                  ETA
+                </span>
+                <span>
+                  {formatDuration(
+                    routePreview
+                      .preview
+                      .estimatedDurationMinutes
+                  )}
+                </span>
+
+                <span className="text-neutral-500">
+                  Road legs
+                </span>
+                <span>
+                  {
+                    routePreview
+                      .preview
+                      .edgeIds
+                      .length
+                  }
+                </span>
+              </div>
+
+              {routePreview
+                .preview
+                .unauthorizedBorder ? (
+                <div className="mt-3 rounded-lg border border-red-800 bg-red-950/35 p-3 text-xs leading-5 text-red-200">
+                  ⚠ Foreign border ahead: {
+                    routePreview
+                      .preview
+                      .unauthorizedBorder
+                      .fromKingdomId
+                  } → {
+                    routePreview
+                      .preview
+                      .unauthorizedBorder
+                      .toKingdomId
+                  }. Military access is not currently recognized.
+                </div>
+              ) : null}
+
+              {canPlayerOrderSelectedArmy ? (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearMapDestination();
+                      setBorderConfirm(false);
+                    }}
+                    className="rounded-lg border border-neutral-700 px-3 py-2 text-xs"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      confirmMove(false)
+                    }
+                    className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-semibold text-black"
+                  >
+                    Confirm Move
+                  </button>
+                </div>
+              ) : null}
+
+              {borderConfirm &&
+              canPlayerOrderSelectedArmy ? (
+                <div className="mt-3 rounded-xl border border-red-700 bg-red-950/45 p-3">
+                  <div className="text-xs font-semibold text-red-200">
+                    BORDER VIOLATION
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-red-300/80">
+                    The army will physically march toward the frontier. The diplomatic incident occurs only if it actually crosses the foreign border edge.
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <button
-                      key={
-                        enemy.id
-                      }
                       type="button"
                       onClick={() =>
-                        handleStartBattle(
-                          enemy.id
-                        )
+                        setBorderConfirm(false)
                       }
-                      className="w-full rounded border border-red-800 bg-red-950/30 px-3 py-2 text-left hover:bg-red-900/40"
+                      className="rounded border border-neutral-700 px-2 py-2 text-xs"
                     >
-                      <div>
-                        {
-                          enemy.id
-                        }
-                      </div>
-
-                      <div className="text-xs text-neutral-400">
-                        {
-                          getArmySoldierCount(
-                            enemy.id
-                          )
-                        }{" "}
-                        soldiers
-                      </div>
-
-                      <div className="mt-1 text-xs font-semibold text-red-300">
-                        Start Battle
-                      </div>
+                      Cancel
                     </button>
-                  )
-                )}
-              </div>
-            </div>
-          )}
-
-          {hostileSettlementsAtSelectedArmyNode.length >
-            0 && (
-            <div className="mt-4">
-              <div className="mb-2 text-xs font-semibold text-orange-300">
-                Enemy fortified settlement
-              </div>
-
-              {hostileSettlementsAtSelectedArmyNode.map(
-                (
-                  settlement
-                ) => (
-                  <button
-                    key={
-                      settlement.id
-                    }
-                    type="button"
-                    onClick={() =>
-                      handleStartSiege(
-                        settlement.id
-                      )
-                    }
-                    className="mb-2 w-full rounded border border-orange-800 bg-orange-950/30 px-3 py-2 text-left hover:bg-orange-900/40"
-                  >
-                    <div>
-                      {
-                        settlement.name
+                    <button
+                      type="button"
+                      onClick={() =>
+                        confirmMove(true)
                       }
-                    </div>
-
-                    <div className="text-xs text-neutral-400">
-                      Fort L
-                      {settlement
-                        .fortificationLevel ??
-                        0}
-                      {" · "}
-                      Integrity{" "}
-                      {settlement
-                        .fortificationIntegrity ??
-                        0}
-                    </div>
-
-                    <div className="mt-1 text-xs font-semibold text-orange-300">
-                      Start Siege
-                    </div>
-                  </button>
-                )
-              )}
+                      className="rounded bg-red-500 px-2 py-2 text-xs font-semibold text-white"
+                    >
+                      Cross Border
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
-          )}
+          ) : null}
+        </section>
+      ) : selectedSettlement ? (
+        <section>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+            Settlement
+          </div>
+
+          <h2 className="mt-1 text-xl font-semibold">
+            {selectedSettlementName}
+          </h2>
+
+          <div className="mt-4 space-y-2 text-xs">
+            <div className="flex justify-between rounded bg-neutral-900 p-2">
+              <span className="text-neutral-500">
+                Kingdom
+              </span>
+              <span>
+                {
+                  world.kingdoms[
+                    selectedSettlement.kingdomId
+                  ]?.name ??
+                  selectedSettlement.kingdomId
+                }
+              </span>
+            </div>
+
+            <div className="flex justify-between rounded bg-neutral-900 p-2">
+              <span className="text-neutral-500">
+                Realm Controller
+              </span>
+              <span className={
+                getRealmControlLabel(
+                  selectedSettlement.kingdomId
+                ) === "ACTOR LLM"
+                  ? "text-cyan-300"
+                  : getRealmControlLabel(
+                      selectedSettlement.kingdomId
+                    ) === "GM CONTROLLED"
+                    ? "text-violet-300"
+                    : "text-amber-300"
+              }>
+                {
+                  getRealmControlLabel(
+                    selectedSettlement.kingdomId
+                  )
+                }
+              </span>
+            </div>
+
+            <div className="flex justify-between rounded bg-neutral-900 p-2">
+              <span className="text-neutral-500">
+                Lord
+              </span>
+              <span>
+                {
+                  settlementLordCharacter
+                    ?.name ??
+                  "Royal domain"
+                }
+              </span>
+            </div>
+
+            <div className="flex justify-between rounded bg-neutral-900 p-2">
+              <span className="text-neutral-500">
+                Fortification
+              </span>
+              <span>
+                {
+                  selectedSettlement
+                    .fortificationLevel
+                }
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-lg border border-neutral-800 p-3 text-xs leading-5 text-neutral-500">
+            Select one of your controllable army tokens, then click this settlement again to create a physical route preview.
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-xl border border-dashed border-neutral-800 p-5 text-sm leading-6 text-neutral-500">
+          Select an army or settlement on the map. Hidden transit nodes remain canonical underneath; the player interacts only with meaningful game objects.
         </section>
       )}
-
-      <section className="mb-5">
-        <h3 className="mb-2 font-semibold">
-          Active Battles (
-          {
-            activeBattles.length
-          }
-          )
-        </h3>
-
-        {activeBattles.length ===
-        0 ? (
-          <div className="text-xs text-neutral-500">
-            No active battles.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {activeBattles.map(
-              (
-                battle
-              ) => {
-                const playerPresent =
-                  isPlayerPresentAtBattle(
-                    battle
-                  );
-
-                const playerArmyId =
-                  playerPresent
-                    ? getPlayerControlledArmyId(
-                        battle
-                      )
-                    : undefined;
-
-                const playerAttacker =
-                  playerArmyId
-                    ? battle
-                        .attackerArmyIds
-                        .includes(
-                          playerArmyId
-                        )
-                    : false;
-
-                const playerTactic =
-                  playerArmyId
-                    ? playerAttacker
-                      ? battle
-                          .attackerTactic
-                      : battle
-                          .defenderTactic
-                    : undefined;
-
-                const attackerSoldiers =
-                  getSideSoldiers(
-                    battle,
-                    "attacker"
-                  );
-
-                const defenderSoldiers =
-                  getSideSoldiers(
-                    battle,
-                    "defender"
-                  );
-
-                const pending =
-                  battle
-                    .pendingDecision;
-
-                const playerDecision =
-                  pending !==
-                    undefined &&
-                  playerArmyId ===
-                    pending.armyId;
-
-                const lastRound =
-                  battle.lastRound;
-
-                return (
-                  <div
-                    key={
-                      battle.id
-                    }
-                    className="rounded border border-red-900 bg-red-950/20 p-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-semibold">
-                          {
-                            world.locations[
-                              battle.nodeId
-                            ]?.name ??
-                            battle.nodeId
-                          }
-                        </div>
-
-                        <div className="text-[10px] text-neutral-500">
-                          {
-                            battle.id
-                          }
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-xs font-bold text-red-300">
-                          Hour{" "}
-                          {
-                            battle.battleHour
-                          }
-                        </div>
-
-                        <div className="text-[10px] uppercase text-neutral-400">
-                          {
-                            battle.currentPhase
-                          }
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 rounded bg-black/30 p-2">
-                      <div className="grid grid-cols-3 text-center text-xs">
-                        <div>
-                          <div className="font-bold text-red-300">
-                            ATTACK
-                          </div>
-
-                          <div>
-                            {
-                              attackerSoldiers
-                            }
-                          </div>
-
-                          <div className="text-[10px] text-neutral-400">
-                            {
-                              TACTIC_LABELS[
-                                battle
-                                  .attackerTactic
-                              ]
-                            }
-                          </div>
-                        </div>
-
-                        <div className="text-neutral-500">
-                          VS
-                        </div>
-
-                        <div>
-                          <div className="font-bold text-blue-300">
-                            DEFEND
-                          </div>
-
-                          <div>
-                            {
-                              defenderSoldiers
-                            }
-                          </div>
-
-                          <div className="text-[10px] text-neutral-400">
-                            {
-                              TACTIC_LABELS[
-                                battle
-                                  .defenderTactic
-                              ]
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 text-xs">
-                      <div className="mb-1 flex justify-between">
-                        <span>
-                          Defender
-                        </span>
-
-                        <span className="font-semibold">
-                          Front Momentum{" "}
-                          {
-                            battle.frontMomentum
-                          }
-                        </span>
-
-                        <span>
-                          Attacker
-                        </span>
-                      </div>
-
-                      <div className="relative h-3 overflow-hidden rounded bg-neutral-800">
-                        <div
-                          className="absolute bottom-0 left-0 top-0 bg-red-700 transition-all duration-500"
-                          style={{
-                            width:
-                              `${momentumPercent(
-                                battle.frontMomentum
-                              )}%`,
-                          }}
-                        />
-
-                        <div className="absolute bottom-0 left-1/2 top-0 w-px bg-white/70" />
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded bg-neutral-900 p-2">
-                        <div className="text-neutral-400">
-                          Attacker morale pressure
-                        </div>
-
-                        <div className="text-lg font-bold">
-                          {battle
-                            .attackerMoralePressure
-                            .toFixed(
-                              1
-                            )}
-                        </div>
-                      </div>
-
-                      <div className="rounded bg-neutral-900 p-2">
-                        <div className="text-neutral-400">
-                          Defender morale pressure
-                        </div>
-
-                        <div className="text-lg font-bold">
-                          {battle
-                            .defenderMoralePressure
-                            .toFixed(
-                              1
-                            )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 text-xs text-neutral-400">
-                      Terrain:{" "}
-                      <span className="text-neutral-100">
-                        {
-                          battle.terrain
-                        }
-                      </span>
-
-                      {battle.features.length >
-                        0 && (
-                        <>
-                          {" · "}
-                          {battle.features.join(
-                            ", "
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    <div className="mt-2 text-xs">
-                      Reserve:
-                      {" A="}
-                      {battle
-                        .attackerReserveCommitted
-                        ? "COMMITTED"
-                        : "HELD"}
-                      {" · D="}
-                      {battle
-                        .defenderReserveCommitted
-                        ? "COMMITTED"
-                        : "HELD"}
-                    </div>
-
-                    {lastRound && (
-                      <div className="mt-3 rounded border border-neutral-800 bg-neutral-900/70 p-2 text-xs">
-                        <div className="font-semibold">
-                          Last hour
-                        </div>
-
-                        <div className="mt-1">
-                          Attacker lost{" "}
-                          <strong>
-                            {
-                              lastRound
-                                .attacker
-                                .soldiersLost
-                            }
-                          </strong>
-                          {" · "}
-                          Defender lost{" "}
-                          <strong>
-                            {
-                              lastRound
-                                .defender
-                                .soldiersLost
-                            }
-                          </strong>
-                        </div>
-
-                        <div className="mt-1 text-[10px] text-neutral-500">
-                          {
-                            lastRound.summary
-                          }
-                        </div>
-                      </div>
-                    )}
-
-                    {!playerPresent && (
-                      <div className="mt-3 rounded border border-neutral-800 bg-neutral-900 p-2 text-xs text-neutral-400">
-                        Player is not physically present at this battlefield. Local commanders control tactical decisions.
-                      </div>
-                    )}
-
-                    {playerArmyId &&
-                      playerPresent &&
-                      !playerDecision && (
-                        <div className="mt-4">
-                          <div className="mb-2 text-xs font-semibold text-yellow-300">
-                            Tactical Posture
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            {NORMAL_TACTICS.map(
-                              (
-                                tactic
-                              ) => (
-                                <button
-                                  key={
-                                    tactic
-                                  }
-                                  type="button"
-                                  onClick={() =>
-                                    changeTactic(
-                                      battle.id,
-                                      playerArmyId,
-                                      tactic
-                                    )
-                                  }
-                                  className={`rounded border px-2 py-2 text-xs ${
-                                    playerTactic ===
-                                    tactic
-                                      ? "border-yellow-300 bg-yellow-950/40 text-yellow-200"
-                                      : "border-neutral-700 bg-neutral-900 hover:bg-neutral-800"
-                                  }`}
-                                >
-                                  {
-                                    TACTIC_LABELS[
-                                      tactic
-                                    ]
-                                  }
-                                </button>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                    {playerDecision &&
-                      pending && (
-                        <div className="mt-4 rounded border border-yellow-600 bg-yellow-950/20 p-3">
-                          <div className="mb-2 font-semibold text-yellow-300">
-                            ⚠ Battle Crisis
-                          </div>
-
-                          <div className="mb-3 text-xs text-neutral-300">
-                            Immediate operational decision required before time may continue.
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            {pending
-                              .availableOrders
-                              .map(
-                                (
-                                  order
-                                ) => (
-                                  <button
-                                    key={
-                                      order
-                                    }
-                                    type="button"
-                                    onClick={() =>
-                                      issueOrder(
-                                        battle.id,
-                                        pending.armyId,
-                                        order
-                                      )
-                                    }
-                                    className="rounded border border-yellow-700 bg-neutral-900 px-2 py-2 text-xs hover:bg-yellow-950/40"
-                                  >
-                                    {
-                                      ORDER_LABELS[
-                                        order
-                                      ]
-                                    }
-                                  </button>
-                                )
-                              )}
-                          </div>
-                        </div>
-                      )}
-
-                    <div className="mt-4 border-t border-neutral-800 pt-3">
-                      <div className="mb-2 text-[10px] font-semibold uppercase text-neutral-500">
-                        Battle Log
-                      </div>
-
-                      <div className="space-y-1">
-                        {battle.history
-                          .slice(
-                            -4
-                          )
-                          .reverse()
-                          .map(
-                            (
-                              entry
-                            ) => (
-                              <div
-                                key={
-                                  entry.id
-                                }
-                                className="text-[10px] text-neutral-400"
-                              >
-                                {
-                                  entry.summary
-                                }
-                              </div>
-                            )
-                          )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-            )}
-          </div>
-        )}
-      </section>
-
-      <section>
-        <h3 className="mb-2 font-semibold">
-          Active Sieges (
-          {
-            activeSieges.length
-          }
-          )
-        </h3>
-
-        {activeSieges.length ===
-        0 ? (
-          <div className="text-xs text-neutral-500">
-            No active sieges.
-          </div>
-        ) : (
-          activeSieges.map(
-            (
-              siege
-            ) => (
-              <div
-                key={
-                  siege.id
-                }
-                className="mb-2 rounded border border-orange-900 bg-orange-950/20 p-2"
-              >
-                <div className="font-semibold">
-                  {
-                    siege.settlementId
-                  }
-                </div>
-
-                <div className="text-xs uppercase text-orange-300">
-                  {
-                    siege.currentPhase
-                  }
-                </div>
-              </div>
-            )
-          )
-        )}
-      </section>
     </aside>
   );
 }
