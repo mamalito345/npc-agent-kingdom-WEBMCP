@@ -7,6 +7,8 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import ArmyLayer from "@/app/army-layer";
+
 import {
   getWorldState,
   subscribeWorldState,
@@ -608,7 +610,9 @@ function handlePointerMove(
                 );
               }
             )}
+            {/* Layer 3 — armies */}
 
+            <ArmyLayer />
             {/* Layer 3 — player */}
 
             {playerMapPoint && (

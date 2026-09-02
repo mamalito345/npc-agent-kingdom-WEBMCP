@@ -186,12 +186,19 @@ export function inspectSettlementMilitary(
         })
       );
 
+  const controllerKingdomId =
+    getSettlementControllerId(
+      settlement
+    );
+
   const garrisonSoldiers =
     armies
       .filter(
         (army) =>
           army.status ===
-          "garrison"
+            "garrison" &&
+          army.ownerId ===
+            controllerKingdomId
       )
       .reduce(
         (

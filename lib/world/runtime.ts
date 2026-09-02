@@ -14,6 +14,12 @@ import {
   settlements,
 } from "@/data/settlements";
 
+import {
+  demoArmies,
+  demoArmyPositions,
+  demoUnitBlocks,
+} from "@/data/demo-military";
+
 import type {
   ActiveMovement,
   Position,
@@ -44,7 +50,9 @@ let worldState: WorldState = {
   settlementResourceReservations:
     {},
 
-  unitBlocks: {},
+  unitBlocks: {
+    ...demoUnitBlocks,
+  },
 
   fortificationOrders: {},
 
@@ -52,7 +60,9 @@ let worldState: WorldState = {
 
   settlementOperations: {},
   
-  armies: {},
+  armies: {
+    ...demoArmies,
+  },
 
   recruitmentOrders: {},
 
@@ -92,6 +102,8 @@ let worldState: WorldState = {
         nodeId:
           "stoneford",
       },
+
+      ...demoArmyPositions,
     },
 
     activeMovements: {},

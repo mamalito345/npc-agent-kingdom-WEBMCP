@@ -43,9 +43,31 @@ import {
 } from "@/lib/military/support";
 
 import {
-  fightArmies,
-} from "@/lib/military/battle";
+  startBattle,
+} from "@/lib/military/battle-state";
 
+import {
+  submitBattleOrder,
+} from "@/lib/military/battle-orders";
+
+import {
+  startSiege,
+  liftSiege,
+} from "@/lib/military/siege";
+
+import {
+  inspectActiveBattles,
+  inspectActiveSieges,
+  inspectBattle,
+  inspectKingdomEconomy,
+  inspectRoad,
+  inspectSiege,
+  inspectWars,
+} from "@/lib/military/operational-inspection";
+
+import {
+  getRuntimeWorldState,
+} from "@/lib/world/runtime";
 import {
   retreatArmyImmediately,
 } from "@/lib/military/retreat";
@@ -263,6 +285,108 @@ const armySettlementInputSchema = {
   required: [
     "army_id",
     "settlement_id",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const battleInputSchema = {
+  type: "object",
+
+  properties: {
+    battle_id: {
+      type: "string",
+    },
+  },
+
+  required: [
+    "battle_id",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const siegeInputSchema = {
+  type: "object",
+
+  properties: {
+    siege_id: {
+      type: "string",
+    },
+  },
+
+  required: [
+    "siege_id",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const battleOrderInputSchema = {
+  type: "object",
+
+  properties: {
+    battle_id: {
+      type: "string",
+    },
+
+    army_id: {
+      type: "string",
+    },
+
+    order: {
+      type: "string",
+
+      enum: [
+        "hold_position",
+        "commit_reserve",
+        "press_attack",
+        "order_retreat",
+      ],
+    },
+  },
+
+  required: [
+    "battle_id",
+    "army_id",
+    "order",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const kingdomInputSchema = {
+  type: "object",
+
+  properties: {
+    kingdom_id: {
+      type: "string",
+    },
+  },
+
+  required: [
+    "kingdom_id",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const roadInputSchema = {
+  type: "object",
+
+  properties: {
+    edge_id: {
+      type: "string",
+    },
+  },
+
+  required: [
+    "edge_id",
   ],
 
   additionalProperties:
@@ -639,14 +763,13 @@ export async function registerWebMCPTools():
     //
     // COMBAT
     //
-
     await modelContext.registerTool(
       {
         name:
-          "fight_armies",
+          "start_battle",
 
         description:
-          "Resolve deterministic canonical combat between two enemy armies at the same node.",
+          "Start a persistent canonical battle between hostile armies at the same node. The battle then progresses through simulation time and may request player battle orders.",
 
         inputSchema:
           fightInputSchema,
@@ -657,7 +780,7 @@ export async function registerWebMCPTools():
             defender_army_id,
             contact_id,
           }) =>
-            fightArmies({
+            startBattle({
               attackerArmyId:
                 attacker_army_id,
 
@@ -674,7 +797,113 @@ export async function registerWebMCPTools():
           controller.signal,
       }
     );
+    await modelContext.registerTool(
+  {
+    name:
+      "inspect_battles",
 
+    description:
+      "Inspect all currently active persistent battles and pending decision points.",
+
+    inputSchema:
+      emptyInputSchema,
+
+    annotations: {
+      readOnlyHint:
+        true,
+    },
+
+    execute:
+      async () =>
+        inspectActiveBattles(),
+  },
+
+  {
+    signal:
+      controller.signal,
+  }
+);
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_battle",
+
+        description:
+          "Inspect one persistent battle including participants, phase, operational power, orders, history and final result.",
+
+        inputSchema:
+          battleInputSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async ({
+            battle_id,
+          }) =>
+            inspectBattle(
+              battle_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "submit_battle_order",
+
+        description:
+          "Submit the player's canonical order at a pending battle decision. Available orders are hold_position, commit_reserve, press_attack and order_retreat.",
+
+        inputSchema:
+          battleOrderInputSchema,
+
+        execute:
+          async ({
+            battle_id,
+            army_id,
+            order,
+          }) => {
+            const world =
+              getRuntimeWorldState();
+
+            return submitBattleOrder({
+              battleId:
+                battle_id,
+
+              armyId:
+                army_id,
+
+              actorType:
+                "player",
+
+              actorId:
+                world.player
+                  .characterId,
+
+              order:
+                order as
+                  | "hold_position"
+                  | "commit_reserve"
+                  | "press_attack"
+                  | "order_retreat",
+            });
+          },
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
     await modelContext.registerTool(
       {
         name:
@@ -840,7 +1069,209 @@ export async function registerWebMCPTools():
           controller.signal,
       }
     );
+    await modelContext.registerTool(
+      {
+        name:
+          "start_siege",
 
+        description:
+          "Begin a persistent siege against a fortified enemy settlement while an active war exists.",
+
+        inputSchema:
+          armySettlementInputSchema,
+
+        execute:
+          async ({
+            army_id,
+            settlement_id,
+          }) =>
+            startSiege({
+              armyId:
+                army_id,
+
+              settlementId:
+                settlement_id,
+            }),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_sieges",
+
+        description:
+          "Inspect all currently active persistent sieges.",
+
+        inputSchema:
+          emptyInputSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async () =>
+            inspectActiveSieges(),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_siege",
+
+        description:
+          "Inspect a siege including its phase, war linkage, attacker armies and fortification integrity.",
+
+        inputSchema:
+          siegeInputSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async ({
+            siege_id,
+          }) =>
+            inspectSiege(
+              siege_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "lift_siege",
+
+        description:
+          "Lift an active persistent siege and release its attacking armies.",
+
+        inputSchema:
+          siegeInputSchema,
+
+        execute:
+          async ({
+            siege_id,
+          }) =>
+            liftSiege(
+              siege_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_wars",
+
+        description:
+          "Inspect canonical wars and their participating realms.",
+
+        inputSchema:
+          emptyInputSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async () =>
+            inspectWars(),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_strategic_economy",
+
+        description:
+          "Inspect a kingdom's treasury, military burden, trade disruption, supply horizon and mobilization pressure.",
+
+        inputSchema:
+          kingdomInputSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async ({
+            kingdom_id,
+          }) =>
+            inspectKingdomEconomy(
+              kingdom_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_road_security",
+
+        description:
+          "Inspect a map road's current SAFE, THREATENED, RAIDED or BLOCKED strategic security state and trade multiplier.",
+
+        inputSchema:
+          roadInputSchema,
+
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+
+        execute:
+          async ({
+            edge_id,
+          }) =>
+            inspectRoad(
+              edge_id
+            ),
+      },
+
+      {
+        signal:
+          controller.signal,
+      }
+    );
     console.log(
       "[WebMCP] all tools registered"
     );
