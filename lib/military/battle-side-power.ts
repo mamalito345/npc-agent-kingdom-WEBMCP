@@ -18,7 +18,18 @@ import {
 import {
   getMoraleModifier,
   getSupplyModifier,
+  getCommanderModifier,
+  getBattleTerrainDefense,
+  getTerrainModifier,
 } from "@/lib/military/battle-modifiers";
+
+import {
+  getArmyCommanderRating,
+} from "@/lib/military/commander-rating";
+
+import {
+  getMapNode,
+} from "@/lib/map/graph";
 
 import type {
   BattleOrder,
@@ -39,6 +50,10 @@ export interface BattleArmyPower {
   moraleModifier:
     number;
   supplyModifier:
+    number;
+  commanderModifier:
+    number;
+  terrainModifier:
     number;
   reserveMultiplier:
     number;
@@ -439,6 +454,25 @@ export function calculateBattleSidePower(
           ?.arrivedFromNodeId
       : undefined;
 
+  const battleNodeTerrain =
+    getMapNode(
+      battle.nodeId
+    )?.terrain ??
+    "plains";
+
+  // Only the side actually standing on/holding the ground benefits from
+  // its terrain -- an attacker marching in to assault a mountain fort
+  // does not get the mountain's protection, the defender does.
+  const terrainModifierForSide =
+    side ===
+    "defender"
+      ? getTerrainModifier(
+          getBattleTerrainDefense(
+            battleNodeTerrain
+          )
+        )
+      : 0;
+
   const armyPowers =
     armyIds.map(
       (
@@ -477,6 +511,16 @@ export function calculateBattleSidePower(
             army.supply.state
           );
 
+        const commanderModifier =
+          getCommanderModifier(
+            getArmyCommanderRating(
+              armyId
+            )
+          );
+
+        const terrainModifier =
+          terrainModifierForSide;
+
         const convergingFromDifferentDirection =
           Boolean(
             army.arrivedFromNodeId &&
@@ -498,7 +542,9 @@ export function calculateBattleSidePower(
             basePower +
               supportPower +
               moraleModifier +
-              supplyModifier
+              supplyModifier +
+              commanderModifier +
+              terrainModifier
           );
 
         return {
@@ -507,6 +553,8 @@ export function calculateBattleSidePower(
           supportPower,
           moraleModifier,
           supplyModifier,
+          commanderModifier,
+          terrainModifier,
           reserveMultiplier,
           effectivePower:
             operationalPower *

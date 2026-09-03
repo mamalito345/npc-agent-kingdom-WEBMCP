@@ -9,6 +9,7 @@ import {
   getBattleSideArmyIds,
   getLatestBattleOrderForSide,
   type BattleSide,
+  type BattleSidePower,
 } from "@/lib/military/battle-side-power";
 
 import {
@@ -466,7 +467,8 @@ function getOutcomeBand(
 function buildAggregateSideResult(
   battle: PersistentBattle,
   side: BattleSide,
-  totalPower: number
+  totalPower: number,
+  sidePower: BattleSidePower
 ): BattleSideResult {
   const armyIds =
     getBattleSideArmyIds(
@@ -498,7 +500,10 @@ function buildAggregateSideResult(
       totalPower,
 
     commanderModifier:
-      0,
+      sidePower.armyPowers.length > 0
+      ? sidePower.armyPowers.reduce((total, army) => total + army.commanderModifier, 0) /
+        sidePower.armyPowers.length
+      : 0,
 
     moraleModifier:
       0,
@@ -507,7 +512,10 @@ function buildAggregateSideResult(
       0,
 
     terrainModifier:
-      0,
+      sidePower.armyPowers.length > 0
+      ? sidePower.armyPowers.reduce((total, army) => total + army.terrainModifier, 0) /
+        sidePower.armyPowers.length
+      : 0,
 
     fortificationModifier:
       0,
@@ -825,14 +833,16 @@ export function resolvePersistentBattleOutcome(
       buildAggregateSideResult(
         battle,
         "attacker",
-        attackerTotal
+        attackerTotal,
+        attackerPower
       ),
 
     defender:
       buildAggregateSideResult(
         battle,
         "defender",
-        defenderTotal
+        defenderTotal,
+        defenderPower
       ),
 
     seed:

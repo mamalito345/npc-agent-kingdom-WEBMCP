@@ -1,4 +1,5 @@
 import type {
+  BattleTerrain,
   CommanderRating,
   MoraleState,
   SupplyState,
@@ -73,5 +74,33 @@ export function getTerrainModifier(
 
     case "strong":
       return 2;
+  }
+}
+
+/*
+ * Maps a battlefield's physical terrain to the abstract TerrainDefense
+ * tier getTerrainModifier() already understands. Open ground gives
+ * nobody an edge; broken, wooded or high ground rewards whoever is
+ * standing their ground there (the defending side); a mountain pass,
+ * dense forest or a contested river crossing is a genuinely strong
+ * defensive position.
+ */
+export function getBattleTerrainDefense(
+  terrain:
+    BattleTerrain
+): TerrainDefense {
+  switch (terrain) {
+    case "plains":
+      return "normal";
+
+    case "hills":
+    case "forest":
+    case "marsh":
+      return "defensive";
+
+    case "dense_forest":
+    case "mountain":
+    case "river_crossing":
+      return "strong";
   }
 }
