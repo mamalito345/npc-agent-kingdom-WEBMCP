@@ -4,12 +4,16 @@ import {
 
 export type WebMcpIdentityValidation =
   | {
-      ok: true;
-      sessionId: string;
-      playerId: string;
+      ok:
+        true;
+      sessionId:
+        string;
+      playerId:
+        string;
     }
   | {
-      ok: false;
+      ok:
+        false;
       error:
         | "WEBMCP_IDENTITY_REQUIRED"
         | "WEBMCP_SESSION_IDENTITY_MISMATCH"
@@ -23,33 +27,45 @@ export type WebMcpGuardInstallResult =
   | "unavailable"
   | "failed";
 
-const GUARD_MARKER =
-  Symbol.for(
-    "npc-kingdom.webmcp.identity-guard"
-  );
-
 function inputRecord(
-  input: unknown
-): Record<string, unknown> | null {
+  input:
+    unknown
+):
+  Record<
+    string,
+    unknown
+  > |
+  null {
   return (
     typeof input ===
       "object" &&
-    input !== null &&
-    !Array.isArray(input)
+    input !==
+      null &&
+    !Array.isArray(
+      input
+    )
   )
-    ? input as Record<string, unknown>
+    ? input as Record<
+        string,
+        unknown
+      >
     : null;
 }
 
 export function validateBoundWebMcpIdentity(
-  input: unknown
-): WebMcpIdentityValidation {
+  input:
+    unknown
+):
+  WebMcpIdentityValidation {
   const record =
-    inputRecord(input);
+    inputRecord(
+      input
+    );
 
   if (!record) {
     return {
-      ok: false,
+      ok:
+        false,
       error:
         "WEBMCP_IDENTITY_REQUIRED",
     };
@@ -68,7 +84,8 @@ export function validateBoundWebMcpIdentity(
       "string"
   ) {
     return {
-      ok: false,
+      ok:
+        false,
       error:
         "WEBMCP_IDENTITY_REQUIRED",
     };
@@ -89,7 +106,8 @@ export function validateBoundWebMcpIdentity(
     boundSessionId
   ) {
     return {
-      ok: false,
+      ok:
+        false,
       error:
         "WEBMCP_SESSION_IDENTITY_MISMATCH",
     };
@@ -100,7 +118,8 @@ export function validateBoundWebMcpIdentity(
     boundPlayerId
   ) {
     return {
-      ok: false,
+      ok:
+        false,
       error:
         "WEBMCP_PLAYER_IDENTITY_MISMATCH",
     };
@@ -116,14 +135,16 @@ export function validateBoundWebMcpIdentity(
     !player.active
   ) {
     return {
-      ok: false,
+      ok:
+        false,
       error:
         "WEBMCP_BOUND_PLAYER_NOT_ACTIVE",
     };
   }
 
   return {
-    ok: true,
+    ok:
+      true,
     sessionId:
       boundSessionId,
     playerId:
@@ -132,17 +153,28 @@ export function validateBoundWebMcpIdentity(
 }
 
 function isToolDefinition(
-  value: unknown
-): value is Record<string, unknown> & {
-  execute:
-    (input: unknown) =>
-      unknown |
-      Promise<unknown>;
-} {
+  value:
+    unknown
+): value is
+  Record<
+    string,
+    unknown
+  > & {
+    execute:
+      (
+        input:
+          unknown
+      ) =>
+        unknown |
+        Promise<
+          unknown
+        >;
+  } {
   if (
     typeof value !==
       "object" ||
-    value === null
+    value ===
+      null
   ) {
     return false;
   }
@@ -160,17 +192,107 @@ function isToolDefinition(
 }
 
 /*
- * Identity is enforced at the browser WebMCP registration boundary.
+ * IMPORTANT:
  *
- * This intentionally wraps modelContext.registerTool once instead of adding
- * dozens of scattered player/session checks to every individual tool file.
+ * Some real WebMCP hosts expose document.modelContext.registerTool as a
+ * non-configurable property. Replacing/monkey-patching that host method with
+ * Object.defineProperty therefore throws:
  *
- * Every gameplay WebMCP tool already carries session_id + player_id in its
- * schema. The wrapper rejects any request whose supplied identity differs from
- * the canonical browser session.localPlayerId/session.id binding.
+ *   TypeError: Cannot redefine property: registerTool
  *
- * Internal Actor LLM and GM Realm adapters never pass through this browser
- * boundary, so their server/runtime identities are unaffected.
+ * Identity binding is now implemented with a LOCAL REGISTRATION FACADE.
+ * Each gameplay register-*.ts module asks for this facade and registers tools
+ * through it. The facade wraps each tool's execute callback before delegating
+ * to the host's original registerTool method.
+ *
+ * We never mutate document.modelContext or registerTool.
+ */
+export function getIdentityBoundWebMcpModelContext() {
+  if (
+    typeof document ===
+    "undefined"
+  ) {
+    return null;
+  }
+
+  const modelContext =
+    document.modelContext;
+
+  if (!modelContext) {
+    return null;
+  }
+
+  const guardedRegisterTool =
+    ((
+      tool:
+        unknown,
+      options?:
+        unknown
+    ) => {
+      if (
+        !isToolDefinition(
+          tool
+        )
+      ) {
+        return modelContext
+          .registerTool(
+            tool as never,
+            options as never
+          );
+      }
+
+      const originalExecute =
+        tool.execute;
+
+      const wrappedTool = {
+        ...tool,
+
+        execute:
+          async (
+            input:
+              unknown
+          ) => {
+            const identity =
+              validateBoundWebMcpIdentity(
+                input
+              );
+
+            if (
+              identity.ok ===
+              false
+            ) {
+              return identity;
+            }
+
+            return originalExecute(
+              input
+            );
+          },
+      };
+
+      return modelContext
+        .registerTool(
+          wrappedTool as never,
+          options as never
+        );
+    }) as
+      typeof modelContext
+        .registerTool;
+
+  /*
+   * A minimal facade is deliberate. Current registration modules only require
+   * registerTool. The real host object remains untouched.
+   */
+  return {
+    registerTool:
+      guardedRegisterTool,
+  } as typeof modelContext;
+}
+
+/*
+ * Kept for compatibility with historical Phase-H callers/tests.
+ * "installed" now means the identity-bound facade can be created; it does NOT
+ * mean the host object was modified.
  */
 export function installWebMcpIdentityGuard():
   WebMcpGuardInstallResult {
@@ -181,106 +303,21 @@ export function installWebMcpIdentityGuard():
     return "unavailable";
   }
 
-  const modelContext =
-    document.modelContext;
-
-  if (!modelContext) {
+  if (
+    !document.modelContext
+  ) {
     return "unavailable";
   }
 
-  const marked =
-    modelContext as unknown as
-      Record<
-        PropertyKey,
-        unknown
-      >;
-
-  if (
-    marked[
-      GUARD_MARKER
-    ] === true
-  ) {
-    return "already_installed";
-  }
-
   try {
-    const originalRegisterTool =
-      modelContext.registerTool.bind(
-        modelContext
-      );
-
-    const guardedRegisterTool =
-      ((
-        tool: unknown,
-        options?: unknown
-      ) => {
-        if (
-          !isToolDefinition(
-            tool
-          )
-        ) {
-          return originalRegisterTool(
-            tool as never,
-            options as never
-          );
-        }
-
-        const originalExecute =
-          tool.execute;
-
-        const wrappedTool = {
-          ...tool,
-
-          execute:
-            async (
-              input: unknown
-            ) => {
-              const identity =
-                validateBoundWebMcpIdentity(
-                  input
-                );
-
-              if (!identity.ok) {
-                return identity;
-              }
-
-              return originalExecute(
-                input
-              );
-            },
-        };
-
-        return originalRegisterTool(
-          wrappedTool as never,
-          options as never
-        );
-      }) as typeof modelContext.registerTool;
-
-    Object.defineProperty(
-      modelContext,
-      "registerTool",
-      {
-        value:
-          guardedRegisterTool,
-        configurable: true,
-        writable: true,
-      }
-    );
-
-    Object.defineProperty(
-      modelContext,
-      GUARD_MARKER,
-      {
-        value: true,
-        configurable: false,
-        writable: false,
-      }
-    );
-
-    return "installed";
-  } catch (error) {
+    return getIdentityBoundWebMcpModelContext()
+      ? "installed"
+      : "unavailable";
+  } catch (
+    error
+  ) {
     console.error(
-      "[WebMCP] identity guard installation failed:",
+      "[WebMCP] identity facade initialization failed:",
       error
     );
 

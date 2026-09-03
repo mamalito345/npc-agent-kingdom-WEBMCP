@@ -208,6 +208,7 @@ async function main(): Promise<void> {
         agreements: {},
         diplomaticProposals: {},
         promises: {},
+        campaignStatus: {},
         activePlan: null,
         availableActions: [
           "inspect_known_world",

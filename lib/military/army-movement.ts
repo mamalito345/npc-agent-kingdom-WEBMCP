@@ -3,6 +3,14 @@ import {
 } from "@/lib/map/paths";
 
 import {
+  getMapNode,
+} from "@/lib/map/graph";
+
+import {
+  isPlayableStrategicNode,
+} from "@/lib/map/strategic-nodes";
+
+import {
   createMovement,
 } from "@/lib/world/movement";
 
@@ -27,22 +35,17 @@ export type MoveArmyError =
 export type MoveArmyResult =
   | {
       ok: false;
-
       error:
         MoveArmyError;
     }
   | {
       ok: true;
-
       movementId:
         string;
-
       estimatedArrivalAt:
         number;
-
       physicalDistanceKm:
         number;
-
       effectiveDistanceKm:
         number;
     };
@@ -109,7 +112,6 @@ export function moveArmy(
   if (!army) {
     return {
       ok: false,
-
       error:
         "ARMY_NOT_FOUND",
     };
@@ -121,7 +123,6 @@ export function moveArmy(
   ) {
     return {
       ok: false,
-
       error:
         "ARMY_DESTROYED",
     };
@@ -133,7 +134,6 @@ export function moveArmy(
   ) {
     return {
       ok: false,
-
       error:
         "ARMY_IN_BATTLE",
     };
@@ -152,20 +152,23 @@ export function moveArmy(
   ) {
     return {
       ok: false,
-
       error:
         "ARMY_NOT_AT_NODE",
     };
   }
 
-  if (
-    !world.locations[
+  const destinationNode =
+    getMapNode(
       destinationNodeId
-    ]
+    );
+
+  if (
+    !isPlayableStrategicNode(
+      destinationNode
+    )
   ) {
     return {
       ok: false,
-
       error:
         "DESTINATION_NOT_FOUND",
     };
@@ -177,7 +180,6 @@ export function moveArmy(
   ) {
     return {
       ok: false,
-
       error:
         "ALREADY_AT_DESTINATION",
     };
@@ -192,7 +194,6 @@ export function moveArmy(
   if (!route) {
     return {
       ok: false,
-
       error:
         "ROUTE_NOT_FOUND",
     };
@@ -214,13 +215,9 @@ export function moveArmy(
           6,
           "0"
         )}`,
-
       armyId,
-
       route,
-
       ARMY_BASE_SPEED_KM_PER_HOUR,
-
       now
     );
 

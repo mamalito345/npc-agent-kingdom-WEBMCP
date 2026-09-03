@@ -7,6 +7,8 @@ import {
 } from "react";
 
 import ArmyLayer from "@/app/army-layer";
+import StrategicNodeLayer from "@/app/strategic-node-layer";
+import ConflictLayer from "@/app/conflict-layer";
 
 import {
   getWorldState,
@@ -58,19 +60,30 @@ export default function StrategyMap() {
     );
 
   const viewportRef =
-    useRef<HTMLDivElement | null>(
+    useRef<
+      HTMLDivElement | null
+    >(
       null
     );
 
   const dragRef =
     useRef<{
-      mouseX: number;
-      mouseY: number;
-      cameraX: number;
-      cameraY: number;
-    } | null>(null);
+      mouseX:
+        number;
+      mouseY:
+        number;
+      cameraX:
+        number;
+      cameraY:
+        number;
+    } | null>(
+      null
+    );
 
-  const [camera, setCamera] =
+  const [
+    camera,
+    setCamera,
+  ] =
     useState<Camera>({
       x: 100,
       y: 45,
@@ -79,33 +92,31 @@ export default function StrategyMap() {
           .initialZoom,
     });
 
-  const [imageFailed, setImageFailed] =
-    useState(false);
+  const [
+    imageFailed,
+    setImageFailed,
+  ] =
+    useState(
+      false
+    );
 
   const selectedArmy =
-    interaction.selectedArmyId
+    interaction
+      .selectedArmyId
       ? world.armies[
           interaction
             .selectedArmyId
         ]
       : undefined;
 
-  const destinationSettlement =
-    interaction
-      .destinationSettlementId
-      ? world.settlements[
-          interaction
-            .destinationSettlementId
-        ]
-      : undefined;
-
   const routePreview =
     selectedArmy &&
-    destinationSettlement
+    interaction
+      .destinationNodeId
       ? buildArmyRoutePreview(
           selectedArmy.id,
-          destinationSettlement
-            .locationId
+          interaction
+            .destinationNodeId
         )
       : null;
 
@@ -168,10 +179,12 @@ export default function StrategyMap() {
     setCamera({
       zoom:
         nextZoom,
+
       x:
         mouseX -
         worldX *
           nextZoom,
+
       y:
         mouseY -
         worldY *
@@ -195,10 +208,13 @@ export default function StrategyMap() {
     dragRef.current = {
       mouseX:
         event.clientX,
+
       mouseY:
         event.clientY,
+
       cameraX:
         camera.x,
+
       cameraY:
         camera.y,
     };
@@ -225,12 +241,14 @@ export default function StrategyMap() {
     setCamera(
       (current) => ({
         ...current,
+
         x:
           drag.cameraX +
           (
             event.clientX -
             drag.mouseX
           ),
+
         y:
           drag.cameraY +
           (
@@ -266,8 +284,12 @@ export default function StrategyMap() {
   return (
     <div className="h-screen min-h-0 overflow-hidden bg-[#090b0d] text-neutral-100">
       <div
-        ref={viewportRef}
-        onWheel={handleWheel}
+        ref={
+          viewportRef
+        }
+        onWheel={
+          handleWheel
+        }
         onPointerDown={
           handlePointerDown
         }
@@ -286,10 +308,12 @@ export default function StrategyMap() {
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300">
             Strategic Map
           </div>
+
           <div className="mt-1 text-xs text-neutral-300">
-            {interaction.selectedArmyId
-              ? "Army selected — click a settlement to preview a route"
-              : "Select an army token"}
+            {interaction
+              .selectedArmyId
+              ? "Army selected — choose a settlement, strategic position, or known enemy."
+              : "Select an army or strategic position."}
           </div>
         </div>
 
@@ -299,9 +323,11 @@ export default function StrategyMap() {
             width:
               visualMapConfig
                 .width,
+
             height:
               visualMapConfig
                 .height,
+
             transform:
               `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
           }}
@@ -313,7 +339,9 @@ export default function StrategyMap() {
                   .imageUrl
               }
               alt=""
-              draggable={false}
+              draggable={
+                false
+              }
               onError={() =>
                 setImageFailed(
                   true
@@ -340,29 +368,40 @@ export default function StrategyMap() {
             {Object.values(
               roadVisuals
             ).map(
-              (road) => (
+              (
+                road
+              ) => (
                 <polyline
                   key={
-                    road.edgeId
+                    road
+                      .edgeId
                   }
                   points={
-                    road.points
+                    road
+                      .points
                       .map(
-                        (point) =>
+                        (
+                          point
+                        ) =>
                           `${point.x},${point.y}`
                       )
-                      .join(" ")
+                      .join(
+                        " "
+                      )
                   }
                   fill="none"
                   stroke="rgba(216,194,150,0.34)"
-                  strokeWidth={7}
+                  strokeWidth={
+                    7
+                  }
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               )
             )}
 
-            {routePreview?.ok ? (
+            {routePreview
+              ?.ok ? (
               <>
                 <polyline
                   points={
@@ -370,32 +409,47 @@ export default function StrategyMap() {
                       .preview
                       .points
                       .map(
-                        (point) =>
+                        (
+                          point
+                        ) =>
                           `${point.x},${point.y}`
                       )
-                      .join(" ")
+                      .join(
+                        " "
+                      )
                   }
                   fill="none"
                   stroke="rgba(250,204,21,0.95)"
-                  strokeWidth={16}
+                  strokeWidth={
+                    16
+                  }
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  opacity={0.35}
+                  opacity={
+                    0.35
+                  }
                 />
+
                 <polyline
                   points={
                     routePreview
                       .preview
                       .points
                       .map(
-                        (point) =>
+                        (
+                          point
+                        ) =>
                           `${point.x},${point.y}`
                       )
-                      .join(" ")
+                      .join(
+                        " "
+                      )
                   }
                   fill="none"
                   stroke="rgba(253,224,71,1)"
-                  strokeWidth={5}
+                  strokeWidth={
+                    5
+                  }
                   strokeDasharray="18 12"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -407,13 +461,18 @@ export default function StrategyMap() {
           {Object.values(
             settlementVisuals
           ).map(
-            (visual) => {
+            (
+              visual
+            ) => {
               const settlement =
                 world.settlements[
-                  visual.settlementId
+                  visual
+                    .settlementId
                 ];
 
-              if (!settlement) {
+              if (
+                !settlement
+              ) {
                 return null;
               }
 
@@ -424,13 +483,15 @@ export default function StrategyMap() {
 
               const destination =
                 interaction
-                  .destinationSettlementId ===
-                settlement.id;
+                  .destinationNodeId ===
+                settlement
+                  .locationId;
 
               const size =
                 54 *
                 (
-                  visual.scale ??
+                  visual
+                    .scale ??
                   1
                 );
 
@@ -443,32 +504,41 @@ export default function StrategyMap() {
                   onPointerDown={(
                     event
                   ) =>
-                    event.stopPropagation()
+                    event
+                      .stopPropagation()
                   }
                   onClick={(
                     event
                   ) => {
                     event.stopPropagation();
 
-                    selectMapSettlement(
-                      settlement.id
-                    );
-
                     if (
                       interaction
                         .selectedArmyId
                     ) {
                       chooseMapDestination(
-                        settlement.id
+                        settlement.id,
+                        settlement
+                          .locationId
                       );
+
+                      return;
                     }
+
+                    selectMapSettlement(
+                      selected
+                        ? null
+                        : settlement.id
+                    );
                   }}
                   className="absolute z-20"
                   style={{
                     left:
                       visual.x,
+
                     top:
                       visual.y,
+
                     transform:
                       "translate(-50%, -50%)",
                   }}
@@ -482,15 +552,19 @@ export default function StrategyMap() {
                           : "border-neutral-300/70"
                     }`}
                     style={{
-                      width: size,
+                      width:
+                        size,
+
                       height:
                         size,
                     }}
                   >
-                    {visual.iconUrl ? (
+                    {visual
+                      .iconUrl ? (
                       <img
                         src={
-                          visual.iconUrl
+                          visual
+                            .iconUrl
                         }
                         alt=""
                         draggable={
@@ -507,10 +581,14 @@ export default function StrategyMap() {
 
                   <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black/75 px-2 py-0.5 text-[10px] font-semibold text-[#f2ead8]">
                     {
-                      world.locations[
-                        settlement
-                          .locationId
-                      ]?.name ??
+                      world
+                        .locations[
+                          settlement
+                            .locationId
+                        ]
+                        ?.name ??
+                      settlement
+                        .name ??
                       settlement.id
                     }
                   </span>
@@ -519,6 +597,8 @@ export default function StrategyMap() {
             }
           )}
 
+          <StrategicNodeLayer />
+          <ConflictLayer />
           <ArmyLayer />
         </div>
       </div>

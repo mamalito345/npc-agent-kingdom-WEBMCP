@@ -3,6 +3,11 @@ import {
 } from "@/lib/world/runtime";
 
 import {
+  getConnectedEdges,
+  getOtherNodeId,
+} from "@/lib/map/graph";
+
+import {
   getArmyUnits,
 } from "@/lib/military/army-queries";
 
@@ -25,40 +30,59 @@ export type BattleSide =
   | "defender";
 
 export interface BattleArmyPower {
-  armyId: string;
-  basePower: number;
-  moraleModifier: number;
-  supplyModifier: number;
-  reserveMultiplier: number;
-  effectivePower: number;
+  armyId:
+    string;
+  basePower:
+    number;
+  supportPower:
+    number;
+  moraleModifier:
+    number;
+  supplyModifier:
+    number;
+  reserveMultiplier:
+    number;
+  effectivePower:
+    number;
 }
 
 export interface BattleSidePower {
-  side: BattleSide;
-  armyIds: string[];
-  order?: BattleOrder;
-  armyPowers: BattleArmyPower[];
-  rawPower: number;
-  orderMultiplier: number;
-  totalPower: number;
+  side:
+    BattleSide;
+  armyIds:
+    string[];
+  order?:
+    BattleOrder;
+  armyPowers:
+    BattleArmyPower[];
+  rawPower:
+    number;
+  orderMultiplier:
+    number;
+  totalPower:
+    number;
 }
 
 export function getBattleSideForArmy(
-  battle: PersistentBattle,
-  armyId: string
+  battle:
+    PersistentBattle,
+  armyId:
+    string
 ): BattleSide | undefined {
   if (
-    battle.attackerArmyIds.includes(
-      armyId
-    )
+    battle.attackerArmyIds
+      .includes(
+        armyId
+      )
   ) {
     return "attacker";
   }
 
   if (
-    battle.defenderArmyIds.includes(
-      armyId
-    )
+    battle.defenderArmyIds
+      .includes(
+        armyId
+      )
   ) {
     return "defender";
   }
@@ -67,17 +91,24 @@ export function getBattleSideForArmy(
 }
 
 export function getBattleSideArmyIds(
-  battle: PersistentBattle,
-  side: BattleSide
+  battle:
+    PersistentBattle,
+  side:
+    BattleSide
 ): string[] {
-  return side === "attacker"
-    ? battle.attackerArmyIds
-    : battle.defenderArmyIds;
+  return side ===
+    "attacker"
+    ? battle
+        .attackerArmyIds
+    : battle
+        .defenderArmyIds;
 }
 
 export function getLatestBattleOrderForSide(
-  battle: PersistentBattle,
-  side: BattleSide
+  battle:
+    PersistentBattle,
+  side:
+    BattleSide
 ): BattleOrder | undefined {
   return [
     ...battle.activeOrders,
@@ -100,8 +131,10 @@ export function getLatestBattleOrderForSide(
 }
 
 export function sideHasBattleOrder(
-  battle: PersistentBattle,
-  side: BattleSide
+  battle:
+    PersistentBattle,
+  side:
+    BattleSide
 ): boolean {
   return (
     getLatestBattleOrderForSide(
@@ -112,7 +145,8 @@ export function sideHasBattleOrder(
 }
 
 function getArmyBasePower(
-  armyId: string
+  armyId:
+    string
 ): number {
   return getArmyUnits(
     armyId
@@ -127,14 +161,21 @@ function getArmyBasePower(
 }
 
 function getReserveMultiplier(
-  armyIndex: number,
-  reserveCommitted: boolean
+  armyIndex:
+    number,
+  reserveCommitted:
+    boolean
 ): number {
-  if (armyIndex === 0) {
+  if (
+    armyIndex ===
+    0
+  ) {
     return 1;
   }
 
-  if (reserveCommitted) {
+  if (
+    reserveCommitted
+  ) {
     return 1;
   }
 
@@ -142,16 +183,21 @@ function getReserveMultiplier(
 }
 
 function getOrderMultiplier(
-  side: BattleSide,
-  order?: BattleOrder
+  side:
+    BattleSide,
+  order?:
+    BattleOrder
 ): number {
   if (!order) {
     return 1;
   }
 
-  switch (order.type) {
+  switch (
+    order.type
+  ) {
     case "hold_position":
-      return side === "defender"
+      return side ===
+        "defender"
         ? 1.12
         : 0.95;
 
@@ -166,9 +212,116 @@ function getOrderMultiplier(
   }
 }
 
+function nodeIsBattleAdjacent(
+  armyNodeId:
+    string,
+  battleNodeId:
+    string
+): boolean {
+  if (
+    armyNodeId ===
+    battleNodeId
+  ) {
+    return true;
+  }
+
+  return getConnectedEdges(
+    battleNodeId
+  ).some(
+    (edge) =>
+      getOtherNodeId(
+        edge,
+        battleNodeId
+      ) ===
+      armyNodeId
+  );
+}
+
+function getAdjacentSupportPower(
+  battle:
+    PersistentBattle,
+  targetArmyId:
+    string
+): number {
+  const world =
+    getRuntimeWorldState();
+
+  const target =
+    world.armies[
+      targetArmyId
+    ];
+
+  if (!target) {
+    return 0;
+  }
+
+  return Object.values(
+    world.armies
+  )
+    .filter(
+      (army) =>
+        army.id !==
+          targetArmyId &&
+        army.ownerId ===
+          target.ownerId &&
+        army.supportTargetArmyId ===
+          targetArmyId &&
+        army.status !==
+          "destroyed" &&
+        army.status !==
+          "battle" &&
+        world.simulation
+          .activeMovements[
+            army.id
+          ] ===
+          undefined
+    )
+    .reduce(
+      (
+        total,
+        supporter
+      ) => {
+        const position =
+          world.simulation
+            .entityPositions[
+              supporter.id
+            ];
+
+        if (
+          !position ||
+          position.kind !==
+            "node" ||
+          !nodeIsBattleAdjacent(
+            position.nodeId,
+            battle.nodeId
+          )
+        ) {
+          return total;
+        }
+
+        /*
+         * Adjacent support is meaningful but remains secondary to physically
+         * committed battle armies. The support army contributes 30% of its
+         * base combat strength while it stays stationary on the battle node
+         * or one directly connected strategic node.
+         */
+        return (
+          total +
+          getArmyBasePower(
+            supporter.id
+          ) *
+            0.3
+        );
+      },
+      0
+    );
+}
+
 export function calculateBattleSidePower(
-  battle: PersistentBattle,
-  side: BattleSide
+  battle:
+    PersistentBattle,
+  side:
+    BattleSide
 ): BattleSidePower {
   const world =
     getRuntimeWorldState();
@@ -185,7 +338,8 @@ export function calculateBattleSidePower(
           ];
 
         return (
-          army !== undefined &&
+          army !==
+            undefined &&
           army.status !==
             "destroyed"
         );
@@ -199,7 +353,8 @@ export function calculateBattleSidePower(
     );
 
   const reserveCommitted =
-    side === "attacker"
+    side ===
+      "attacker"
       ? battle
           .attackerReserveCommitted
       : battle
@@ -227,6 +382,12 @@ export function calculateBattleSidePower(
             armyId
           );
 
+        const supportPower =
+          getAdjacentSupportPower(
+            battle,
+            armyId
+          );
+
         const moraleModifier =
           getMoraleModifier(
             army.morale
@@ -247,6 +408,7 @@ export function calculateBattleSidePower(
           Math.max(
             0,
             basePower +
+              supportPower +
               moraleModifier +
               supplyModifier
           );
@@ -254,6 +416,7 @@ export function calculateBattleSidePower(
         return {
           armyId,
           basePower,
+          supportPower,
           moraleModifier,
           supplyModifier,
           reserveMultiplier,

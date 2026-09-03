@@ -14,25 +14,40 @@ export type SettlementType =
   | "village"
   | "strategic_location";
 
+export type SettlementDevelopmentLevel =
+  0 | 1 | 2 | 3;
+
+export type SettlementDevelopmentFocus =
+  | "food"
+  | "gold"
+  | "wood"
+  | "stone"
+  | "metal";
+
 export interface Settlement {
-  id: string;
+  id:
+    string;
 
-  locationId: string;
+  locationId:
+    string;
 
-  name: string;
+  name:
+    string;
 
   /**
    * Canonical political / legal owner kingdom.
    *
    * Capture does NOT immediately change this.
    */
-  kingdomId: string;
+  kingdomId:
+    string;
 
   /**
    * Optional character / local lord owner.
    * Existing Package 2 field.
    */
-  ownerId?: string;
+  ownerId?:
+    string;
 
   /**
    * Current military controller.
@@ -40,14 +55,17 @@ export interface Settlement {
    * Undefined means:
    * controller === kingdomId
    */
-  controllerKingdomId?: string;
+  controllerKingdomId?:
+    string;
 
   /**
    * When foreign military occupation began.
    */
-  occupiedAt?: WorldMinute;
+  occupiedAt?:
+    WorldMinute;
 
-  type: SettlementType;
+  type:
+    SettlementType;
 
   resources:
     ResourceStockpile;
@@ -56,29 +74,42 @@ export interface Settlement {
     ResourceStockpile;
 
   /**
-   * One canonical fortification truth.
-   * Block D2 activates construction.
+   * Economic investment level. Optional keeps old saves compatible.
    */
-  fortificationLevel?: 0 | 1 | 2 | 3;
+  developmentLevel?:
+    SettlementDevelopmentLevel;
 
   /**
-   * Current physical condition of the
-   * existing fortification.
+   * Last production branch improved by the ruler.
+   */
+  developmentFocus?:
+    SettlementDevelopmentFocus;
+
+  /**
+   * One canonical fortification truth.
+   */
+  fortificationLevel?:
+    0 | 1 | 2 | 3;
+
+  /**
+   * Current physical condition of the existing fortification.
    *
    * 0   = destroyed
    * 100 = fully intact
-   *
-   * Undefined is interpreted as:
-   * - 100 when fortificationLevel > 0
-   * - 0 when fortificationLevel = 0
    */
-  fortificationIntegrity?: number;
+  fortificationIntegrity?:
+    number;
+
   /**
    * Production damage caused by raid / sack.
    */
   productionDamage?: {
-    multiplier: number;
-    until: WorldMinute;
+    multiplier:
+      number;
+
+    until:
+      WorldMinute;
+
     cause:
       | "raid"
       | "sack";

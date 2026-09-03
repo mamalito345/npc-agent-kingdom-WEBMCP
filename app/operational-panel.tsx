@@ -13,7 +13,11 @@ import {
 
 import {
   getMapInteractionState,
+  beginChangingOrder,
+  cancelChangingOrder,
   clearMapDestination,
+  clearMapSelection,
+  clearMapTarget,
   selectMapArmy,
   selectMapSettlement,
   subscribeMapInteraction,
@@ -34,12 +38,55 @@ import {
 } from "@/lib/demo/realm-control";
 
 import {
+  cancelPlayerOrder,
+  changeQueuedPlayerArmyOrder,
   issuePlayerArmyMove,
+  issuePlayerInterception,
+  recruitPlayerUnits,
 } from "@/lib/session/player-actions";
+
+
+import {
+  assignPlayerArmyCommander,
+  capturePlayerSettlement,
+  developPlayerSettlement,
+  fortifyPlayerSettlement,
+  mergePlayerArmies,
+  raidPlayerSettlement,
+  splitPlayerArmy,
+  stopPlayerArmySupport,
+  supportPlayerArmy,
+} from "@/lib/session/management-player-actions";
 
 import {
   forcePlayerArmyBorderMove,
 } from "@/lib/session/border-player-actions";
+
+import {
+  getPlayerKnownEnemyForces,
+} from "@/lib/session/observation";
+
+import {
+  getPlayerOrders,
+} from "@/lib/session/orders";
+
+
+import {
+  playerControlsArmy,
+} from "@/lib/session/players";
+
+import {
+  getMapNode,
+} from "@/lib/map/graph";
+
+import {
+  formatTerrainName,
+  getStrategicNodeLabel,
+} from "@/lib/map/strategic-nodes";
+
+import type {
+  UnitType,
+} from "@/types/military";
 
 function unitCount(
   armyId: string,
@@ -122,13 +169,32 @@ export default function OperationalPanel() {
         ]
       : undefined;
 
+  const destinationNode =
+    interaction
+      .destinationNodeId
+      ? getMapNode(
+          interaction
+            .destinationNodeId
+        )
+      : undefined;
+
+  const selectedStrategicNode =
+    interaction
+      .selectedStrategicNodeId
+      ? getMapNode(
+          interaction
+            .selectedStrategicNodeId
+        )
+      : undefined;
+
   const routePreview =
     selectedArmy &&
-    destinationSettlement
+    interaction
+      .destinationNodeId
       ? buildArmyRoutePreview(
           selectedArmy.id,
-          destinationSettlement
-            .locationId
+          interaction
+            .destinationNodeId
         )
       : null;
 
@@ -277,6 +343,219 @@ export default function OperationalPanel() {
         selectedSettlement.id
       : undefined;
 
+
+  const playerOrders =
+    getPlayerOrders(
+      playerId
+    );
+
+  const activeArmyOrder =
+    selectedArmy
+      ? [...playerOrders]
+          .reverse()
+          .find(
+            (order) =>
+              (
+                order.status ===
+                  "queued" ||
+                order.status ===
+                  "executing"
+              ) &&
+              "armyId" in
+                order.payload &&
+              order.payload
+                .armyId ===
+                selectedArmy.id
+          )
+      : undefined;
+
+  const enemyView =
+    getPlayerKnownEnemyForces(
+      world.session.id,
+      playerId
+    );
+
+  const targetedEnemyFact =
+    interaction
+      .targetArmyId &&
+    enemyView.ok
+      ? [...enemyView.forces]
+          .filter(
+            (fact) =>
+              fact.subjectId ===
+              interaction
+                .targetArmyId
+          )
+          .sort(
+            (a, b) =>
+              b.observedAt -
+                a.observedAt ||
+              b.deliveredAt -
+                a.deliveredAt
+          )[0]
+      : undefined;
+
+  const selectedSettlementRecruitment =
+    selectedSettlement
+      ? Object.values(
+          world.recruitmentOrders
+        )
+          .filter(
+            (order) =>
+              order
+                .settlementId ===
+              selectedSettlement.id
+          )
+          .sort(
+            (a, b) =>
+              b.startedAt -
+              a.startedAt
+          )
+      : [];
+
+
+  const selectedSettlementOperations =
+    selectedSettlement
+      ? Object.values(
+          world.settlementOperations
+        )
+          .filter(
+            (operation) =>
+              operation
+                .settlementId ===
+              selectedSettlement.id
+          )
+          .sort(
+            (a, b) =>
+              b.startedAt -
+              a.startedAt
+          )
+      : [];
+
+  const localSettlementArmies =
+    selectedSettlement
+      ? Object.values(
+          world.armies
+        ).filter(
+          (army) => {
+            if (
+              army.status ===
+              "destroyed"
+            ) {
+              return false;
+            }
+
+            const position =
+              world.simulation
+                .entityPositions[
+                  army.id
+                ];
+
+            return (
+              position?.kind ===
+                "node" &&
+              position.nodeId ===
+                selectedSettlement
+                  .locationId
+            );
+          }
+        )
+      : [];
+
+  const selectedArmyAtSettlementPosition =
+    selectedArmy
+      ? world.simulation
+          .entityPositions[
+            selectedArmy.id
+          ]
+      : undefined;
+
+  const selectedArmyAtSettlement =
+    selectedArmy &&
+    selectedSettlement &&
+    selectedArmyAtSettlementPosition?.kind ===
+      "node" &&
+    selectedArmyAtSettlementPosition.nodeId ===
+      selectedSettlement.locationId
+      ? selectedArmy
+      : undefined;
+
+  const ownSettlement =
+    Boolean(
+      selectedSettlement &&
+      player &&
+      selectedSettlement
+        .kingdomId ===
+        player.kingdomId
+    );
+
+
+  const selectedArmyUnits =
+    selectedArmy
+      ? getArmyUnits(
+          selectedArmy.id
+        )
+      : [];
+
+  const rulerCharacter =
+    player
+      ? world.characters[
+          player.characterId
+        ]
+      : undefined;
+
+  const rulerPosition =
+    rulerCharacter
+      ? world.simulation
+          .entityPositions[
+            rulerCharacter.id
+          ]
+      : undefined;
+
+  const selectedArmyPosition =
+    selectedArmy
+      ? world.simulation
+          .entityPositions[
+            selectedArmy.id
+          ]
+      : undefined;
+
+  const rulerCanAssumeCommand =
+    Boolean(
+      rulerCharacter &&
+      selectedArmyPosition &&
+      rulerPosition &&
+      selectedArmyPosition.kind ===
+        "node" &&
+      rulerPosition.kind ===
+        "node" &&
+      selectedArmyPosition.nodeId ===
+        rulerPosition.nodeId &&
+      selectedArmy
+        ?.commanderId !==
+        rulerCharacter.id
+    );
+
+  const friendlyPeerArmies =
+    selectedArmy &&
+    player
+      ? Object.values(
+          world.armies
+        ).filter(
+          (army) =>
+            army.id !==
+              selectedArmy.id &&
+            army.ownerId ===
+              player.kingdomId &&
+            army.status !==
+              "destroyed" &&
+            playerControlsArmy(
+              playerId,
+              army.id
+            )
+        )
+      : [];
+
   const armyPower =
     useMemo(
       () => {
@@ -308,18 +587,405 @@ export default function OperationalPanel() {
     );
 
   function closeInspector(): void {
-    clearMapDestination();
-    selectMapArmy(null);
-    selectMapSettlement(null);
+    clearMapSelection();
     setBorderConfirm(false);
     setMessage(null);
   }
 
+  function cancelCurrentOrder(): void {
+    if (!activeArmyOrder) {
+      return;
+    }
+
+    const result =
+      cancelPlayerOrder(
+        world.session.id,
+        playerId,
+        activeArmyOrder.id
+      );
+
+    if (result.ok === false) {
+      setMessage(
+        `CANCEL REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `ORDER CANCELLED — ${activeArmyOrder.id}`
+    );
+
+    clearMapDestination();
+  }
+
+  function beginChangeCurrentOrder(): void {
+    if (
+      !activeArmyOrder ||
+      activeArmyOrder.status !==
+        "queued"
+    ) {
+      setMessage(
+        "Only queued movement orders can change destination."
+      );
+      return;
+    }
+
+    beginChangingOrder(
+      activeArmyOrder.id
+    );
+
+    setMessage(
+      "CHANGE DESTINATION — click a settlement or strategic position, then confirm."
+    );
+  }
+
+  function interceptTarget(): void {
+    if (
+      !selectedArmy ||
+      !interaction.targetArmyId
+    ) {
+      return;
+    }
+
+    const result =
+      issuePlayerInterception(
+        world.session.id,
+        playerId,
+        selectedArmy.id,
+        interaction.targetArmyId
+      );
+
+    if (result.ok === false) {
+      setMessage(
+        `INTERCEPT REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `INTERCEPT ORDER CREATED — ${selectedArmy.id} → known target ${interaction.targetArmyId}`
+    );
+
+    clearMapTarget();
+  }
+
+  function recruit(
+    unitType:
+      UnitType
+  ): void {
+    if (!selectedSettlement) {
+      return;
+    }
+
+    const result =
+      recruitPlayerUnits(
+        world.session.id,
+        playerId,
+        selectedSettlement.id,
+        unitType,
+        1
+      );
+
+    if (result.ok === false) {
+      setMessage(
+        `RECRUITMENT REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `RECRUITMENT STARTED — ${unitType.toUpperCase()} at ${selectedSettlement.name}`
+    );
+  }
+
   if (
     !selectedArmy &&
-    !selectedSettlement
+    !selectedSettlement &&
+    !selectedStrategicNode
   ) {
     return null;
+  }
+
+  function splitOneUnitBlock(
+    unitId:
+      string
+  ): void {
+    if (!selectedArmy) {
+      return;
+    }
+
+    const result =
+      splitPlayerArmy(
+        world.session.id,
+        playerId,
+        selectedArmy.id,
+        [
+          unitId,
+        ]
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `SPLIT REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `ARMY SPLIT — new force ${result.newArmyId}`
+    );
+  }
+
+  function mergeFriendlyArmy(
+    sourceArmyId:
+      string
+  ): void {
+    if (!selectedArmy) {
+      return;
+    }
+
+    const result =
+      mergePlayerArmies(
+        world.session.id,
+        playerId,
+        selectedArmy.id,
+        sourceArmyId
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `MERGE REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `ARMIES MERGED — ${sourceArmyId} joined ${selectedArmy.id}`
+    );
+  }
+
+  function supportFriendlyArmy(
+    targetArmyId:
+      string
+  ): void {
+    if (!selectedArmy) {
+      return;
+    }
+
+    const result =
+      supportPlayerArmy(
+        world.session.id,
+        playerId,
+        selectedArmy.id,
+        targetArmyId
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `SUPPORT REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `SUPPORT ASSIGNED — ${selectedArmy.id} → ${targetArmyId}`
+    );
+  }
+
+  function stopSupport():
+    void {
+    if (!selectedArmy) {
+      return;
+    }
+
+    const result =
+      stopPlayerArmySupport(
+        world.session.id,
+        playerId,
+        selectedArmy.id
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `SUPPORT CLEAR REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `SUPPORT CLEARED — ${selectedArmy.id}`
+    );
+  }
+
+  function assumeCommand():
+    void {
+    if (
+      !selectedArmy ||
+      !rulerCharacter
+    ) {
+      return;
+    }
+
+    const result =
+      assignPlayerArmyCommander(
+        world.session.id,
+        playerId,
+        selectedArmy.id,
+        rulerCharacter.id
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `COMMANDER ASSIGNMENT REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `COMMANDER ASSIGNED — ${rulerCharacter.name}`
+    );
+  }
+
+  function developSelectedSettlement(
+    focus:
+      "food" |
+      "gold" |
+      "wood" |
+      "stone" |
+      "metal"
+  ): void {
+    if (!selectedSettlement) {
+      return;
+    }
+
+    const result =
+      developPlayerSettlement(
+        world.session.id,
+        playerId,
+        selectedSettlement.id,
+        focus
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `DEVELOPMENT REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `DEVELOPMENT COMPLETE — ${focus.toUpperCase()} +${result.productionGain}/day · level ${result.toLevel}`
+    );
+  }
+
+  function raidSelectedSettlement():
+    void {
+    if (
+      !selectedArmyAtSettlement ||
+      !selectedSettlement
+    ) {
+      return;
+    }
+
+    const result =
+      raidPlayerSettlement(
+        world.session.id,
+        playerId,
+        selectedArmyAtSettlement.id,
+        selectedSettlement.id
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `RAID REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `RAID STARTED — completes minute ${result.operation.completesAt}`
+    );
+  }
+
+  function captureSelectedSettlement():
+    void {
+    if (
+      !selectedArmyAtSettlement ||
+      !selectedSettlement
+    ) {
+      return;
+    }
+
+    const result =
+      capturePlayerSettlement(
+        world.session.id,
+        playerId,
+        selectedArmyAtSettlement.id,
+        selectedSettlement.id
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `CAPTURE REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `SETTLEMENT OCCUPIED — ${selectedSettlement.name}`
+    );
+  }
+
+  function fortifySelectedSettlement():
+    void {
+    if (!selectedSettlement) {
+      return;
+    }
+
+    const result =
+      fortifyPlayerSettlement(
+        world.session.id,
+        playerId,
+        selectedSettlement.id
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `FORTIFICATION REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `FORTIFICATION STARTED — level ${result.order.fromLevel} → ${result.order.toLevel}`
+    );
   }
 
   function confirmMove(
@@ -328,8 +994,42 @@ export default function OperationalPanel() {
   ): void {
     if (
       !selectedArmy ||
-      !destinationSettlement
+      !interaction
+        .destinationNodeId
     ) {
+      return;
+    }
+
+    if (
+      interaction
+        .changingOrderId
+    ) {
+      const result =
+        changeQueuedPlayerArmyOrder(
+          world.session.id,
+          playerId,
+          interaction
+            .changingOrderId,
+          interaction
+            .destinationNodeId
+        );
+
+      if (
+        result.ok ===
+        false
+      ) {
+        setMessage(
+          `CHANGE REJECTED — ${result.error}`
+        );
+        return;
+      }
+
+      setMessage(
+        `DESTINATION CHANGED — ${selectedArmy.id} → ${interaction.destinationNodeId}`
+      );
+
+      cancelChangingOrder();
+      clearMapDestination();
       return;
     }
 
@@ -339,18 +1039,21 @@ export default function OperationalPanel() {
             world.session.id,
             playerId,
             selectedArmy.id,
-            destinationSettlement
-              .locationId
+            interaction
+              .destinationNodeId
           )
         : issuePlayerArmyMove(
             world.session.id,
             playerId,
             selectedArmy.id,
-            destinationSettlement
-              .locationId
+            interaction
+              .destinationNodeId
           );
 
-    if (!result.ok) {
+    if (
+      result.ok ===
+      false
+    ) {
       if (
         result.error ===
         "BORDER_ACCESS_REQUIRED"
@@ -378,7 +1081,7 @@ export default function OperationalPanel() {
     );
 
     setMessage(
-      `ORDER CREATED — ${selectedArmy.id} → ${destinationSettlement.locationId}`
+      `ORDER CREATED — ${selectedArmy.id} → ${interaction.destinationNodeId}`
     );
 
     clearMapDestination();
@@ -391,12 +1094,16 @@ export default function OperationalPanel() {
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-400">
             {selectedArmy
               ? "Army Inspector"
-              : "Settlement Inspector"}
+              : selectedSettlement
+                ? "Settlement Inspector"
+                : "Strategic Position"}
           </div>
           <div className="mt-1 text-xs text-neutral-500">
             {selectedArmy
-              ? "Click a settlement on the map to preview a route."
-              : "Select an army token to issue movement orders."}
+              ? "Choose a settlement, strategic position, or known enemy."
+              : selectedSettlement
+                ? "Manage local recruitment and inspect the settlement."
+                : "Terrain and position details."}
           </div>
         </div>
 
@@ -455,6 +1162,98 @@ export default function OperationalPanel() {
               Realm / royal field army
             </div>
           )}
+
+          {targetedEnemyFact ? (
+            <div className="mt-4 rounded-xl border border-red-800/70 bg-red-950/25 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-red-300">
+                Known Enemy Target
+              </div>
+
+              <div className="mt-2 text-sm font-semibold">
+                {targetedEnemyFact.subjectId}
+              </div>
+
+              <div className="mt-2 text-xs leading-5 text-neutral-300">
+                {targetedEnemyFact.summary}
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-y-1 text-[11px]">
+                <span className="text-neutral-500">
+                  Confidence
+                </span>
+                <span className="uppercase">
+                  {targetedEnemyFact.confidence}
+                </span>
+
+                <span className="text-neutral-500">
+                  Last observed
+                </span>
+                <span>
+                  {Math.max(
+                    0,
+                    world.simulation.worldTimeMinutes -
+                      targetedEnemyFact.observedAt
+                  )} min ago
+                </span>
+              </div>
+
+              {canPlayerOrderSelectedArmy ? (
+                <button
+                  type="button"
+                  onClick={interceptTarget}
+                  className="mt-3 w-full rounded-lg border border-red-700 bg-red-900/40 px-3 py-2 text-xs font-semibold text-red-100 hover:bg-red-900/65"
+                >
+                  INTERCEPT KNOWN POSITION
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={clearMapTarget}
+                className="mt-2 w-full rounded-lg border border-neutral-700 px-3 py-2 text-xs text-neutral-300"
+              >
+                CANCEL TARGET
+              </button>
+            </div>
+          ) : null}
+
+          {activeArmyOrder ? (
+            <div className="mt-4 rounded-xl border border-cyan-900/70 bg-cyan-950/20 p-3 text-xs">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
+                Current Order
+              </div>
+
+              <div className="mt-2 font-semibold uppercase">
+                {activeArmyOrder.type.replaceAll("_", " ")}
+              </div>
+
+              <div className="mt-1 text-neutral-400">
+                Status: {activeArmyOrder.status}
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={cancelCurrentOrder}
+                  className="rounded-lg border border-red-800 px-2 py-2 text-red-200 hover:bg-red-950/40"
+                >
+                  CANCEL ORDER
+                </button>
+
+                <button
+                  type="button"
+                  onClick={beginChangeCurrentOrder}
+                  disabled={
+                    activeArmyOrder.status !== "queued" ||
+                    activeArmyOrder.type !== "move_army"
+                  }
+                  className="rounded-lg border border-neutral-700 px-2 py-2 text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  CHANGE DESTINATION
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg bg-neutral-900 p-3">
@@ -586,6 +1385,139 @@ export default function OperationalPanel() {
             </div>
           ) : null}
 
+          {canPlayerOrderSelectedArmy ? (
+            <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900/55 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                Army Organization
+              </div>
+
+              <div className="mt-2 text-[11px] leading-5 text-neutral-400">
+                Split/merge/support are physical operations. Moving or engaged forces are rejected by the canonical engine.
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {selectedArmyUnits.slice(0, 6).map(
+                  (unit) => (
+                    <div
+                      key={unit.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-neutral-800 bg-black/25 px-2 py-2 text-xs"
+                    >
+                      <span>
+                        {unit.type.toUpperCase()} · {unit.currentSoldiers.toLocaleString()}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          splitOneUnitBlock(
+                            unit.id
+                          )
+                        }
+                        disabled={
+                          selectedArmyUnits.length <= 1
+                        }
+                        className="rounded border border-neutral-700 px-2 py-1 text-[10px] text-neutral-200 disabled:opacity-35"
+                      >
+                        DETACH
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+
+              {selectedArmy.supportTargetArmyId ? (
+                <div className="mt-3 rounded-lg border border-violet-800/70 bg-violet-950/25 p-2 text-xs">
+                  <div className="text-violet-300">
+                    SUPPORTING
+                  </div>
+
+                  <div className="mt-1">
+                    {selectedArmy.supportTargetArmyId}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={stopSupport}
+                    className="mt-2 rounded border border-violet-800 px-2 py-1 text-[10px] text-violet-100"
+                  >
+                    STOP SUPPORT
+                  </button>
+                </div>
+              ) : null}
+
+              {friendlyPeerArmies.length > 0 ? (
+                <div className="mt-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                    Friendly Forces
+                  </div>
+
+                  <div className="mt-2 space-y-2">
+                    {friendlyPeerArmies
+                      .slice(0, 6)
+                      .map((army) => (
+                        <div
+                          key={army.id}
+                          className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-2"
+                        >
+                          <div className="text-xs font-semibold">
+                            {army.id}
+                          </div>
+
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                supportFriendlyArmy(
+                                  army.id
+                                )
+                              }
+                              className="rounded border border-cyan-900 px-2 py-1 text-[10px] text-cyan-200"
+                            >
+                              SUPPORT
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                mergeFriendlyArmy(
+                                  army.id
+                                )
+                              }
+                              className="rounded border border-neutral-700 px-2 py-1 text-[10px] text-neutral-200"
+                            >
+                              MERGE
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-3 rounded-lg border border-neutral-800 bg-neutral-950/50 p-2 text-xs">
+                <div className="text-[10px] uppercase tracking-wider text-neutral-500">
+                  Commander
+                </div>
+
+                <div className="mt-1">
+                  {commander?.name ??
+                    selectedArmy.commanderId ??
+                    "No named commander"}
+                </div>
+
+                {rulerCanAssumeCommand ? (
+                  <button
+                    type="button"
+                    onClick={assumeCommand}
+                    className="mt-2 w-full rounded border border-amber-700 bg-amber-950/25 px-2 py-2 text-[10px] font-semibold text-amber-200"
+                  >
+                    RULER ASSUMES COMMAND
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {routePreview?.ok ? (
             <div className="mt-4 rounded-xl border border-yellow-800/60 bg-yellow-950/15 p-3">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-yellow-300">
@@ -594,9 +1526,17 @@ export default function OperationalPanel() {
 
               <div className="mt-2 text-sm font-semibold">
                 → {
-                  routePreview
-                    .preview
-                    .destinationName
+                  destinationSettlement
+                    ?.name ??
+                  (
+                    destinationNode
+                      ? getStrategicNodeLabel(
+                          destinationNode
+                        )
+                      : routePreview
+                          .preview
+                          .destinationName
+                  )
                 }
               </div>
 
@@ -728,79 +1668,329 @@ export default function OperationalPanel() {
       ) : selectedSettlement ? (
         <section>
           <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-            Settlement
+            {selectedSettlement.type.replaceAll("_", " ")}
           </div>
 
-          <h2 className="mt-1 text-xl font-semibold">
+          <h2 className="mt-1 text-lg font-semibold">
             {selectedSettlementName}
           </h2>
 
-          <div className="mt-4 space-y-2 text-xs">
-            <div className="flex justify-between rounded bg-neutral-900 p-2">
-              <span className="text-neutral-500">
-                Kingdom
-              </span>
-              <span>
-                {
-                  world.kingdoms[
-                    selectedSettlement.kingdomId
-                  ]?.name ??
-                  selectedSettlement.kingdomId
-                }
-              </span>
+          <div className="mt-3 grid grid-cols-2 gap-y-2 rounded-lg bg-neutral-900 p-3 text-xs">
+            <span className="text-neutral-500">
+              Owner
+            </span>
+            <span>
+              {selectedSettlement.kingdomId}
+            </span>
+
+            <span className="text-neutral-500">
+              Controller
+            </span>
+            <span>
+              {selectedSettlement.controllerKingdomId ??
+                selectedSettlement.kingdomId}
+            </span>
+
+            <span className="text-neutral-500">
+              Fortification
+            </span>
+            <span>
+              Level {selectedSettlement.fortificationLevel ?? 0}
+            </span>
+          </div>
+
+          <div className="mt-3 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+              Local Resources
             </div>
 
-            <div className="flex justify-between rounded bg-neutral-900 p-2">
-              <span className="text-neutral-500">
-                Realm Controller
-              </span>
-              <span className={
-                getRealmControlLabel(
-                  selectedSettlement.kingdomId
-                ) === "ACTOR LLM"
-                  ? "text-cyan-300"
-                  : getRealmControlLabel(
-                      selectedSettlement.kingdomId
-                    ) === "GM CONTROLLED"
-                    ? "text-violet-300"
-                    : "text-amber-300"
-              }>
-                {
-                  getRealmControlLabel(
-                    selectedSettlement.kingdomId
-                  )
-                }
-              </span>
-            </div>
-
-            <div className="flex justify-between rounded bg-neutral-900 p-2">
-              <span className="text-neutral-500">
-                Lord
-              </span>
-              <span>
-                {
-                  settlementLordCharacter
-                    ?.name ??
-                  "Royal domain"
-                }
-              </span>
-            </div>
-
-            <div className="flex justify-between rounded bg-neutral-900 p-2">
-              <span className="text-neutral-500">
-                Fortification
-              </span>
-              <span>
-                {
-                  selectedSettlement
-                    .fortificationLevel
-                }
-              </span>
+            <div className="mt-2 grid grid-cols-2 gap-y-1 text-xs">
+              {Object.entries(
+                selectedSettlement.resources
+              ).map(([key, value]) => (
+                <span key={key} className="contents">
+                  <span className="text-neutral-500">
+                    {key.toUpperCase()}
+                  </span>
+                  <span>
+                    {value.toLocaleString()}
+                  </span>
+                </span>
+              ))}
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg border border-neutral-800 p-3 text-xs leading-5 text-neutral-500">
-            Select one of your controllable army tokens, then click this settlement again to create a physical route preview.
+          {ownSettlement ? (
+            <div className="mt-4 rounded-xl border border-amber-900/60 bg-amber-950/15 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                Settlement Development
+              </div>
+
+              <div className="mt-2 text-xs text-neutral-400">
+                Economic level {selectedSettlement.developmentLevel ?? 0}/3
+                {selectedSettlement.developmentFocus
+                  ? ` · last focus ${selectedSettlement.developmentFocus}`
+                  : ""}
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {(
+                  [
+                    "food",
+                    "gold",
+                    "wood",
+                    "stone",
+                    "metal",
+                  ] as const
+                ).map((focus) => (
+                  <button
+                    key={focus}
+                    type="button"
+                    onClick={() =>
+                      developSelectedSettlement(
+                        focus
+                      )
+                    }
+                    disabled={
+                      (selectedSettlement.developmentLevel ?? 0) >= 3
+                    }
+                    className="rounded-lg border border-neutral-700 bg-neutral-950/70 px-2 py-2 text-[10px] font-semibold uppercase text-neutral-200 hover:border-amber-600 disabled:opacity-35"
+                  >
+                    INVEST {focus}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={fortifySelectedSettlement}
+                className="mt-3 w-full rounded-lg border border-amber-700 bg-amber-950/25 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-950/45"
+              >
+                FORTIFY SETTLEMENT
+              </button>
+
+              <div className="mt-4 border-t border-neutral-800 pt-3 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                Recruitment
+              </div>
+
+              <div className="mt-2 text-xs leading-5 text-neutral-400">
+                Recruitment is physical and local. Completed troops appear here as a garrison force; they are not teleported into a distant army.
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {(
+                  [
+                    "infantry",
+                    "cavalry",
+                    "siege",
+                    "ship",
+                  ] as UnitType[]
+                ).map((unitType) => (
+                  <button
+                    key={unitType}
+                    type="button"
+                    onClick={() =>
+                      recruit(
+                        unitType
+                      )
+                    }
+                    className="rounded-lg border border-neutral-700 bg-neutral-950/70 px-2 py-2 text-xs uppercase text-neutral-200 hover:border-amber-600"
+                  >
+                    + {unitType}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {localSettlementArmies.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-neutral-800 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Forces At Settlement
+              </div>
+
+              <div className="mt-2 space-y-2">
+                {localSettlementArmies
+                  .slice(0, 8)
+                  .map((army) => (
+                    <button
+                      key={army.id}
+                      type="button"
+                      onClick={() =>
+                        selectMapArmy(
+                          army.id
+                        )
+                      }
+                      className="flex w-full items-center justify-between rounded bg-neutral-950/70 p-2 text-left text-xs hover:bg-neutral-900"
+                    >
+                      <span>
+                        {army.id}
+                      </span>
+
+                      <span className="uppercase text-neutral-500">
+                        {army.status}
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ) : null}
+
+          {!ownSettlement &&
+          selectedArmyAtSettlement ? (
+            <div className="mt-4 rounded-xl border border-red-900/70 bg-red-950/20 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-red-300">
+                Hostile Settlement Actions
+              </div>
+
+              <div className="mt-2 text-xs leading-5 text-neutral-400">
+                The selected army is physically present here. Wartime rules and fortifications are validated canonically.
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={raidSelectedSettlement}
+                  className="rounded-lg border border-orange-800 bg-orange-950/25 px-2 py-2 text-xs font-semibold text-orange-100"
+                >
+                  RAID
+                </button>
+
+                <button
+                  type="button"
+                  onClick={captureSelectedSettlement}
+                  className="rounded-lg border border-red-800 bg-red-950/30 px-2 py-2 text-xs font-semibold text-red-100"
+                >
+                  OCCUPY
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {selectedSettlementOperations.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-neutral-800 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Settlement Operations
+              </div>
+
+              <div className="mt-2 space-y-2">
+                {selectedSettlementOperations
+                  .slice(0, 6)
+                  .map((operation) => (
+                    <div
+                      key={operation.id}
+                      className="rounded bg-neutral-950/70 p-2 text-xs"
+                    >
+                      <div className="font-semibold uppercase">
+                        {operation.type}
+                      </div>
+
+                      <div className="mt-1 text-neutral-500">
+                        {operation.status} · completes minute {operation.completesAt}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ) : null}
+
+          {selectedSettlementRecruitment.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-neutral-800 p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Recruitment Orders
+              </div>
+
+              <div className="mt-2 space-y-2">
+                {selectedSettlementRecruitment
+                  .slice(0, 6)
+                  .map((order) => (
+                    <div
+                      key={order.id}
+                      className="rounded bg-neutral-950/70 p-2 text-xs"
+                    >
+                      <div className="font-semibold uppercase">
+                        {order.unitType} × {order.blocks}
+                      </div>
+                      <div className="mt-1 text-neutral-500">
+                        {order.status} · completes minute {order.completesAt}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : selectedStrategicNode ? (
+        <section>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+            Strategic Position
+          </div>
+
+          <h2 className="mt-1 text-lg font-semibold">
+            {getStrategicNodeLabel(
+              selectedStrategicNode
+            )}
+          </h2>
+
+          <div className="mt-1 break-all text-[10px] text-neutral-600">
+            {selectedStrategicNode.id}
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-y-2 rounded-lg bg-neutral-900 p-3 text-xs">
+            <span className="text-neutral-500">
+              Terrain
+            </span>
+            <span>
+              {formatTerrainName(
+                selectedStrategicNode.terrain
+              )}
+            </span>
+
+            <span className="text-neutral-500">
+              Position
+            </span>
+            <span>
+              {getStrategicNodeLabel(
+                selectedStrategicNode
+              )}
+            </span>
+
+            <span className="text-neutral-500">
+              Territory
+            </span>
+            <span>
+              {selectedStrategicNode.territoryKingdomId ??
+                "Contested / border"}
+            </span>
+          </div>
+
+          <div className="mt-3 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 text-xs">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+              Battle Features
+            </div>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {selectedStrategicNode.features.length > 0 ? (
+                selectedStrategicNode.features.map((feature) => (
+                  <span
+                    key={feature}
+                    className="rounded-full border border-neutral-700 px-2 py-1 text-[10px]"
+                  >
+                    {formatTerrainName(
+                      feature
+                    )}
+                  </span>
+                ))
+              ) : (
+                <span className="text-neutral-500">
+                  No additional feature beyond terrain.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 text-xs leading-5 text-neutral-400">
+            This is a real canonical army destination. An army may move here, stop here, be contacted here, and fight using this node&apos;s terrain definition.
           </div>
         </section>
       ) : null}

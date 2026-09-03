@@ -25,6 +25,14 @@ import {
 } from "@/lib/webmcp/register-border-tools";
 
 import {
+  registerArmyManagementWebMCPTools,
+} from "@/lib/webmcp/register-army-management-tools";
+
+import {
+  registerAudienceWebMCPTools,
+} from "@/lib/webmcp/register-audience-tools";
+
+import {
   installWebMcpIdentityGuard,
 } from "@/lib/webmcp/identity-guard";
 
@@ -33,6 +41,11 @@ export default function WebMCPProvider() {
     let alive =
       true;
 
+    /*
+     * This no longer monkey-patches document.modelContext.registerTool.
+     * It only verifies that an identity-bound local registration facade can
+     * be created. Every register-*.ts module uses that facade directly.
+     */
     const guard =
       installWebMcpIdentityGuard();
 
@@ -64,6 +77,8 @@ export default function WebMCPProvider() {
       registerLordWebMCPTools(),
       registerPoliticsWebMCPTools(),
       registerBorderWebMCPTools(),
+      registerArmyManagementWebMCPTools(),
+      registerAudienceWebMCPTools(),
     ])
       .then(
         ([
@@ -72,13 +87,15 @@ export default function WebMCPProvider() {
           lordRegistered,
           politicsRegistered,
           borderRegistered,
+          armyManagementRegistered,
+          audienceRegistered,
         ]) => {
           if (!alive) {
             return;
           }
 
           console.log(
-            "[WebMCP] identity-bound registration:",
+            "[WebMCP] identity-bound facade registration:",
             {
               guard,
               coreRegistered,
@@ -86,12 +103,16 @@ export default function WebMCPProvider() {
               lordRegistered,
               politicsRegistered,
               borderRegistered,
+              armyManagementRegistered,
+              audienceRegistered,
             }
           );
         }
       )
       .catch(
-        (error) => {
+        (
+          error
+        ) => {
           if (!alive) {
             return;
           }
@@ -103,18 +124,9 @@ export default function WebMCPProvider() {
         }
       );
 
-    /*
-     * Intentionally do NOT abort/unregister here.
-     *
-     * React development StrictMode mounts/effect-cleans/remounts components.
-     * Aborting WebMCP registrations during that synthetic cleanup produced
-     * AbortError races and duplicate-registration instability.
-     *
-     * All register modules are already idempotent for the page lifetime and
-     * this provider lives at the application root.
-     */
     return () => {
-      alive = false;
+      alive =
+        false;
     };
   }, []);
 

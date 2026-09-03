@@ -16,6 +16,15 @@ import {
   subscribeDemoConfig,
 } from "@/lib/demo/config";
 
+import {
+  inspectDiplomaticProposals,
+  inspectPromises,
+} from "@/lib/politics/service";
+
+import {
+  inspectAudienceRequests,
+} from "@/lib/politics/audience";
+
 type MatterKind =
   | "URGENT"
   | "MESSAGE"
@@ -196,6 +205,10 @@ export default function RealmMatters() {
               message.content
                 .startsWith(
                   "[ENVOY]"
+                ) ||
+              message.content
+                .startsWith(
+                  "[DIPLOMATIC_PROPOSAL:"
                 )
                 ? "POLITICAL"
                 : "MESSAGE",
@@ -208,6 +221,135 @@ export default function RealmMatters() {
             time:
               message.deliveredAt,
           });
+        }
+
+        const proposals =
+          inspectDiplomaticProposals(
+            world.session.id,
+            player.id
+          );
+
+        if (
+          proposals.ok
+        ) {
+          for (
+            const proposal
+            of proposals.proposals
+          ) {
+            if (
+              proposal
+                .proposedToPlayerId !==
+              player.id
+            ) {
+              continue;
+            }
+
+            items.push({
+              id:
+                `proposal:${proposal.id}`,
+              kind:
+                "POLITICAL",
+              title:
+                `${proposal.type.replaceAll("_", " ")} proposal`,
+              summary:
+                proposal.terms ??
+                `Proposal from ${proposal.partyKingdomIds.find(
+                  (kingdomId) =>
+                    kingdomId !==
+                    player.kingdomId
+                ) ?? "foreign realm"}.`,
+              time:
+                proposal.createdAt,
+            });
+          }
+        }
+
+        const promises =
+          inspectPromises(
+            world.session.id,
+            player.id
+          );
+
+        if (
+          promises.ok
+        ) {
+          for (
+            const promise
+            of promises.promises
+          ) {
+            if (
+              promise.status !==
+              "ACTIVE"
+            ) {
+              continue;
+            }
+
+            items.push({
+              id:
+                `promise:${promise.id}`,
+              kind:
+                "POLITICAL",
+              title:
+                "Active promise",
+              summary:
+                promise.summary,
+              time:
+                promise.createdAt,
+            });
+          }
+        }
+
+        const audience =
+          inspectAudienceRequests(
+            world.session.id,
+            player.id
+          );
+
+        if (
+          audience.ok
+        ) {
+          for (
+            const request
+            of audience.requests
+          ) {
+            if (
+              request.status !==
+                "REQUESTED" &&
+              request.status !==
+                "PRESENTED" &&
+              request.status !==
+                "DEFERRED"
+            ) {
+              continue;
+            }
+
+            const petitioner =
+              world.characters[
+                request
+                  .petitionerCharacterId
+              ];
+
+            items.push({
+              id:
+                `audience:${request.id}`,
+
+              kind:
+                "POLITICAL",
+
+              title:
+                request.status ===
+                  "PRESENTED"
+                  ? `Audience — ${request.title}`
+                  : `Petition — ${request.title}`,
+
+              summary:
+                `${petitioner?.name ?? "Petitioner"}: ${request.petition}`,
+
+              time:
+                request.presentedAt ??
+                request.createdAt,
+            });
+          }
         }
 
         for (
@@ -269,23 +411,12 @@ export default function RealmMatters() {
           )
           .slice(
             0,
-            12
+            16
           );
       },
       [
         player,
-        world.session
-          .commandCycle
-          .interrupt,
-        world.battles,
-        world.session
-          .borders
-          .incidents,
-        world.messages,
-        world.armies,
-        world.characters,
-        world.session
-          .lords.orders,
+        world,
       ]
     );
 
@@ -328,7 +459,7 @@ export default function RealmMatters() {
           {matters.length ===
           0 ? (
             <div className="rounded-xl border border-dashed border-neutral-800 p-4 text-xs leading-5 text-neutral-500">
-              The realm is quiet. Important messages, battles, lord responses and border incidents will appear here.
+              The realm is quiet. Important messages, battles, diplomatic proposals, promises, lord responses and border incidents will appear here.
             </div>
           ) : (
             matters.map(

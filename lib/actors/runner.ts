@@ -17,8 +17,8 @@ import {
 } from "@/lib/actors/context";
 
 import {
-  executeLlmPlayerAction,
-} from "@/lib/actors/tool-executor";
+  executeLlmPlayerActionWithManagement,
+} from "@/lib/actors/management-tool-executor";
 
 import {
   isLlmPlayer,
@@ -33,103 +33,244 @@ import type {
   StrategicPlan,
 } from "@/types/actors";
 
-const NORMAL_ACTION_BUDGET = 6;
-const CRISIS_ACTION_BUDGET = 5;
-const MAX_DECISION_HISTORY = 200;
+const NORMAL_ACTION_BUDGET =
+  6;
+const CRISIS_ACTION_BUDGET =
+  5;
+const MAX_DECISION_HISTORY =
+  200;
 
-function actionBudget(reason: LlmPlayerActivationReason): number {
-  return reason === "BATTLE_CRISIS" || reason === "ENEMY_CONTACT"
+function actionBudget(
+  reason:
+    LlmPlayerActivationReason
+): number {
+  return reason ===
+      "BATTLE_CRISIS" ||
+    reason ===
+      "ENEMY_CONTACT"
     ? CRISIS_ACTION_BUDGET
     : NORMAL_ACTION_BUDGET;
 }
 
 function upsertPlan(
-  playerId: string,
-  update: LlmPlayerPlanUpdate | undefined
+  playerId:
+    string,
+  update:
+    LlmPlayerPlanUpdate |
+    undefined
 ): StrategicPlan | undefined {
   if (!update) {
-    const world = getRuntimeWorldState();
-    const activeId = world.session.llmPlayers.activePlanByPlayerId[playerId];
-    return activeId ? world.session.llmPlayers.plans[activeId] : undefined;
+    const world =
+      getRuntimeWorldState();
+
+    const activeId =
+      world.session
+        .llmPlayers
+        .activePlanByPlayerId[
+          playerId
+        ];
+
+    return activeId
+      ? world.session
+          .llmPlayers
+          .plans[
+            activeId
+          ]
+      : undefined;
   }
 
-  const world = getRuntimeWorldState();
-  const activeId = world.session.llmPlayers.activePlanByPlayerId[playerId];
-  const existing = activeId
-    ? world.session.llmPlayers.plans[activeId]
-    : undefined;
-  const now = world.simulation.worldTimeMinutes;
+  const world =
+    getRuntimeWorldState();
 
-  let plan: StrategicPlan;
+  const activeId =
+    world.session
+      .llmPlayers
+      .activePlanByPlayerId[
+        playerId
+      ];
+
+  const existing =
+    activeId
+      ? world.session
+          .llmPlayers
+          .plans[
+            activeId
+          ]
+      : undefined;
+
+  const now =
+    world.simulation
+      .worldTimeMinutes;
+
+  let plan:
+    StrategicPlan;
 
   if (existing) {
     plan = {
       ...existing,
-      goal: update.goal,
-      targetId: update.targetId,
-      priority: Math.max(0, Math.min(100, update.priority)),
-      status: update.status ?? "active",
-      nextActionAt: update.nextActionAt,
-      updatedAt: now,
+
+      goal:
+        update.goal,
+
+      targetId:
+        update.targetId,
+
+      priority:
+        Math.max(
+          0,
+          Math.min(
+            100,
+            update.priority
+          )
+        ),
+
+      status:
+        update.status ??
+        "active",
+
+      nextActionAt:
+        update.nextActionAt,
+
+      updatedAt:
+        now,
     };
   } else {
-    const sequence = allocateSimulationSequence();
+    const sequence =
+      allocateSimulationSequence();
+
     plan = {
-      id: `llm-plan-${sequence.toString().padStart(6, "0")}`,
+      id:
+        `llm-plan-${sequence
+          .toString()
+          .padStart(
+            6,
+            "0"
+          )}`,
+
       playerId,
-      goal: update.goal,
-      targetId: update.targetId,
-      priority: Math.max(0, Math.min(100, update.priority)),
-      status: update.status ?? "active",
-      nextActionAt: update.nextActionAt,
-      createdAt: now,
-      updatedAt: now,
+
+      goal:
+        update.goal,
+
+      targetId:
+        update.targetId,
+
+      priority:
+        Math.max(
+          0,
+          Math.min(
+            100,
+            update.priority
+          )
+        ),
+
+      status:
+        update.status ??
+        "active",
+
+      nextActionAt:
+        update.nextActionAt,
+
+      createdAt:
+        now,
+
+      updatedAt:
+        now,
     };
   }
 
-  updateRuntimeWorldState((current) => ({
-    ...current,
-    session: {
-      ...current.session,
-      llmPlayers: {
-        ...current.session.llmPlayers,
-        plans: {
-          ...current.session.llmPlayers.plans,
-          [plan.id]: plan,
-        },
-        activePlanByPlayerId: {
-          ...current.session.llmPlayers.activePlanByPlayerId,
-          [playerId]: plan.status === "active" ? plan.id : undefined,
+  updateRuntimeWorldState(
+    (current) => ({
+      ...current,
+
+      session: {
+        ...current.session,
+
+        llmPlayers: {
+          ...current.session
+            .llmPlayers,
+
+          plans: {
+            ...current.session
+              .llmPlayers
+              .plans,
+
+            [plan.id]:
+              plan,
+          },
+
+          activePlanByPlayerId: {
+            ...current.session
+              .llmPlayers
+              .activePlanByPlayerId,
+
+            [playerId]:
+              plan.status ===
+                "active"
+                ? plan.id
+                : undefined,
+          },
         },
       },
-    },
-  }));
+    })
+  );
 
   return plan;
 }
 
-function recordDecision(record: LlmDecisionRecord): void {
-  updateRuntimeWorldState((current) => ({
-    ...current,
-    session: {
-      ...current.session,
-      llmPlayers: {
-        ...current.session.llmPlayers,
-        lastActivationAt: {
-          ...current.session.llmPlayers.lastActivationAt,
-          [record.playerId]: record.activatedAt,
+function recordDecision(
+  record:
+    LlmDecisionRecord
+): void {
+  updateRuntimeWorldState(
+    (current) => ({
+      ...current,
+
+      session: {
+        ...current.session,
+
+        llmPlayers: {
+          ...current.session
+            .llmPlayers,
+
+          lastActivationAt: {
+            ...current.session
+              .llmPlayers
+              .lastActivationAt,
+
+            [record.playerId]:
+              record
+                .activatedAt,
+          },
+
+          decisions: [
+            ...current.session
+              .llmPlayers
+              .decisions,
+            record,
+          ].slice(
+            -MAX_DECISION_HISTORY
+          ),
         },
-        decisions: [
-          ...current.session.llmPlayers.decisions,
-          record,
-        ].slice(-MAX_DECISION_HISTORY),
       },
-    },
-  }));
+    })
+  );
 }
 
-function observationSummary(decision: LlmPlayerDecision): string {
-  const requested = decision.actions.map((action) => action.tool).join(", ");
+function observationSummary(
+  decision:
+    LlmPlayerDecision
+): string {
+  const requested =
+    decision.actions
+      .map(
+        (action) =>
+          action.tool
+      )
+      .join(
+        ", "
+      );
+
   return requested
     ? `Requested tools: ${requested}`
     : "No gameplay action requested.";
@@ -137,120 +278,254 @@ function observationSummary(decision: LlmPlayerDecision): string {
 
 export type RunLlmPlayerResult =
   | {
-      ok: false;
+      ok:
+        false;
+
       error:
         | "PLAYER_NOT_LLM"
         | "NOT_CURRENT_PLAYER"
         | "COMMAND_WINDOW_CLOSED"
         | "CONTEXT_NOT_AVAILABLE"
         | "MODEL_ERROR";
-      detail?: string;
+
+      detail?:
+        string;
     }
   | {
-      ok: true;
-      record: LlmDecisionRecord;
-      passedWindow: boolean;
+      ok:
+        true;
+
+      record:
+        LlmDecisionRecord;
+
+      passedWindow:
+        boolean;
     };
 
 export async function runLlmPlayerActivation(
-  playerId: string,
-  reason: LlmPlayerActivationReason,
-  adapter: LlmPlayerModelAdapter
+  playerId:
+    string,
+  reason:
+    LlmPlayerActivationReason,
+  adapter:
+    LlmPlayerModelAdapter
 ): Promise<RunLlmPlayerResult> {
-  const world = getRuntimeWorldState();
+  const world =
+    getRuntimeWorldState();
 
-  if (!isLlmPlayer(playerId)) {
+  if (
+    !isLlmPlayer(
+      playerId
+    )
+  ) {
     return {
-      ok: false,
-      error: "PLAYER_NOT_LLM",
+      ok:
+        false,
+
+      error:
+        "PLAYER_NOT_LLM",
     };
   }
 
-  const access = validatePlayerCommandAccess(world.session.id, playerId);
+  const access =
+    validatePlayerCommandAccess(
+      world.session.id,
+      playerId
+    );
 
-  if (!access.ok) {
+  if (
+    !access.ok
+  ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       error:
-        access.error === "NOT_CURRENT_PLAYER"
+        access.error ===
+          "NOT_CURRENT_PLAYER"
           ? "NOT_CURRENT_PLAYER"
           : "COMMAND_WINDOW_CLOSED",
-      detail: access.error,
+
+      detail:
+        access.error,
     };
   }
 
-  const context = buildLlmPlayerContext(playerId, reason);
+  const context =
+    buildLlmPlayerContext(
+      playerId,
+      reason
+    );
 
   if (!context) {
     return {
-      ok: false,
-      error: "CONTEXT_NOT_AVAILABLE",
+      ok:
+        false,
+
+      error:
+        "CONTEXT_NOT_AVAILABLE",
     };
   }
 
-  let decision: LlmPlayerDecision;
+  let decision:
+    LlmPlayerDecision;
 
   try {
-    decision = await adapter.generateDecision(context);
-  } catch (error) {
+    decision =
+      await adapter
+        .generateDecision(
+          context
+        );
+  } catch (
+    error
+  ) {
     return {
-      ok: false,
-      error: "MODEL_ERROR",
-      detail: error instanceof Error ? error.message : String(error),
+      ok:
+        false,
+
+      error:
+        "MODEL_ERROR",
+
+      detail:
+        error instanceof
+          Error
+          ? error.message
+          : String(
+              error
+            ),
     };
   }
 
-  const budget = actionBudget(reason);
-  const requestedActions = decision.actions.slice(0, budget);
-  const actionResults = [];
-
-  for (const action of requestedActions) {
-    actionResults.push(
-      await executeLlmPlayerAction(world.session.id, playerId, action)
+  const budget =
+    actionBudget(
+      reason
     );
 
-    const current = getRuntimeWorldState().session.commandCycle;
+  const requestedActions =
+    decision.actions
+      .slice(
+        0,
+        budget
+      );
+
+  const actionResults = [];
+
+  for (
+    const action
+    of requestedActions
+  ) {
+    actionResults.push(
+      await executeLlmPlayerActionWithManagement(
+        world.session.id,
+        playerId,
+        action
+      )
+    );
+
+    const current =
+      getRuntimeWorldState()
+        .session
+        .commandCycle;
+
     if (
-      current.phase === "executing" ||
-      current.currentPlayerId !== playerId
+      current.phase ===
+        "executing" ||
+      current.currentPlayerId !==
+        playerId
     ) {
       break;
     }
   }
 
-  const plan = upsertPlan(playerId, decision.planUpdate);
-  const activatedAt = getRuntimeWorldState().simulation.worldTimeMinutes;
-  const sequence = allocateSimulationSequence();
+  const plan =
+    upsertPlan(
+      playerId,
+      decision
+        .planUpdate
+    );
 
-  let passedWindow = false;
-  const cycleBeforeAutoPass = getRuntimeWorldState().session.commandCycle;
+  const activatedAt =
+    getRuntimeWorldState()
+      .simulation
+      .worldTimeMinutes;
+
+  const sequence =
+    allocateSimulationSequence();
+
+  let passedWindow =
+    false;
+
+  const cycleBeforeAutoPass =
+    getRuntimeWorldState()
+      .session
+      .commandCycle;
 
   if (
-    decision.passWindow !== false &&
-    cycleBeforeAutoPass.phase !== "executing" &&
-    cycleBeforeAutoPass.currentPlayerId === playerId
+    decision.passWindow !==
+      false &&
+    cycleBeforeAutoPass.phase !==
+      "executing" &&
+    cycleBeforeAutoPass.currentPlayerId ===
+      playerId
   ) {
-    const pass = passPlayerCommandWindow(world.session.id, playerId);
-    passedWindow = pass.ok;
+    const pass =
+      passPlayerCommandWindow(
+        world.session.id,
+        playerId
+      );
+
+    passedWindow =
+      pass.ok;
   }
 
-  const record: LlmDecisionRecord = {
-    id: `llm-decision-${sequence.toString().padStart(6, "0")}`,
+  const record:
+    LlmDecisionRecord = {
+    id:
+      `llm-decision-${sequence
+        .toString()
+        .padStart(
+          6,
+          "0"
+        )}`,
+
     playerId,
+
     activatedAt,
-    activationReason: reason,
-    observationSummary: observationSummary(decision),
+
+    activationReason:
+      reason,
+
+    observationSummary:
+      observationSummary(
+        decision
+      ),
+
     requestedActions,
+
     actionResults,
-    decisionSummary: decision.decisionSummary.slice(0, 500),
-    planId: plan?.id,
+
+    decisionSummary:
+      decision
+        .decisionSummary
+        .slice(
+          0,
+          500
+        ),
+
+    planId:
+      plan?.id,
   };
 
-  recordDecision(record);
+  recordDecision(
+    record
+  );
 
   return {
-    ok: true,
+    ok:
+      true,
+
     record,
+
     passedWindow,
   };
 }

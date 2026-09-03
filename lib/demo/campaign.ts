@@ -8,18 +8,26 @@ import {
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
 
+import {
+  seedInitialAudienceRequests,
+} from "@/lib/politics/audience";
+
 export interface CampaignSelection {
-  humanPlayerId: string;
-  actorPlayerId: string;
+  humanPlayerId:
+    string;
+  actorPlayerId:
+    string;
 }
 
 export function validateCampaignSelection(
   selection:
     CampaignSelection
 ): {
-  ok: true;
+  ok:
+    true;
 } | {
-  ok: false;
+  ok:
+    false;
   error:
     | "HUMAN_PLAYER_NOT_FOUND"
     | "ACTOR_PLAYER_NOT_FOUND"
@@ -34,7 +42,9 @@ export function validateCampaignSelection(
     ]
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       error:
         "HUMAN_PLAYER_NOT_FOUND",
     };
@@ -46,7 +56,9 @@ export function validateCampaignSelection(
     ]
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       error:
         "ACTOR_PLAYER_NOT_FOUND",
     };
@@ -57,14 +69,17 @@ export function validateCampaignSelection(
     selection.actorPlayerId
   ) {
     return {
-      ok: false,
+      ok:
+        false,
+
       error:
         "SAME_KINGDOM_SELECTED",
     };
   }
 
   return {
-    ok: true,
+    ok:
+      true,
   };
 }
 
@@ -77,7 +92,9 @@ export function beginCampaign(
       selection
     );
 
-  if (!validation.ok) {
+  if (
+    !validation.ok
+  ) {
     return validation;
   }
 
@@ -99,17 +116,10 @@ export function beginCampaign(
       )
     ) as Record<
       string,
-      "HUMAN" | "LLM"
+      "HUMAN" |
+      "LLM"
     >;
 
-  /*
-   * The chosen Actor LLM is the realm deliberately surfaced in the main
-   * campaign UX. The other three realms remain world-controlled in the
-   * presentation layer, but still use the existing canonical LLM controller
-   * machinery until a separate GM-realm controller transport is introduced.
-   *
-   * No gameplay rule changes here.
-   */
   configureKingdomControllers(
     controllers
   );
@@ -145,7 +155,8 @@ export function beginCampaign(
                       actorKingdomId
                     ? "ACTOR_LLM"
                     : "GM",
-              ])
+              ]
+            )
         ) as Record<
           string,
           "HUMAN" |
@@ -155,37 +166,65 @@ export function beginCampaign(
 
       return {
         ...current,
+
         session: {
           ...current.session,
+
           campaignControl: {
             humanPlayerId:
               selection.humanPlayerId,
+
             actorPlayerId:
               selection.actorPlayerId,
+
             roleByKingdomId,
           },
         },
+
         simulation: {
           ...current.simulation,
-          paused: false,
-          pauseReasons: [],
+
+          paused:
+            false,
+
+          pauseReasons:
+            [],
         },
       };
     }
   );
 
+  /*
+   * Initial petitions are seeded only after campaign roles are established.
+   * Requests live in canonical politics state and are then resolved through
+   * the same PlayerAction-style audience service by Human / Actor / WebMCP.
+   */
+  seedInitialAudienceRequests();
+
   setDemoConfig({
-    mode: "player",
-    speed: 1,
-    running: true,
-    gmEnabled: true,
+    mode:
+      "player",
+
+    speed:
+      1,
+
+    running:
+      true,
+
+    gmEnabled:
+      true,
   });
 
   return {
-    ok: true as const,
+    ok:
+      true as const,
+
     humanPlayerId:
-      selection.humanPlayerId,
+      selection
+        .humanPlayerId,
+
     actorPlayerId:
-      selection.actorPlayerId,
+      selection
+        .actorPlayerId,
   };
 }

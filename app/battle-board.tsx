@@ -51,7 +51,8 @@ const CRISIS_ORDERS:
 ];
 
 function composition(
-  armyIds: string[]
+  armyIds:
+    string[]
 ) {
   const units =
     armyIds.flatMap(
@@ -64,11 +65,16 @@ function composition(
   return {
     soldiers:
       units.reduce(
-        (sum, unit) =>
+        (
+          sum,
+          unit
+        ) =>
           sum +
-          unit.currentSoldiers,
+          unit
+            .currentSoldiers,
         0
       ),
+
     infantry:
       units
         .filter(
@@ -77,11 +83,16 @@ function composition(
             "infantry"
         )
         .reduce(
-          (sum, unit) =>
+          (
+            sum,
+            unit
+          ) =>
             sum +
-            unit.currentSoldiers,
+            unit
+              .currentSoldiers,
           0
         ),
+
     cavalry:
       units
         .filter(
@@ -90,11 +101,16 @@ function composition(
             "cavalry"
         )
         .reduce(
-          (sum, unit) =>
+          (
+            sum,
+            unit
+          ) =>
             sum +
-            unit.currentSoldiers,
+            unit
+              .currentSoldiers,
           0
         ),
+
     siege:
       units
         .filter(
@@ -103,9 +119,13 @@ function composition(
             "siege"
         )
         .reduce(
-          (sum, unit) =>
+          (
+            sum,
+            unit
+          ) =>
             sum +
-            unit.currentSoldiers,
+            unit
+              .currentSoldiers,
           0
         ),
   };
@@ -130,7 +150,10 @@ export default function BattleBoard() {
     message,
     setMessage,
   ] =
-    useState<string | null>(
+    useState<
+      string |
+      null
+    >(
       null
     );
 
@@ -162,9 +185,11 @@ export default function BattleBoard() {
       : undefined;
 
   const player =
-    world.session.players[
-      world.session.localPlayerId
-    ];
+    world.session
+      .players[
+        world.session
+          .localPlayerId
+      ];
 
   const attacker =
     useMemo(
@@ -203,12 +228,6 @@ export default function BattleBoard() {
     return null;
   }
 
-  /*
-   * Preserve the narrowed battle value for event-handler closures.
-   * TypeScript does not keep the outer optional narrowing across nested
-   * functions because the captured variable could theoretically change
-   * between render and invocation.
-   */
   const activeBattle =
     battle;
 
@@ -225,7 +244,8 @@ export default function BattleBoard() {
         ]?.ownerId ===
           player.kingdomId &&
         !Object.values(
-          world.session.lords
+          world.session
+            .lords
             .profiles
         ).some(
           (lord) =>
@@ -237,10 +257,29 @@ export default function BattleBoard() {
         )
     );
 
+  const lastRound =
+    activeBattle
+      .lastRound;
+
+  const momentumPercent =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        50 +
+          activeBattle
+            .frontMomentum *
+            5
+      )
+    );
+
   function setTactic(
-    tactic: BattleTactic
+    tactic:
+      BattleTactic
   ): void {
-    if (!controllableArmyId) {
+    if (
+      !controllableArmyId
+    ) {
       return;
     }
 
@@ -261,9 +300,12 @@ export default function BattleBoard() {
   }
 
   function crisisOrder(
-    order: BattleOrderType
+    order:
+      BattleOrderType
   ): void {
-    if (!controllableArmyId) {
+    if (
+      !controllableArmyId
+    ) {
       return;
     }
 
@@ -290,17 +332,27 @@ export default function BattleBoard() {
     activeBattle.nodeId;
 
   return (
-    <section className="fixed bottom-5 left-[340px] z-[80] w-[620px] rounded-2xl border border-red-900/70 bg-[#0a0c0e]/96 p-4 text-neutral-100 shadow-2xl backdrop-blur">
+    <section className="fixed bottom-5 left-[355px] z-[82] w-[650px] max-w-[calc(100vw-735px)] rounded-2xl border border-red-900/70 bg-[#090b0d]/97 p-4 text-neutral-100 shadow-2xl backdrop-blur">
       <div className="flex items-start justify-between border-b border-neutral-800 pb-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-red-400">
-            Persistent Battle
+            Active Battle
           </div>
 
           <h2 className="mt-1 font-serif text-xl">
             Battle of{" "}
-            {locationName}
+            {
+              locationName
+            }
           </h2>
+
+          <div className="mt-1 text-[10px] uppercase tracking-wider text-neutral-500">
+            {activeBattle.terrain.replaceAll("_", " ")}
+            {activeBattle.features.length >
+            0
+              ? ` · ${activeBattle.features.join(" · ").replaceAll("_", " ")}`
+              : ""}
+          </div>
         </div>
 
         <div className="text-right text-[10px] uppercase tracking-wider text-neutral-500">
@@ -310,7 +362,8 @@ export default function BattleBoard() {
               activeBattle.battleHour
             }
           </div>
-          <div className="mt-1 text-red-300">
+
+          <div className="mt-1 font-bold text-red-300">
             {
               activeBattle.currentPhase
             }
@@ -318,55 +371,43 @@ export default function BattleBoard() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+      <div className="mt-4 grid grid-cols-[1fr_180px_1fr] items-center gap-4">
         <div>
           <div className="text-[10px] uppercase text-neutral-500">
             Attacker
           </div>
 
           <div className="mt-1 text-2xl font-semibold">
-            {
-              attacker.soldiers
-            }
+            {attacker.soldiers.toLocaleString()}
           </div>
 
-          <div className="mt-2 text-xs text-neutral-400">
-            INF{" "}
-            {
-              attacker.infantry
-            }{" "}
-            · CAV{" "}
-            {
-              attacker.cavalry
-            }{" "}
-            · SIEGE{" "}
-            {
-              attacker.siege
-            }
+          <div className="mt-2 text-[10px] text-neutral-400">
+            INF {attacker.infantry.toLocaleString()} · CAV {attacker.cavalry.toLocaleString()} · SIEGE {attacker.siege.toLocaleString()}
           </div>
+
+          {lastRound ? (
+            <div className="mt-2 text-[10px] text-red-300">
+              Last hour: -{lastRound.attacker.soldiersLost.toLocaleString()}
+            </div>
+          ) : null}
         </div>
 
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-3 text-center">
-          <div className="text-[10px] uppercase text-neutral-500">
-            Terrain
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/80 p-3 text-center">
+          <div className="text-[9px] uppercase tracking-wider text-neutral-500">
+            Front Momentum
           </div>
 
-          <div className="mt-1 text-xs font-semibold uppercase">
-            {
-              activeBattle.terrain
-            }
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-800">
+            <div
+              className="h-full bg-red-500 transition-[width]"
+              style={{
+                width:
+                  `${momentumPercent}%`,
+              }}
+            />
           </div>
 
-          <div className="mt-2 text-[10px] text-amber-300">
-            {activeBattle.features.length >
-            0
-              ? activeBattle.features.join(
-                  " · "
-                )
-              : "open ground"}
-          </div>
-
-          <div className="mt-3 text-xl font-semibold">
+          <div className="mt-2 text-xl font-black">
             {activeBattle.frontMomentum >
             0
               ? "+"
@@ -376,8 +417,8 @@ export default function BattleBoard() {
             }
           </div>
 
-          <div className="text-[9px] uppercase text-neutral-600">
-            momentum
+          <div className="mt-1 text-[9px] text-neutral-600">
+            defender ← 0 → attacker
           </div>
         </div>
 
@@ -387,31 +428,43 @@ export default function BattleBoard() {
           </div>
 
           <div className="mt-1 text-2xl font-semibold">
-            {
-              defender.soldiers
-            }
+            {defender.soldiers.toLocaleString()}
           </div>
 
-          <div className="mt-2 text-xs text-neutral-400">
-            INF{" "}
-            {
-              defender.infantry
-            }{" "}
-            · CAV{" "}
-            {
-              defender.cavalry
-            }{" "}
-            · SIEGE{" "}
-            {
-              defender.siege
-            }
+          <div className="mt-2 text-[10px] text-neutral-400">
+            INF {defender.infantry.toLocaleString()} · CAV {defender.cavalry.toLocaleString()} · SIEGE {defender.siege.toLocaleString()}
           </div>
+
+          {lastRound ? (
+            <div className="mt-2 text-[10px] text-red-300">
+              Last hour: -{lastRound.defender.soldiersLost.toLocaleString()}
+            </div>
+          ) : null}
         </div>
       </div>
 
       {message ? (
         <div className="mt-3 rounded border border-neutral-800 bg-neutral-900 p-2 text-xs text-neutral-400">
-          {message}
+          {
+            message
+          }
+        </div>
+      ) : null}
+
+      {activeBattle.pendingDecision ? (
+        <div className="mt-3 rounded-xl border border-red-700/70 bg-red-950/30 p-3 text-xs">
+          <div className="font-semibold uppercase tracking-wider text-red-300">
+            Command Crisis
+          </div>
+
+          <div className="mt-1 text-neutral-300">
+            A battlefield decision is waiting for{" "}
+            {
+              activeBattle
+                .pendingDecision
+                .armyId
+            }.
+          </div>
         </div>
       ) : null}
 
@@ -424,7 +477,9 @@ export default function BattleBoard() {
 
             <div className="grid grid-cols-2 gap-1">
               {TACTICS.map(
-                (tactic) => (
+                (
+                  tactic
+                ) => (
                   <button
                     key={
                       tactic
@@ -454,7 +509,9 @@ export default function BattleBoard() {
 
             <div className="grid grid-cols-2 gap-1">
               {CRISIS_ORDERS.map(
-                (order) => (
+                (
+                  order
+                ) => (
                   <button
                     key={
                       order
@@ -485,15 +542,19 @@ export default function BattleBoard() {
         </div>
       ) : (
         <div className="mt-4 rounded-lg border border-violet-900 bg-violet-950/20 p-3 text-xs text-violet-200">
-          Your ruler does not directly command the selected independent lord force in this activeBattle.
+          The selected force belongs to an independent lord. The ruler cannot bypass lord autonomy with direct battlefield controls.
         </div>
       )}
 
-      <div className="mt-4 max-h-28 overflow-y-auto border-t border-neutral-800 pt-3">
+      <div className="mt-4 max-h-24 overflow-y-auto border-t border-neutral-800 pt-3">
         {activeBattle.history
-          .slice(-6)
+          .slice(
+            -5
+          )
           .map(
-            (entry) => (
+            (
+              entry
+            ) => (
               <div
                 key={
                   entry.id
@@ -505,6 +566,7 @@ export default function BattleBoard() {
                     entry.timestamp
                   }
                 </span>
+
                 {
                   entry.summary
                 }

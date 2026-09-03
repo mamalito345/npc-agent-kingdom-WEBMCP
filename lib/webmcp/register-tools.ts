@@ -1,3 +1,4 @@
+import { getIdentityBoundWebMcpModelContext } from "@/lib/webmcp/identity-guard";
 import type {
   JsonSchemaForInference,
 } from "@mcp-b/webmcp-types";
@@ -436,7 +437,7 @@ export async function registerWebMCPTools():
   }
 
   const modelContext =
-    document.modelContext;
+    getIdentityBoundWebMcpModelContext();
 
   if (!modelContext) {
     return false;

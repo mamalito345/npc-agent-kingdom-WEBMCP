@@ -3,8 +3,17 @@ import {
 } from "@/types/resources";
 
 import {
+  getOccupationMultiplierForDays,
+  getSettlementControllerId,
+} from "@/lib/military/occupation";
+
+import {
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
+
+import {
+  MINUTES_PER_DAY,
+} from "@/lib/world/time";
 
 import type {
   Settlement,
@@ -14,16 +23,20 @@ import type {
   WorldMinute,
 } from "@/types/simulation";
 
-function getSettlementProductionMultiplier(
-  settlement: Settlement,
-  worldTime: WorldMinute
+function getSettlementProductionDamageMultiplier(
+  settlement:
+    Settlement,
+  worldTime:
+    WorldMinute
 ): number {
   const damage =
-    settlement.productionDamage;
+    settlement
+      .productionDamage;
 
   if (
     !damage ||
-    worldTime >= damage.until
+    worldTime >=
+      damage.until
   ) {
     return 1;
   }
@@ -31,7 +44,47 @@ function getSettlementProductionMultiplier(
   return damage.multiplier;
 }
 
-export function processDailySettlementProduction(): void {
+function getSettlementOccupationProductionMultiplier(
+  settlement:
+    Settlement,
+  worldTime:
+    WorldMinute
+): number {
+  const controller =
+    getSettlementControllerId(
+      settlement
+    );
+
+  if (
+    controller ===
+      settlement.kingdomId ||
+    settlement.occupiedAt ===
+      undefined
+  ) {
+    return 1;
+  }
+
+  const elapsed =
+    Math.max(
+      0,
+      worldTime -
+        settlement
+          .occupiedAt
+    );
+
+  const occupiedDays =
+    Math.floor(
+      elapsed /
+        MINUTES_PER_DAY
+    );
+
+  return getOccupationMultiplierForDays(
+    occupiedDays
+  );
+}
+
+export function processDailySettlementProduction():
+  void {
   updateRuntimeWorldState(
     (current) => {
       const settlements = {
@@ -49,7 +102,11 @@ export function processDailySettlementProduction(): void {
         )
       ) {
         const productionMultiplier =
-          getSettlementProductionMultiplier(
+          getSettlementProductionDamageMultiplier(
+            settlement,
+            worldTime
+          ) *
+          getSettlementOccupationProductionMultiplier(
             settlement,
             worldTime
           );
@@ -101,6 +158,7 @@ export function processDailySettlementProduction(): void {
 
       return {
         ...current,
+
         settlements,
       };
     }

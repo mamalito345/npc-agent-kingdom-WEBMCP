@@ -24,15 +24,24 @@ export type StrategicPlanStatus =
   | "cancelled";
 
 export interface StrategicPlan {
-  id: string;
-  playerId: string;
-  goal: StrategicPlanGoal;
-  targetId?: string;
-  priority: number;
-  status: StrategicPlanStatus;
-  nextActionAt?: WorldMinute;
-  createdAt: WorldMinute;
-  updatedAt: WorldMinute;
+  id:
+    string;
+  playerId:
+    string;
+  goal:
+    StrategicPlanGoal;
+  targetId?:
+    string;
+  priority:
+    number;
+  status:
+    StrategicPlanStatus;
+  nextActionAt?:
+    WorldMinute;
+  createdAt:
+    WorldMinute;
+  updatedAt:
+    WorldMinute;
 }
 
 export type LlmPlayerToolName =
@@ -52,11 +61,24 @@ export type LlmPlayerToolName =
   | "inspect_agreements"
   | "inspect_diplomatic_proposals"
   | "inspect_promises"
+  | "inspect_campaign_status"
+  | "inspect_audience_requests"
+  | "convene_council"
+  | "respond_audience_request"
   | "issue_character_order"
   | "issue_army_move"
   | "issue_intercept"
   | "cancel_order"
   | "change_order"
+  | "split_army"
+  | "merge_armies"
+  | "support_army"
+  | "stop_army_support"
+  | "assign_commander"
+  | "fortify_settlement"
+  | "develop_settlement"
+  | "raid_settlement"
+  | "capture_settlement"
   | "set_battle_tactic"
   | "submit_battle_crisis_order"
   | "recruit_units"
@@ -72,75 +94,152 @@ export type LlmPlayerToolName =
   | "pass_command_window";
 
 export interface LlmPlayerAction {
-  tool: LlmPlayerToolName;
-  args: Record<string, string | number | boolean | null | undefined>;
+  tool:
+    LlmPlayerToolName;
+  args:
+    Record<
+      string,
+      string |
+      number |
+      boolean |
+      null |
+      undefined
+    >;
 }
 
 export interface LlmPlayerPlanUpdate {
-  goal: StrategicPlanGoal;
-  targetId?: string;
-  priority: number;
-  status?: StrategicPlanStatus;
-  nextActionAt?: WorldMinute;
+  goal:
+    StrategicPlanGoal;
+  targetId?:
+    string;
+  priority:
+    number;
+  status?:
+    StrategicPlanStatus;
+  nextActionAt?:
+    WorldMinute;
 }
 
 export interface LlmPlayerDecision {
-  decisionSummary: string;
-  actions: LlmPlayerAction[];
-  planUpdate?: LlmPlayerPlanUpdate;
-  passWindow?: boolean;
+  decisionSummary:
+    string;
+  actions:
+    LlmPlayerAction[];
+  planUpdate?:
+    LlmPlayerPlanUpdate;
+  passWindow?:
+    boolean;
 }
 
 export interface LlmActionExecutionResult {
-  tool: LlmPlayerToolName;
-  ok: boolean;
-  result: unknown;
+  tool:
+    LlmPlayerToolName;
+  ok:
+    boolean;
+  result:
+    unknown;
 }
 
 export interface LlmDecisionRecord {
-  id: string;
-  playerId: string;
-  activatedAt: WorldMinute;
-  activationReason: LlmPlayerActivationReason;
-  observationSummary: string;
-  requestedActions: LlmPlayerAction[];
-  actionResults: LlmActionExecutionResult[];
-  decisionSummary: string;
-  planId?: string;
+  id:
+    string;
+  playerId:
+    string;
+  activatedAt:
+    WorldMinute;
+  activationReason:
+    LlmPlayerActivationReason;
+  observationSummary:
+    string;
+  requestedActions:
+    LlmPlayerAction[];
+  actionResults:
+    LlmActionExecutionResult[];
+  decisionSummary:
+    string;
+  planId?:
+    string;
 }
 
 export interface LlmPlayerRuntimeState {
-  plans: Record<string, StrategicPlan>;
-  activePlanByPlayerId: Record<string, string | undefined>;
-  decisions: LlmDecisionRecord[];
-  lastActivationAt: Record<string, WorldMinute | undefined>;
+  plans:
+    Record<
+      string,
+      StrategicPlan
+    >;
+  activePlanByPlayerId:
+    Record<
+      string,
+      string |
+      undefined
+    >;
+  decisions:
+    LlmDecisionRecord[];
+  lastActivationAt:
+    Record<
+      string,
+      WorldMinute |
+      undefined
+    >;
 }
 
 export interface LlmPlayerContext {
-  sessionId: string;
-  playerId: string;
-  activationReason: LlmPlayerActivationReason;
-  worldTimeMinutes: WorldMinute;
-  playerState: unknown;
-  knownWorld: unknown;
-  knownEnemyForces: unknown;
-  messages: unknown;
-  orders: unknown;
-  battles: unknown;
-  settlements: unknown;
-  economy: unknown;
-  presentCharacters: unknown;
-  lords: unknown;
-  lordOrders: unknown;
-  relationships: unknown;
-  agreements: unknown;
-  diplomaticProposals: unknown;
-  promises: unknown;
-  activePlan: StrategicPlan | null;
-  availableActions: LlmPlayerToolName[];
-  rules: string[];
+  sessionId:
+    string;
+  playerId:
+    string;
+  activationReason:
+    LlmPlayerActivationReason;
+  worldTimeMinutes:
+    WorldMinute;
+  playerState:
+    unknown;
+  knownWorld:
+    unknown;
+  knownEnemyForces:
+    unknown;
+  messages:
+    unknown;
+  orders:
+    unknown;
+  battles:
+    unknown;
+  settlements:
+    unknown;
+  economy:
+    unknown;
+  presentCharacters:
+    unknown;
+  lords:
+    unknown;
+  lordOrders:
+    unknown;
+  relationships:
+    unknown;
+  agreements:
+    unknown;
+  diplomaticProposals:
+    unknown;
+  promises:
+    unknown;
+  campaignStatus:
+    unknown;
+  audienceRequests?:
+    unknown;
+  activePlan:
+    StrategicPlan | null;
+  availableActions:
+    LlmPlayerToolName[];
+  rules:
+    string[];
 }
 
 export interface LlmPlayerModelAdapter {
-  generateDecision(context: LlmPlayerContext): Promise<LlmPlayerDecision>;
+  generateDecision(
+    context:
+      LlmPlayerContext
+  ):
+    Promise<
+      LlmPlayerDecision
+    >;
 }

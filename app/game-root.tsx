@@ -15,6 +15,8 @@ import CourtPanel from "@/app/court-panel";
 import RealmMatters from "@/app/realm-matters";
 import GameDrawer from "@/app/game-drawer";
 import BattleBoard from "@/app/battle-board";
+import CampaignPanel from "@/app/campaign-panel";
+import GameAudio from "@/app/game-audio";
 
 import {
   getDemoConfig,
@@ -52,6 +54,8 @@ export default function GameRoot() {
             <OperationalPanel />
             <CourtPanel />
             <RealmMatters />
+            <CampaignPanel />
+            <GameAudio />
             <ConversationPanel />
             <BattleBoard />
             <GameDrawer />
