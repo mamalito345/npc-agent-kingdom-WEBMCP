@@ -26,6 +26,10 @@ import {
 } from "@/lib/lords/model";
 
 import {
+  getRealmControlRole,
+} from "@/lib/demo/realm-control";
+
+import {
   recruitUnits,
 } from "@/lib/military/recruitment";
 
@@ -484,17 +488,33 @@ export async function resolveReceivedLordOrder(
     };
   }
 
-  const context =
-    buildGmLordOrderContext(
-      profile,
-      order
-    );
-
-  const decision =
-    await getGmLordOrderModelAdapter()
-      .decideOrder(
-        context
-      );
+  /*
+   * A lord only ever receives orders from the ruler of his own kingdom
+   * (issueCharacterOrder already rejects any other kingdom's ruler with
+   * NOT_AUTHORIZED). When that kingdom is HUMAN-controlled, the human
+   * player commands their own lords directly, the same way they command
+   * their own royal army -- no GM-adjudicated refusal. GM- and
+   * Actor-LLM-controlled kingdoms keep the full loyalty/personality
+   * based ACCEPT/REFUSE/DELAY/NEGOTIATE/PARTIAL_COMPLIANCE decision.
+   */
+  const decision:
+    GmLordOrderDecision =
+    getRealmControlRole(
+      profile.kingdomId
+    ) === "HUMAN"
+      ? {
+          response:
+            "ACCEPT",
+          summary:
+            `${profile.title} carries out the ruler's direct command.`,
+        }
+      : await getGmLordOrderModelAdapter()
+          .decideOrder(
+            buildGmLordOrderContext(
+              profile,
+              order
+            )
+          );
 
   const resolved =
     await finalizeDecision(
