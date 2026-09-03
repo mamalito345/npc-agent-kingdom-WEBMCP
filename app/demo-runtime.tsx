@@ -22,10 +22,6 @@ import {
 } from "@/lib/actors/orchestrator";
 
 import {
-  passPlayerCommandWindow,
-} from "@/lib/session/player-actions";
-
-import {
   runDueDirectorEvents,
 } from "@/lib/events/runner";
 
@@ -193,6 +189,18 @@ export default function DemoRuntime() {
           result.stoppedFor ===
           "MODEL_ERROR"
         ) {
+          /*
+           * By explicit request: never force-pass a GM/Actor LLM's
+           * command window just because its model call failed a
+           * couple of times in a row. The tick loop already retries
+           * this same activation on its own on the next tick (every
+           * SPEED_DELAY ms), so simply not force-passing here is
+           * enough to make it wait indefinitely for a real response,
+           * however long that takes -- it is never silently skipped.
+           * Failures are still counted and logged so a genuinely
+           * stuck provider is visible in the console instead of
+           * failing invisibly forever.
+           */
           const stuckPlayerId =
             beforeActivation?.playerId ??
             getCurrentLlmActivation()
@@ -215,21 +223,9 @@ export default function DemoRuntime() {
             ] =
               count;
 
-            if (
-              count >=
-              2
-            ) {
-              passPlayerCommandWindow(
-                getWorldState()
-                  .session.id,
-                stuckPlayerId
-              );
-
-              modelFailures.current[
-                stuckPlayerId
-              ] =
-                0;
-            }
+            console.warn(
+              `[WorldDriver] ${stuckPlayerId} model call failed (attempt ${count}) -- retrying, will not force-pass`
+            );
           }
         } else if (
           result.activations >
