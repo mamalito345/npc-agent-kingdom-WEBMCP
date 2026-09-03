@@ -986,7 +986,7 @@ export default function StrategyMap() {
                         : settlement.id
                     );
                   }}
-                  className="group absolute z-20"
+                  className="group absolute z-20 focus:outline-none focus-visible:outline-none"
                   style={{
                     left:
                       visual.x,

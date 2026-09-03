@@ -97,7 +97,7 @@ export default function StrategicNodeLayer() {
                       : node.id
                   );
                 }}
-                className={`group absolute z-30 grid place-items-center rounded-full border font-black shadow-[0_4px_12px_rgba(0,0,0,0.45)] transition ${
+                className={`group absolute z-30 grid place-items-center rounded-full border font-black shadow-[0_4px_12px_rgba(0,0,0,0.45)] transition focus:outline-none focus-visible:outline-none ${
                   destination
                     ? "h-8 w-8 scale-110 border-yellow-200 bg-yellow-950/95 text-yellow-100 ring-4 ring-yellow-300/25"
                     : selected

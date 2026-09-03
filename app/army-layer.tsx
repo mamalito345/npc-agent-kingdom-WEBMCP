@@ -584,7 +584,7 @@ export default function ArmyLayer() {
                       : current
                 );
               }}
-              className={`absolute z-40 grid place-items-center rounded-full border-2 shadow-[0_8px_22px_rgba(0,0,0,0.5)] transition ${
+              className={`absolute z-40 grid place-items-center rounded-full border-2 shadow-[0_8px_22px_rgba(0,0,0,0.5)] transition focus:outline-none focus-visible:outline-none ${
                 selected
                   ? "scale-110 ring-4 ring-yellow-300/70"
                   : ""
