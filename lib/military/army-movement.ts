@@ -20,8 +20,103 @@ import {
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
 
+import {
+  getArmyComposition,
+} from "@/lib/military/battle-tactics";
+
 export const ARMY_BASE_SPEED_KM_PER_HOUR =
   5;
+
+/*
+ * Army speed now depends on size and composition instead of every
+ * army marching at an identical flat rate:
+ *  - A tiny force (a scout troop, a lone commander's escort) moves
+ *    noticeably faster than a full army; a huge host of thousands
+ *    moves noticeably slower -- but bounded to roughly a 2.5x spread
+ *    between a 1-soldier and a 10,000-soldier force, never "light
+ *    speed" for one man nor a crawl for a real army.
+ *  - Cavalry-heavy forces move faster than pure infantry; siege
+ *    trains slow a force down (dragging siege equipment is slow),
+ *    matching the real tactical trade-off of bringing siege engines.
+ */
+const MAX_SIZE_SPEED_MULTIPLIER = 1.35;
+const MIN_SIZE_SPEED_MULTIPLIER = 0.55;
+const SPEED_REFERENCE_SOLDIERS = 10000;
+
+function sizeSpeedMultiplier(
+  totalSoldiers: number
+): number {
+  const clampedSoldiers =
+    Math.max(
+      1,
+      Math.min(
+        SPEED_REFERENCE_SOLDIERS,
+        totalSoldiers
+      )
+    );
+
+  // Interpolate on a log scale (1 .. 10,000 spans 4 orders of
+  // magnitude) so the falloff feels gradual, not a cliff.
+  const t =
+    Math.log(
+      clampedSoldiers
+    ) /
+    Math.log(
+      SPEED_REFERENCE_SOLDIERS
+    );
+
+  return (
+    MAX_SIZE_SPEED_MULTIPLIER -
+    t *
+      (
+        MAX_SIZE_SPEED_MULTIPLIER -
+        MIN_SIZE_SPEED_MULTIPLIER
+      )
+  );
+}
+
+export function getArmyEffectiveSpeedKmPerHour(
+  armyId: string
+): number {
+  const composition =
+    getArmyComposition([
+      armyId,
+    ]);
+
+  if (
+    composition.totalSoldiers <=
+    0
+  ) {
+    return ARMY_BASE_SPEED_KM_PER_HOUR;
+  }
+
+  const cavalryShare =
+    composition.cavalry /
+    composition.totalSoldiers;
+
+  const siegeShare =
+    composition.siege /
+    composition.totalSoldiers;
+
+  const compositionMultiplier =
+    1 +
+    cavalryShare * 0.25 -
+    siegeShare * 0.35;
+
+  const multiplier =
+    sizeSpeedMultiplier(
+      composition.totalSoldiers
+    ) *
+    Math.max(
+      0.4,
+      compositionMultiplier
+    );
+
+  return (
+    ARMY_BASE_SPEED_KM_PER_HOUR *
+    multiplier
+  );
+}
 
 export type MoveArmyError =
   | "ARMY_NOT_FOUND"
@@ -217,7 +312,9 @@ export function moveArmy(
         )}`,
       armyId,
       route,
-      ARMY_BASE_SPEED_KM_PER_HOUR,
+      getArmyEffectiveSpeedKmPerHour(
+        armyId
+      ),
       now
     );
 

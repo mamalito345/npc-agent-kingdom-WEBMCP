@@ -7,7 +7,7 @@ import {
 } from "@/lib/map/paths";
 
 import {
-  ARMY_BASE_SPEED_KM_PER_HOUR,
+  getArmyEffectiveSpeedKmPerHour,
   moveArmy,
 } from "@/lib/military/army-movement";
 
@@ -228,7 +228,9 @@ export function interceptArmy(
         interceptorRoute
           .effectiveDistanceKm,
 
-        ARMY_BASE_SPEED_KM_PER_HOUR
+        getArmyEffectiveSpeedKmPerHour(
+          armyId
+        )
       );
 
     const candidateIndex =

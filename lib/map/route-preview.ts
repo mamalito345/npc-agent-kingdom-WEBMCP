@@ -15,7 +15,7 @@ import {
 } from "@/lib/map/border-access";
 
 import {
-  ARMY_BASE_SPEED_KM_PER_HOUR,
+  getArmyEffectiveSpeedKmPerHour,
 } from "@/lib/military/army-movement";
 
 export interface RoutePreviewPoint {
@@ -129,7 +129,9 @@ export function buildArmyRoutePreview(
     Math.ceil(
       (
         route.effectiveDistanceKm /
-        ARMY_BASE_SPEED_KM_PER_HOUR
+        getArmyEffectiveSpeedKmPerHour(
+          armyId
+        )
       ) *
         60
     );
