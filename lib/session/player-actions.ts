@@ -48,6 +48,14 @@ import {
   spawnCourier,
 } from "@/lib/world/couriers";
 
+import {
+  declareWar,
+} from "@/lib/politics/war";
+
+import type {
+  WarReason,
+} from "@/lib/politics/war";
+
 import type {
   BattleOrderType,
   BattleTactic,
@@ -467,6 +475,29 @@ export function sendPlayerEnvoy(
     playerId,
     recipientCharacterId,
     `[ENVOY] ${proposal}`
+  );
+}
+
+export function declarePlayerWar(
+  sessionId: string,
+  playerId: string,
+  targetKingdomId: string,
+  reason: WarReason = "AGGRESSION"
+) {
+  const access =
+    validatePlayerCommandAccess(
+      sessionId,
+      playerId
+    );
+
+  if (!access.ok) {
+    return access;
+  }
+
+  return declareWar(
+    access.player.kingdomId,
+    targetKingdomId,
+    reason
   );
 }
 

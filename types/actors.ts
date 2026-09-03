@@ -66,6 +66,7 @@ export type LlmPlayerToolName =
   | "convene_council"
   | "respond_audience_request"
   | "issue_character_order"
+  | "declare_war"
   | "issue_army_move"
   | "issue_intercept"
   | "cancel_order"

@@ -13,6 +13,7 @@ import {
 } from "@/lib/session/orders";
 
 import {
+  declarePlayerWar,
   issuePlayerArmyMove,
   issuePlayerInterception,
   cancelPlayerOrder,
@@ -353,6 +354,41 @@ export async function executeLlmPlayerAction(
             : invalidArgs(
                 action.tool,
                 "lord_character_id and order_type required"
+              );
+        break;
+      }
+
+      case "declare_war": {
+        const targetKingdomId =
+          stringArg(
+            action,
+            "target_kingdom_id"
+          );
+
+        const reason =
+          stringArg(
+            action,
+            "reason"
+          ) as
+            | "BORDER_VIOLATION"
+            | "DEFENSE_OF_ALLY"
+            | "CLAIM"
+            | "RETALIATION"
+            | "AGGRESSION"
+            | undefined;
+
+        result =
+          targetKingdomId
+            ? declarePlayerWar(
+                sessionId,
+                playerId,
+                targetKingdomId,
+                reason ??
+                  "AGGRESSION"
+              )
+            : invalidArgs(
+                action.tool,
+                "target_kingdom_id required"
               );
         break;
       }

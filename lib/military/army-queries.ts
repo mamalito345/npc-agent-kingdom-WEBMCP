@@ -63,6 +63,54 @@ export function getArmySoldierCount(
   );
 }
 
+export function getArmyCampaignCostMultiplier(
+  armyId: string
+): number {
+  const world =
+    getRuntimeWorldState();
+
+  const army =
+    world.armies[
+      armyId
+    ];
+
+  if (!army) {
+    return 1;
+  }
+
+  if (
+    army.status ===
+    "garrison"
+  ) {
+    return 1;
+  }
+
+  if (
+    army.status ===
+      "siege"
+  ) {
+    return 1.35;
+  }
+
+  if (
+    army.status ===
+      "battle"
+  ) {
+    return 1.2;
+  }
+
+  if (
+    world.simulation
+      .activeMovements[
+        armyId
+      ]
+  ) {
+    return 1.15;
+  }
+
+  return 1;
+}
+
 export function getArmyDailyCosts(
   armyId: string
 ): {
@@ -84,15 +132,30 @@ export function getArmyDailyCosts(
     };
   }
 
-  return getArmyDailyUpkeep(
-    getArmyUnits(
+  const base =
+    getArmyDailyUpkeep(
+      getArmyUnits(
+        armyId
+      ),
+      army.status ===
+        "garrison"
+        ? "garrison"
+        : "field"
+    );
+
+  const multiplier =
+    getArmyCampaignCostMultiplier(
       armyId
-    ),
-    army.status ===
-      "garrison"
-      ? "garrison"
-      : "field"
-  );
+    );
+
+  return {
+    gold:
+      base.gold *
+      multiplier,
+    food:
+      base.food *
+      multiplier,
+  };
 }
 
 export function isArmyAtNode(

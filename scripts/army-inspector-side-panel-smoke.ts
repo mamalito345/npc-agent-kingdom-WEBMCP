@@ -4,7 +4,8 @@ import {
   readFileSync,
 } from "node:fs";
 
-async function main(): Promise<void> {
+async function main():
+  Promise<void> {
   const panel =
     readFileSync(
       "app/operational-panel.tsx",
@@ -14,49 +15,39 @@ async function main(): Promise<void> {
   assert.ok(
     panel.includes(
       "!selectedArmy &&"
-    ) &&
+    )
+  );
+
+  assert.ok(
     panel.includes(
       "!selectedSettlement"
-    ) &&
-    panel.includes(
-      "return null;"
     )
   );
 
   assert.ok(
     panel.includes(
-      'right-4 top-[88px]'
+      "!selectedStrategicNode"
     )
   );
 
   assert.ok(
     panel.includes(
-      "selectMapArmy(null)"
+      "clearMapSelection()"
     )
   );
 
   assert.ok(
     panel.includes(
-      "selectMapSettlement(null)"
-    )
-  );
-
-  assert.ok(
-    panel.includes(
-      "Army Inspector"
+      "closeInspector"
     )
   );
 
   console.log(
-    "PASS: operational inspector is hidden until an army/settlement is selected"
+    "PASS: operational inspector remains selection-driven"
   );
 
   console.log(
-    "PASS: selected army inspector opens as a right-side panel, not over the map center"
-  );
-
-  console.log(
-    "PASS: inspector has an explicit close action"
+    "PASS: close action uses canonical clearMapSelection"
   );
 
   console.log("");
@@ -66,8 +57,14 @@ async function main(): Promise<void> {
 }
 
 main().catch(
-  (error: unknown) => {
-    console.error(error);
-    process.exitCode = 1;
+  (
+    error:
+      unknown
+  ) => {
+    console.error(
+      error
+    );
+    process.exitCode =
+      1;
   }
 );

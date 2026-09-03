@@ -17,6 +17,7 @@ import GameDrawer from "@/app/game-drawer";
 import BattleBoard from "@/app/battle-board";
 import CampaignPanel from "@/app/campaign-panel";
 import GameAudio from "@/app/game-audio";
+import RealmCommandPanel from "@/app/realm-command-panel";
 
 import {
   getDemoConfig,
@@ -24,7 +25,10 @@ import {
 } from "@/lib/demo/config";
 
 export default function GameRoot() {
-  const [entered, setEntered] =
+  const [
+    entered,
+    setEntered,
+  ] =
     useState(false);
 
   const demo =
@@ -44,13 +48,21 @@ export default function GameRoot() {
         />
       ) : null}
 
-      <div className={demo.mode === "player" ? "pt-[72px]" : ""}>
+      <div
+        className={
+          demo.mode ===
+          "player"
+            ? "pt-[72px]"
+            : ""
+        }
+      >
         <StrategyMap />
 
         {demo.mode ===
         "player" ? (
           <>
             <KingdomHud />
+            <RealmCommandPanel />
             <OperationalPanel />
             <CourtPanel />
             <RealmMatters />

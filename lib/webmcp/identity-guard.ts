@@ -4,16 +4,12 @@ import {
 
 export type WebMcpIdentityValidation =
   | {
-      ok:
-        true;
-      sessionId:
-        string;
-      playerId:
-        string;
+      ok: true;
+      sessionId: string;
+      playerId: string;
     }
   | {
-      ok:
-        false;
+      ok: false;
       error:
         | "WEBMCP_IDENTITY_REQUIRED"
         | "WEBMCP_SESSION_IDENTITY_MISMATCH"
@@ -28,44 +24,66 @@ export type WebMcpGuardInstallResult =
   | "failed";
 
 function inputRecord(
-  input:
-    unknown
-):
-  Record<
-    string,
-    unknown
-  > |
-  null {
+  input: unknown
+): Record<string, unknown> | null {
   return (
-    typeof input ===
-      "object" &&
-    input !==
-      null &&
-    !Array.isArray(
-      input
-    )
+    typeof input === "object" &&
+    input !== null &&
+    !Array.isArray(input)
   )
-    ? input as Record<
-        string,
-        unknown
-      >
+    ? input as Record<string, unknown>
     : null;
 }
 
-export function validateBoundWebMcpIdentity(
-  input:
-    unknown
-):
+function getBoundIdentity():
   WebMcpIdentityValidation {
+  const world =
+    getRuntimeWorldState();
+
+  const sessionId =
+    world.session.id;
+
+  const playerId =
+    world.session.localPlayerId;
+
+  const player =
+    world.session.players[
+      playerId
+    ];
+
+  if (
+    !player ||
+    !player.active
+  ) {
+    return {
+      ok: false,
+      error:
+        "WEBMCP_BOUND_PLAYER_NOT_ACTIVE",
+    };
+  }
+
+  return {
+    ok: true,
+    sessionId,
+    playerId,
+  };
+}
+
+/**
+ * Strict compatibility validator.
+ *
+ * Historical tests and explicit spoof tests can still call this function.
+ * Public WebMCP tools no longer ask the model to provide these identifiers.
+ */
+export function validateBoundWebMcpIdentity(
+  input: unknown
+): WebMcpIdentityValidation {
   const record =
-    inputRecord(
-      input
-    );
+    inputRecord(input);
 
   if (!record) {
     return {
-      ok:
-        false,
+      ok: false,
       error:
         "WEBMCP_IDENTITY_REQUIRED",
     };
@@ -78,36 +96,29 @@ export function validateBoundWebMcpIdentity(
     record.player_id;
 
   if (
-    typeof suppliedSessionId !==
-      "string" ||
-    typeof suppliedPlayerId !==
-      "string"
+    typeof suppliedSessionId !== "string" ||
+    typeof suppliedPlayerId !== "string"
   ) {
     return {
-      ok:
-        false,
+      ok: false,
       error:
         "WEBMCP_IDENTITY_REQUIRED",
     };
   }
 
-  const world =
-    getRuntimeWorldState();
+  const bound =
+    getBoundIdentity();
 
-  const boundSessionId =
-    world.session.id;
-
-  const boundPlayerId =
-    world.session
-      .localPlayerId;
+  if (bound.ok === false) {
+    return bound;
+  }
 
   if (
     suppliedSessionId !==
-    boundSessionId
+    bound.sessionId
   ) {
     return {
-      ok:
-        false,
+      ok: false,
       error:
         "WEBMCP_SESSION_IDENTITY_MISMATCH",
     };
@@ -115,97 +126,153 @@ export function validateBoundWebMcpIdentity(
 
   if (
     suppliedPlayerId !==
-    boundPlayerId
+    bound.playerId
   ) {
     return {
-      ok:
-        false,
+      ok: false,
       error:
         "WEBMCP_PLAYER_IDENTITY_MISMATCH",
     };
   }
 
-  const player =
-    world.session.players[
-      boundPlayerId
-    ];
-
-  if (
-    !player ||
-    !player.active
-  ) {
-    return {
-      ok:
-        false,
-      error:
-        "WEBMCP_BOUND_PLAYER_NOT_ACTIVE",
-    };
-  }
-
-  return {
-    ok:
-      true,
-    sessionId:
-      boundSessionId,
-    playerId:
-      boundPlayerId,
-  };
+  return bound;
 }
 
 function isToolDefinition(
-  value:
-    unknown
-): value is
-  Record<
-    string,
-    unknown
-  > & {
-    execute:
-      (
-        input:
-          unknown
-      ) =>
-        unknown |
-        Promise<
-          unknown
-        >;
-  } {
+  value: unknown
+): value is Record<string, unknown> & {
+  execute: (
+    input: unknown
+  ) => unknown | Promise<unknown>;
+} {
   if (
-    typeof value !==
-      "object" ||
-    value ===
-      null
+    typeof value !== "object" ||
+    value === null
   ) {
     return false;
   }
 
-  const candidate =
-    value as Record<
-      string,
-      unknown
-    >;
-
   return (
-    typeof candidate.execute ===
+    typeof (
+      value as Record<
+        string,
+        unknown
+      >
+    ).execute ===
     "function"
   );
 }
 
-/*
- * IMPORTANT:
+function stripIdentityFromInputSchema(
+  schema: unknown
+): unknown {
+  if (
+    typeof schema !== "object" ||
+    schema === null ||
+    Array.isArray(schema)
+  ) {
+    return schema;
+  }
+
+  const source =
+    schema as Record<
+      string,
+      unknown
+    >;
+
+  const properties =
+    (
+      typeof source.properties === "object" &&
+      source.properties !== null &&
+      !Array.isArray(source.properties)
+    )
+      ? source.properties as Record<
+          string,
+          unknown
+        >
+      : undefined;
+
+  const required =
+    Array.isArray(
+      source.required
+    )
+      ? source.required
+      : undefined;
+
+  return {
+    ...source,
+    properties:
+      properties
+        ? Object.fromEntries(
+            Object.entries(
+              properties
+            ).filter(
+              ([key]) =>
+                key !== "session_id" &&
+                key !== "player_id"
+            )
+          )
+        : source.properties,
+    required:
+      required
+        ? required.filter(
+            (value) =>
+              value !== "session_id" &&
+              value !== "player_id"
+          )
+        : source.required,
+  };
+}
+
+function mergeBoundIdentity(
+  input: unknown,
+  bound: {
+    sessionId: string;
+    playerId: string;
+  }
+): Record<string, unknown> {
+  const record =
+    inputRecord(input) ?? {};
+
+  /*
+   * If a host bypasses schema enforcement and explicitly supplies an identity,
+   * reject a mismatch rather than silently honoring it.
+   */
+  if (
+    typeof record.session_id === "string" &&
+    record.session_id !== bound.sessionId
+  ) {
+    throw new Error(
+      "WEBMCP_SESSION_IDENTITY_MISMATCH"
+    );
+  }
+
+  if (
+    typeof record.player_id === "string" &&
+    record.player_id !== bound.playerId
+  ) {
+    throw new Error(
+      "WEBMCP_PLAYER_IDENTITY_MISMATCH"
+    );
+  }
+
+  return {
+    ...record,
+    session_id:
+      bound.sessionId,
+    player_id:
+      bound.playerId,
+  };
+}
+
+/**
+ * Public WebMCP facade.
  *
- * Some real WebMCP hosts expose document.modelContext.registerTool as a
- * non-configurable property. Replacing/monkey-patching that host method with
- * Object.defineProperty therefore throws:
+ * The model sees ZERO identity fields.
+ * The browser-owned current session/player identity is injected immediately
+ * before the canonical tool execute callback runs.
  *
- *   TypeError: Cannot redefine property: registerTool
- *
- * Identity binding is now implemented with a LOCAL REGISTRATION FACADE.
- * Each gameplay register-*.ts module asks for this facade and registers tools
- * through it. The facade wraps each tool's execute callback before delegating
- * to the host's original registerTool method.
- *
- * We never mutate document.modelContext or registerTool.
+ * document.modelContext is never modified.
  */
 export function getIdentityBoundWebMcpModelContext() {
   if (
@@ -224,15 +291,11 @@ export function getIdentityBoundWebMcpModelContext() {
 
   const guardedRegisterTool =
     ((
-      tool:
-        unknown,
-      options?:
-        unknown
+      tool: unknown,
+      options?: unknown
     ) => {
       if (
-        !isToolDefinition(
-          tool
-        )
+        !isToolDefinition(tool)
       ) {
         return modelContext
           .registerTool(
@@ -244,56 +307,78 @@ export function getIdentityBoundWebMcpModelContext() {
       const originalExecute =
         tool.execute;
 
-      const wrappedTool = {
-        ...tool,
+      const original =
+        tool as Record<
+          string,
+          unknown
+        >;
 
+      const publicTool = {
+        ...original,
+        inputSchema:
+          stripIdentityFromInputSchema(
+            original.inputSchema
+          ),
         execute:
           async (
-            input:
-              unknown
+            input: unknown
           ) => {
-            const identity =
-              validateBoundWebMcpIdentity(
-                input
-              );
+            const bound =
+              getBoundIdentity();
 
             if (
-              identity.ok ===
+              bound.ok ===
               false
             ) {
-              return identity;
+              return bound;
             }
 
-            return originalExecute(
-              input
-            );
+            try {
+              return await originalExecute(
+                mergeBoundIdentity(
+                  input,
+                  bound
+                )
+              );
+            } catch (
+              error
+            ) {
+              if (
+                error instanceof Error &&
+                (
+                  error.message ===
+                    "WEBMCP_SESSION_IDENTITY_MISMATCH" ||
+                  error.message ===
+                    "WEBMCP_PLAYER_IDENTITY_MISMATCH"
+                )
+              ) {
+                return {
+                  ok: false,
+                  error:
+                    error.message,
+                };
+              }
+
+              throw error;
+            }
           },
       };
 
       return modelContext
         .registerTool(
-          wrappedTool as never,
+          publicTool as never,
           options as never
         );
     }) as
       typeof modelContext
         .registerTool;
 
-  /*
-   * A minimal facade is deliberate. Current registration modules only require
-   * registerTool. The real host object remains untouched.
-   */
   return {
     registerTool:
       guardedRegisterTool,
   } as typeof modelContext;
 }
 
-/*
- * Kept for compatibility with historical Phase-H callers/tests.
- * "installed" now means the identity-bound facade can be created; it does NOT
- * mean the host object was modified.
- */
 export function installWebMcpIdentityGuard():
   WebMcpGuardInstallResult {
   if (
@@ -303,9 +388,7 @@ export function installWebMcpIdentityGuard():
     return "unavailable";
   }
 
-  if (
-    !document.modelContext
-  ) {
+  if (!document.modelContext) {
     return "unavailable";
   }
 

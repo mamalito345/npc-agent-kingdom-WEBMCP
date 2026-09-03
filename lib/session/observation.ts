@@ -1,3 +1,4 @@
+import { getRealmBudgetSnapshot } from "@/lib/economy/realm-budget";
 import {
   getRuntimeWorldState,
 } from "@/lib/world/runtime";
@@ -415,6 +416,11 @@ export function getPlayerEconomyView(
     };
   }
 
+  const budget =
+    getRealmBudgetSnapshot(
+      kingdom.id
+    );
+
   return {
     ok:
       true as const,
@@ -434,6 +440,19 @@ export function getPlayerEconomyView(
 
       stability:
         kingdom.stability,
+    },
+
+    budget,
+
+    guidance: {
+      reserveIsAdvisory:
+        true,
+
+      maySpendBelowReserve:
+        true,
+
+      note:
+        "Recommended reserve is planning guidance, not a hard spending restriction.",
     },
   };
 }

@@ -33,6 +33,10 @@ import {
 } from "@/lib/webmcp/register-audience-tools";
 
 import {
+  registerWarWebMCPTools,
+} from "@/lib/webmcp/register-war-tools";
+
+import {
   installWebMcpIdentityGuard,
 } from "@/lib/webmcp/identity-guard";
 
@@ -41,11 +45,6 @@ export default function WebMCPProvider() {
     let alive =
       true;
 
-    /*
-     * This no longer monkey-patches document.modelContext.registerTool.
-     * It only verifies that an identity-bound local registration facade can
-     * be created. Every register-*.ts module uses that facade directly.
-     */
     const guard =
       installWebMcpIdentityGuard();
 
@@ -79,6 +78,7 @@ export default function WebMCPProvider() {
       registerBorderWebMCPTools(),
       registerArmyManagementWebMCPTools(),
       registerAudienceWebMCPTools(),
+      registerWarWebMCPTools(),
     ])
       .then(
         ([
@@ -89,6 +89,7 @@ export default function WebMCPProvider() {
           borderRegistered,
           armyManagementRegistered,
           audienceRegistered,
+          warRegistered,
         ]) => {
           if (!alive) {
             return;
@@ -105,6 +106,7 @@ export default function WebMCPProvider() {
               borderRegistered,
               armyManagementRegistered,
               audienceRegistered,
+              warRegistered,
             }
           );
         }
