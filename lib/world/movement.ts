@@ -744,6 +744,12 @@ export function resolveCompletedMovements(
       let charactersChanged =
         false;
 
+      let armies =
+        current.armies;
+
+      let armiesChanged =
+        false;
+
       for (
         const movement
         of Object.values(
@@ -818,6 +824,49 @@ export function resolveCompletedMovements(
                 .destinationNodeId,
           };
         }
+
+        const army =
+          current.armies[
+            movement.entityId
+          ];
+
+        if (army) {
+          if (
+            !armiesChanged
+          ) {
+            armies = {
+              ...current
+                .armies,
+            };
+
+            armiesChanged =
+              true;
+          }
+
+          const approachNodeId =
+            movement
+              .routeNodeIds
+              .length >=
+            2
+              ? movement
+                  .routeNodeIds[
+                    movement
+                      .routeNodeIds
+                      .length -
+                      2
+                  ]
+              : undefined;
+
+          armies[
+            movement.entityId
+          ] = {
+            ...army,
+
+            arrivedFromNodeId:
+              approachNodeId ??
+              army.arrivedFromNodeId,
+          };
+        }
       }
 
       return {
@@ -826,6 +875,8 @@ export function resolveCompletedMovements(
         player,
 
         characters,
+
+        armies,
 
         simulation: {
           ...current

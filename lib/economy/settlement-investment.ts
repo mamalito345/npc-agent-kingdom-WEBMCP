@@ -9,7 +9,12 @@ import {
 } from "@/lib/economy/development";
 
 import {
+  getSettlementEconomicProfile,
+} from "@/lib/economy/settlement-economy";
+
+import {
   RECRUITMENT_DEFINITIONS,
+  getConcurrentRecruitmentSlots,
 } from "@/lib/military/balance";
 
 import {
@@ -19,10 +24,6 @@ import {
   getSettlementMilitaryLevel,
   getSettlementMobilizationCapacity,
 } from "@/lib/military/settlement-capacity";
-
-import {
-  getConcurrentRecruitmentSlots,
-} from "@/lib/military/balance";
 
 import {
   getFortificationDefinition,
@@ -69,13 +70,8 @@ const RECRUITABLE:
   "siege",
 ];
 
-function round2(
-  value: number
-): number {
-  return Math.round(
-    value * 100
-  ) / 100;
-}
+const MAX_DEVELOPMENT_LEVEL =
+  5;
 
 function affordableBlocksByResources(
   available:
@@ -113,25 +109,27 @@ function affordableBlocksByResources(
         available[
           key
         ] /
-          cost
+        cost
       )
     );
   }
 
   return limits.length ===
     0
-    ? 999
-    : Math.max(
-        0,
-        Math.min(
-          ...limits
-        )
-      );
+      ? 999
+      : Math.max(
+          0,
+          Math.min(
+            ...limits
+          )
+        );
 }
 
 export function getSettlementInvestmentPlan(
-  settlementId: string,
-  kingdomId: string
+  settlementId:
+    string,
+  kingdomId:
+    string
 ) {
   const world =
     getRuntimeWorldState();
@@ -143,8 +141,7 @@ export function getSettlementInvestmentPlan(
 
   if (!settlement) {
     return {
-      ok:
-        false as const,
+      ok: false as const,
       error:
         "SETTLEMENT_NOT_FOUND" as const,
     };
@@ -157,8 +154,7 @@ export function getSettlementInvestmentPlan(
     kingdomId
   ) {
     return {
-      ok:
-        false as const,
+      ok: false as const,
       error:
         "NOT_CONTROLLER" as const,
     };
@@ -171,12 +167,16 @@ export function getSettlementInvestmentPlan(
 
   if (!available) {
     return {
-      ok:
-        false as const,
+      ok: false as const,
       error:
         "SETTLEMENT_RESOURCES_NOT_FOUND" as const,
     };
   }
+
+  const economy =
+    getSettlementEconomicProfile(
+      settlement.id
+    );
 
   const currentDevelopment =
     settlement
@@ -185,15 +185,18 @@ export function getSettlementInvestmentPlan(
 
   const developmentCost =
     currentDevelopment <
-    3
+    MAX_DEVELOPMENT_LEVEL
       ? getDevelopmentCost(
-          currentDevelopment
+          currentDevelopment,
+          settlement.type
         )
       : undefined;
 
   const developmentOptions =
     FOCUSES.map(
-      (focus) => {
+      (
+        focus
+      ) => {
         const before =
           settlement
             .dailyProduction[
@@ -202,10 +205,10 @@ export function getSettlementInvestmentPlan(
 
         const gain =
           Math.max(
-            1,
+            2,
             Math.round(
               before *
-                0.2
+              0.15
             )
           );
 
@@ -264,7 +267,9 @@ export function getSettlementInvestmentPlan(
     Object.values(
       world.recruitmentOrders
     ).filter(
-      (order) =>
+      (
+        order
+      ) =>
         order.settlementId ===
           settlement.id &&
         order.status ===
@@ -280,7 +285,9 @@ export function getSettlementInvestmentPlan(
 
   const recruitmentOptions =
     RECRUITABLE.map(
-      (unitType) => {
+      (
+        unitType
+      ) => {
         const definition =
           RECRUITMENT_DEFINITIONS[
             unitType
@@ -329,7 +336,9 @@ export function getSettlementInvestmentPlan(
           settlement.type ===
             "castle" &&
           activeRecruitmentOrders.filter(
-            (order) =>
+            (
+              order
+            ) =>
               order.unitType ===
               "siege"
           ).length ===
@@ -421,7 +430,9 @@ export function getSettlementInvestmentPlan(
     Object.values(
       world.fortificationOrders
     ).find(
-      (order) =>
+      (
+        order
+      ) =>
         order.settlementId ===
           settlement.id &&
         order.status ===
@@ -434,14 +445,33 @@ export function getSettlementInvestmentPlan(
     );
 
   return {
-    ok:
-      true as const,
+    ok: true as const,
 
     settlement: {
       id:
         settlement.id,
       type:
         settlement.type,
+      specialization:
+        settlement
+          .specialization ??
+        "mixed",
+      strategicRole:
+        settlement
+          .strategicRole ??
+        null,
+      prosperity:
+        settlement
+          .prosperity ??
+        60,
+      devastation:
+        settlement
+          .devastation ??
+        0,
+      buildings:
+        settlement
+          .buildings ??
+        {},
       developmentLevel:
         currentDevelopment,
       developmentFocus:
@@ -456,6 +486,15 @@ export function getSettlementInvestmentPlan(
         available,
       dailyProduction:
         settlement.dailyProduction,
+      effectiveProduction:
+        economy
+          .effectiveProduction,
+      taxBaseGold:
+        economy
+          .taxBaseGold,
+      marketBaseGold:
+        economy
+          .marketBaseGold,
     },
 
     strategicBudget: {
@@ -476,7 +515,7 @@ export function getSettlementInvestmentPlan(
 
     development: {
       maxLevel:
-        3,
+        MAX_DEVELOPMENT_LEVEL,
       nextCost:
         developmentCost,
       options:
@@ -530,13 +569,31 @@ export function getSettlementInvestmentPlan(
       budget
         .projectedDailyNetGold <
       0
-        ? "Realm daily balance is negative; military expansion increases strategic risk."
+        ? "Realm daily balance is negative; further military expansion increases strategic risk."
         : undefined,
 
       budget
         .reserveCoverageDays <
       3
         ? "Treasury covers less than three days of current army upkeep."
+        : undefined,
+
+      (
+        settlement
+          .prosperity ??
+        60
+      ) <
+      45
+        ? "Low prosperity is suppressing local production and tax yield."
+        : undefined,
+
+      (
+        settlement
+          .devastation ??
+        0
+      ) >
+      25
+        ? "Devastation is materially reducing this settlement's output."
         : undefined,
 
       activeRecruitmentOrders

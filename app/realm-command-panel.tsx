@@ -24,6 +24,22 @@ import {
   passPlayerCommandWindow,
 } from "@/lib/session/player-actions";
 
+import {
+  getRealmControlLabel,
+} from "@/lib/demo/realm-control";
+
+import {
+  getObserverFeed,
+} from "@/lib/demo/observer";
+
+import {
+  formatWorldTime,
+} from "@/lib/world/time";
+
+import {
+  openGameDrawer,
+} from "@/lib/ui/game-drawer";
+
 export default function RealmCommandPanel() {
   const world =
     useSyncExternalStore(
@@ -46,6 +62,12 @@ export default function RealmCommandPanel() {
     useState<string | null>(
       null
     );
+
+  const [
+    collapsed,
+    setCollapsed,
+  ] =
+    useState(false);
 
   const player =
     world.session.players[
@@ -150,8 +172,20 @@ export default function RealmCommandPanel() {
     );
   }
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        className="fixed left-1/2 top-[62px] z-[96] -translate-x-1/2 rounded-lg border border-amber-700/60 bg-black/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300 shadow-xl backdrop-blur hover:bg-black"
+      >
+        Realm Command · Day {day} ({cycle.phase}) ▾
+      </button>
+    );
+  }
+
   return (
-    <aside className="fixed right-4 top-[84px] z-[85] w-[350px] rounded-xl border border-neutral-700/80 bg-black/85 p-3 text-neutral-100 shadow-2xl backdrop-blur">
+    <aside className="fixed left-1/2 top-[62px] z-[96] w-[340px] -translate-x-1/2 rounded-xl border border-amber-700/60 bg-black/90 p-3 text-neutral-100 shadow-2xl backdrop-blur">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
@@ -163,18 +197,29 @@ export default function RealmCommandPanel() {
           </div>
         </div>
 
-        <div
-          className={`rounded px-2 py-1 text-[10px] font-bold ${
-            cycle.phase ===
-            "executing"
-              ? "bg-emerald-950 text-emerald-200"
-              : cycle.phase ===
-                  "interrupted"
-                ? "bg-red-950 text-red-200"
-                : "bg-amber-950 text-amber-200"
-          }`}
-        >
-          {cycle.phase.toUpperCase()}
+        <div className="flex items-center gap-1">
+          <div
+            className={`rounded px-2 py-1 text-[10px] font-bold ${
+              cycle.phase ===
+              "executing"
+                ? "bg-emerald-950 text-emerald-200"
+                : cycle.phase ===
+                    "interrupted"
+                  ? "bg-red-950 text-red-200"
+                  : "bg-amber-950 text-amber-200"
+            }`}
+          >
+            {cycle.phase.toUpperCase()}
+          </div>
+
+          <button
+            type="button"
+            title="Minimize"
+            onClick={() => setCollapsed(true)}
+            className="rounded px-1.5 py-1 text-xs text-neutral-400 hover:bg-white/10 hover:text-neutral-100"
+          >
+            ✕
+          </button>
         </div>
       </div>
 
@@ -330,12 +375,30 @@ export default function RealmCommandPanel() {
           </div>
           <div className="text-xs">
             {cycle.currentPlayerId
-              ? world.session.players[
+              ? `${
+                  world.session.players[
+                    cycle.currentPlayerId
+                  ]?.displayName ??
                   cycle.currentPlayerId
-                ]?.displayName ??
-                cycle.currentPlayerId
+                } (${
+                  world.session.players[
+                    cycle.currentPlayerId
+                  ]
+                    ? getRealmControlLabel(
+                        world.session.players[
+                          cycle.currentPlayerId
+                        ]!.kingdomId
+                      )
+                    : "?"
+                })`
               : "None"}
           </div>
+
+          {cycle.interrupt?.message ? (
+            <div className="mt-2 rounded-lg border border-amber-700/50 bg-amber-950/30 px-2 py-2 text-[11px] leading-4 text-amber-100">
+              {cycle.interrupt.message}
+            </div>
+          ) : null}
 
           {isMyTurn ? (
             <button
@@ -345,13 +408,70 @@ export default function RealmCommandPanel() {
             >
               END ORDERS / PASS
             </button>
-          ) : null}
+          ) : (
+            <div className="mt-2 text-[10px] text-neutral-500">
+              Waiting on {cycle.currentPlayerId
+                ? world.session.players[
+                    cycle.currentPlayerId
+                  ]?.displayName ??
+                  "another ruler"
+                : "the realm"}
+              . The world will resume automatically.
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-3 text-[10px] text-emerald-200">
           World execution is active. Time advances automatically until a meaningful interrupt.
         </div>
       )}
+
+      <div className="mt-3 border-t border-white/10 pt-2">
+        <div className="flex items-center justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
+            Recent GM / AI Activity
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              openGameDrawer(
+                "ai_feed"
+              )
+            }
+            className="text-[10px] text-neutral-400 underline hover:text-neutral-200"
+          >
+            Full feed
+          </button>
+        </div>
+
+        <div className="mt-1 space-y-1">
+          {getObserverFeed(6)
+            .slice()
+            .reverse()
+            .slice(0, 4)
+            .map((entry) => (
+              <div
+                key={entry.id}
+                className="rounded bg-white/5 px-2 py-1 text-[10px] leading-4 text-neutral-300"
+              >
+                <span className="text-neutral-500">
+                  {formatWorldTime(entry.time)}
+                  {entry.kingdomId
+                    ? ` · ${entry.kingdomId}`
+                    : ""}
+                </span>{" "}
+                — {entry.actor}: {entry.summary}
+              </div>
+            ))}
+
+          {getObserverFeed(1).length === 0 ? (
+            <div className="text-[10px] text-neutral-500">
+              No GM/AI decisions recorded yet.
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <details className="mt-3">
         <summary className="cursor-pointer text-xs font-bold text-red-200">

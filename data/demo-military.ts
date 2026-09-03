@@ -63,7 +63,7 @@ const royalForces: ForceDefinition[] = [
     armyId: "army-ironhollow-varren",
     kingdomId: "ironhollow",
     commanderId: "king_varren",
-    nodeId: "riverhold",
+    nodeId: "ironhold",
     infantryBlocks: 2,
     cavalryBlocks: 1,
     siegeBlocks: 1,

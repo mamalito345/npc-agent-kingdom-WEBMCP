@@ -20,6 +20,10 @@ import {
 } from "@/lib/economy/settlement-investment";
 
 import {
+  getMapNode,
+} from "@/lib/map/graph";
+
+import {
   recruitPlayerUnits,
 } from "@/lib/session/player-actions";
 
@@ -101,7 +105,84 @@ export default function SettlementInvestmentPanel({ embedded = false }: { embedd
     );
 
   if (!plan.ok) {
-    return null;
+    /*
+     * Not our settlement (or investment data unavailable). Rather than
+     * showing nothing, give a read-only intel card -- name, owner,
+     * terrain, development, garrison-ish size -- so a foreign or
+     * enemy settlement can still be inspected for war planning.
+     */
+    const foreignSettlement =
+      world.settlements[
+        settlementId
+      ];
+
+    if (!foreignSettlement) {
+      return null;
+    }
+
+    const node =
+      getMapNode(
+        foreignSettlement.locationId
+      );
+
+    const ownerKingdom =
+      world.kingdoms[
+        foreignSettlement.kingdomId
+      ];
+
+    return (
+      <aside className="pointer-events-auto fixed right-4 top-[84px] z-[85] w-[320px] rounded-xl border border-neutral-700/70 bg-black/85 p-3 text-neutral-100 shadow-2xl backdrop-blur">
+        <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+          Settlement Intel (read-only)
+        </div>
+
+        <div className="mt-1 text-sm font-semibold">
+          {foreignSettlement.name}
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+          <div className="rounded-lg bg-white/5 p-2">
+            <div className="text-neutral-400">Owner</div>
+            <div className="font-semibold">
+              {ownerKingdom?.name ?? foreignSettlement.kingdomId}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white/5 p-2">
+            <div className="text-neutral-400">Type</div>
+            <div className="font-semibold capitalize">
+              {foreignSettlement.type}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white/5 p-2">
+            <div className="text-neutral-400">Terrain</div>
+            <div className="font-semibold capitalize">
+              {(node?.terrain ?? "unknown").replace(/_/g, " ")}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white/5 p-2">
+            <div className="text-neutral-400">Fortification</div>
+            <div className="font-semibold">
+              {foreignSettlement.fortificationLevel ?? 0} / 3
+            </div>
+          </div>
+        </div>
+
+        {node?.features && node.features.length > 0 ? (
+          <div className="mt-2 text-[10px] text-neutral-400">
+            Features: {node.features.join(", ").replace(/_/g, " ")}
+          </div>
+        ) : null}
+
+        <div className="mt-2 text-[10px] text-neutral-500">
+          {plan.error === "NOT_CONTROLLER"
+            ? "You do not control this settlement -- only public/observable details are shown, not its true garrison or stockpiles."
+            : plan.error}
+        </div>
+      </aside>
+    );
   }
 
   const controlledSettlement =
@@ -151,7 +232,7 @@ export default function SettlementInvestmentPanel({ embedded = false }: { embedd
 
     setMessage(
       result.ok
-        ? `${unitType} recruitment started.`
+        ? `${unitType} recruitment started (cost ${result.order.reservedResources.gold.toLocaleString()}g).`
         : `Recruitment failed: ${result.error}`
     );
   }

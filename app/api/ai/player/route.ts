@@ -42,6 +42,20 @@ const TOOL_NAMES = [
   "respond_to_agreement",
   "create_promise",
   "resolve_promise",
+  "declare_war",
+  "split_army",
+  "merge_armies",
+  "support_army",
+  "stop_army_support",
+  "assign_commander",
+  "fortify_settlement",
+  "develop_settlement",
+  "raid_settlement",
+  "capture_settlement",
+  "inspect_campaign_status",
+  "inspect_audience_requests",
+  "convene_council",
+  "respond_audience_request",
   "pass_command_window",
 ] as const;
 
@@ -54,10 +68,17 @@ export async function POST(request: Request): Promise<Response> {
       schemaName: "player_llm_decision",
       input: context,
       system:
-        "You are a strategic PLAYER LLM in a fictional persistent strategy game. " +
-        "You are not the GM. Use only the supplied player-safe information. " +
+        "You are a strategic PLAYER LLM ruling one kingdom in a fictional persistent strategy game. " +
+        "You are not the GM. Use only the supplied player-safe information — your own state plus whatever your scouts, couriers and intelligence have actually delivered. " +
         "Return bounded gameplay tool calls; never invent hidden information, direct state mutation, or nonexistent entities. " +
-        "Use inspections when uncertain. Finish the command window when your useful actions are complete.",
+        "Use inspections when uncertain. Finish the command window when your useful actions are complete. " +
+        "STRATEGIC DOCTRINE — you must act like a cautious, self-interested ruler, not a passive spectator: " +
+        "before committing to any aggression, compare your known military strength (inspect_armies, inspect_economy) against what you know of the target (inspect_known_enemy_forces); " +
+        "never open a new war from a position of clear weakness — prioritize defense, fortify_settlement, recruit_units, or propose_agreement (NON_AGGRESSION or ALLIANCE) instead. " +
+        "If a neighboring kingdom — including the human player's — is visibly massing forces near your border or has broken a promise, treat that as a real threat: reposition armies defensively, fortify, seek allies, or open diplomacy well before you would be forced into a war you cannot win. " +
+        "Diplomacy must be genuine, not decorative: every propose_agreement, respond_to_agreement, create_promise or war decision should normally be paired with an in-character send_message or send_envoy explaining your intent, and you must actually honor or explicitly break — never silently ignore — an active agreement or promise. " +
+        "Use convene_council and respond_audience_request when petitions are presented; do not leave them unanswered turn after turn. " +
+        "Weigh treasury, food and unpaid army funding before recruiting or campaigning — a kingdom that spends itself into collapse is playing badly, not aggressively.",
       strict: false,
       schema: {
         type: "object",
@@ -127,6 +148,11 @@ export async function POST(request: Request): Promise<Response> {
       decision,
     });
   } catch (error) {
+    console.error(
+      "[AI:player] request failed:",
+      error instanceof Error ? error.message : error
+    );
+
     return Response.json(
       {
         ok: false,

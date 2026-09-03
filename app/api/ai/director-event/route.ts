@@ -51,6 +51,11 @@ export async function POST(request: Request): Promise<Response> {
       selection,
     });
   } catch (error) {
+    console.error(
+      "[AI:director-event] request failed:",
+      error instanceof Error ? error.message : error
+    );
+
     return Response.json(
       {
         ok: false,

@@ -1,5 +1,6 @@
 import {
   getConnectedEdges,
+  getMapNode,
   getMapNodes,
 } from "@/lib/map/graph";
 
@@ -32,6 +33,7 @@ export interface TerritoryNodeEconomy {
   controllerKingdomId?: string;
   status: TerritoryEconomicStatus;
   baseGold: number;
+  importanceMultiplier: number;
   connectivityMultiplier: number;
   roadSecurityMultiplier: number;
   controlMultiplier: number;
@@ -57,61 +59,111 @@ export interface KingdomTerritoryEconomy {
 }
 
 const BASE_GOLD_BY_TYPE:
-  Record<TransitNodeType, number> = {
-    road_junction: 8,
-    forest_path: 3,
-    mountain_pass: 7,
-    river_crossing: 6,
-    plains_waypoint: 4,
-    bridge: 10,
-    border_crossing: 7,
-    coast_road: 5,
-    hill_road: 4,
-  };
+  Record<
+    TransitNodeType,
+    number
+  > = {
+  road_junction: 8,
+  forest_path: 3,
+  mountain_pass: 7,
+  river_crossing: 6,
+  plains_waypoint: 4,
+  bridge: 10,
+  border_crossing: 7,
+  coast_road: 5,
+  hill_road: 4,
+};
 
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
+function round2(
+  value:
+    number
+): number {
+  return Math.round(
+    value *
+    100
+  ) /
+  100;
 }
 
 function isEconomicTransitNode(
-  node: MapNode
-): node is MapNode & {
-  transitType: TransitNodeType;
-  territoryKingdomId: string;
-} {
+  node:
+    MapNode
+): node is
+  MapNode & {
+    transitType:
+      TransitNodeType;
+    territoryKingdomId:
+      string;
+  } {
   return (
-    node.kind === "transit" &&
-    node.transitType !== undefined &&
-    node.territoryKingdomId !== undefined
+    node.kind ===
+      "transit" &&
+    node.transitType !==
+      undefined &&
+    node.territoryKingdomId !==
+      undefined
   );
 }
 
 function activeArmyKingdomsAtNode(
-  nodeId: string
+  nodeId:
+    string
 ): string[] {
-  const world = getRuntimeWorldState();
+  const world =
+    getRuntimeWorldState();
 
   return [
     ...new Set(
-      Object.values(world.armies)
-        .filter((army) => {
-          if (army.status === "destroyed") return false;
+      Object.values(
+        world.armies
+      )
+        .filter(
+          (
+            army
+          ) => {
+            if (
+              army.status ===
+              "destroyed"
+            ) {
+              return false;
+            }
 
-          const position =
-            world.simulation.entityPositions[army.id];
+            const position =
+              world.simulation
+                .entityPositions[
+                  army.id
+                ];
 
-          return (
-            position?.kind === "node" &&
-            position.nodeId === nodeId
-          );
-        })
-        .map((army) => army.ownerId)
+            return (
+              position?.kind ===
+                "node" &&
+              position.nodeId ===
+                nodeId
+            );
+          }
+        )
+        .map(
+          (
+            army
+          ) =>
+            army.ownerId
+        )
     ),
   ].sort();
 }
 
-function areHostile(a: string, b: string): boolean {
-  if (a === b) return false;
+function areHostile(
+  a:
+    string,
+  b:
+    string
+): boolean {
+  if (
+    a ===
+    b
+  ) {
+    return false;
+  }
 
   return areKingdomsAtWar(
     a,
@@ -120,69 +172,125 @@ function areHostile(a: string, b: string): boolean {
 }
 
 function getNodeControl(
-  node: MapNode & {
-    territoryKingdomId: string;
-  }
+  node:
+    MapNode & {
+      territoryKingdomId:
+        string;
+    }
 ): {
-  controllerKingdomId?: string;
-  status: TerritoryEconomicStatus;
-  hostileArmyKingdomIds: string[];
+  controllerKingdomId?:
+    string;
+  status:
+    TerritoryEconomicStatus;
+  hostileArmyKingdomIds:
+    string[];
 } {
-  const home = node.territoryKingdomId;
-  const present = activeArmyKingdomsAtNode(node.id);
-  const homePresent = present.includes(home);
+  const home =
+    node.territoryKingdomId;
 
-  const foreign =
-    present.filter((kingdomId) => kingdomId !== home);
-
-  const hostile =
-    foreign.filter((kingdomId) =>
-      areHostile(home, kingdomId)
+  const present =
+    activeArmyKingdomsAtNode(
+      node.id
     );
 
-  if (homePresent && hostile.length > 0) {
+  const homePresent =
+    present.includes(
+      home
+    );
+
+  const foreign =
+    present.filter(
+      (
+        kingdomId
+      ) =>
+        kingdomId !==
+        home
+    );
+
+  const hostile =
+    foreign.filter(
+      (
+        kingdomId
+      ) =>
+        areHostile(
+          home,
+          kingdomId
+        )
+    );
+
+  if (
+    homePresent &&
+    hostile.length >
+      0
+  ) {
     return {
-      controllerKingdomId: undefined,
-      status: "contested",
-      hostileArmyKingdomIds: hostile,
+      status:
+        "contested",
+      hostileArmyKingdomIds:
+        hostile,
     };
   }
 
-  if (!homePresent && hostile.length === 1) {
+  if (
+    !homePresent &&
+    hostile.length ===
+      1
+  ) {
     return {
-      controllerKingdomId: hostile[0],
-      status: "occupied",
-      hostileArmyKingdomIds: hostile,
+      controllerKingdomId:
+        hostile[
+          0
+        ],
+      status:
+        "occupied",
+      hostileArmyKingdomIds:
+        hostile,
     };
   }
 
-  if (hostile.length > 1) {
+  if (
+    hostile.length >
+    1
+  ) {
     return {
-      controllerKingdomId: undefined,
-      status: "contested",
-      hostileArmyKingdomIds: hostile,
+      status:
+        "contested",
+      hostileArmyKingdomIds:
+        hostile,
     };
   }
 
-  if (foreign.length > 0) {
+  if (
+    foreign.length >
+    0
+  ) {
     return {
-      controllerKingdomId: home,
-      status: "threatened",
-      hostileArmyKingdomIds: [],
+      controllerKingdomId:
+        home,
+      status:
+        "threatened",
+      hostileArmyKingdomIds:
+        [],
     };
   }
 
   return {
-    controllerKingdomId: home,
-    status: "secure",
-    hostileArmyKingdomIds: [],
+    controllerKingdomId:
+      home,
+    status:
+      "secure",
+    hostileArmyKingdomIds:
+      [],
   };
 }
 
 function getControlMultiplier(
-  status: TerritoryEconomicStatus
+  status:
+    TerritoryEconomicStatus
 ): number {
-  switch (status) {
+  switch (
+    status
+  ) {
     case "secure":
       return 1;
     case "threatened":
@@ -194,190 +302,361 @@ function getControlMultiplier(
   }
 }
 
-function getConnectivityMultiplier(
-  nodeId: string
+function getImportanceMultiplier(
+  node:
+    MapNode
 ): number {
-  const degree = getConnectedEdges(nodeId).length;
+  switch (
+    node.importance
+  ) {
+    case "critical":
+      return 1.55;
+    case "major":
+      return 1.28;
+    case "local":
+      return 0.8;
+    case "regional":
+    default:
+      return 1;
+  }
+}
+
+function getConnectivityMultiplier(
+  nodeId:
+    string
+): number {
+  const degree =
+    getConnectedEdges(
+      nodeId
+    ).length;
 
   return Math.min(
-    1.6,
-    1 + Math.max(0, degree - 2) * 0.12
+    1.65,
+    1 +
+      Math.max(
+        0,
+        degree -
+          2
+      ) *
+        0.12
   );
 }
 
 function getAverageRoadSecurityMultiplier(
-  nodeId: string
+  nodeId:
+    string
 ): number {
-  const edges = getConnectedEdges(nodeId);
+  const edges =
+    getConnectedEdges(
+      nodeId
+    );
 
-  if (edges.length === 0) return 0.5;
+  if (
+    edges.length ===
+    0
+  ) {
+    return 0.5;
+  }
 
   return (
     edges.reduce(
-      (total, edge) =>
-        total + getRoadSecurity(edge.id).multiplier,
+      (
+        total,
+        edge
+      ) =>
+        total +
+        getRoadSecurity(
+          edge.id
+        ).multiplier,
       0
-    ) / edges.length
+    ) /
+    edges.length
   );
 }
 
 export function getTerritoryNodeEconomy(
-  nodeId: string
+  nodeId:
+    string
 ): TerritoryNodeEconomy | undefined {
-  const node = getMapNodes().find(
-    (candidate) => candidate.id === nodeId
-  );
+  const node =
+    getMapNode(
+      nodeId
+    );
 
-  if (!node || !isEconomicTransitNode(node)) {
+  if (
+    !node ||
+    !isEconomicTransitNode(
+      node
+    )
+  ) {
     return undefined;
   }
 
-  const control = getNodeControl(node);
-  const baseGold = BASE_GOLD_BY_TYPE[node.transitType];
-  const connectivityMultiplier =
-    getConnectivityMultiplier(node.id);
-  const roadSecurityMultiplier =
-    getAverageRoadSecurityMultiplier(node.id);
-  const controlMultiplier =
-    getControlMultiplier(control.status);
+  const control =
+    getNodeControl(
+      node
+    );
 
+  const baseGold =
+    BASE_GOLD_BY_TYPE[
+      node.transitType
+    ];
+
+  const importanceMultiplier =
+    getImportanceMultiplier(
+      node
+    );
+
+  const connectivityMultiplier =
+    getConnectivityMultiplier(
+      node.id
+    );
+
+  const roadSecurityMultiplier =
+    getAverageRoadSecurityMultiplier(
+      node.id
+    );
+
+  const controlMultiplier =
+    getControlMultiplier(
+      control.status
+    );
+
+  /*
+   * Strategic positions now matter twice:
+   * - physically through routing + terrain,
+   * - economically through road connectivity and node importance.
+   *
+   * A pass/junction is therefore worth holding without becoming a magic
+   * province that generates more money than an actual city.
+   */
   const grossGold =
     baseGold *
+    importanceMultiplier *
     connectivityMultiplier *
     roadSecurityMultiplier;
 
   const realized =
-    grossGold * controlMultiplier;
+    grossGold *
+    controlMultiplier;
 
   const homeIncomeGold =
-    control.status === "occupied"
+    control.status ===
+      "occupied"
       ? 0
       : realized;
 
   const occupationIncomeGold =
-    control.status === "occupied" &&
+    control.status ===
+      "occupied" &&
     control.controllerKingdomId
       ? realized
       : 0;
 
   return {
-    nodeId: node.id,
-    homeKingdomId: node.territoryKingdomId,
+    nodeId:
+      node.id,
+    homeKingdomId:
+      node
+        .territoryKingdomId,
     controllerKingdomId:
-      control.controllerKingdomId,
-    status: control.status,
-    baseGold: round2(baseGold),
+      control
+        .controllerKingdomId,
+    status:
+      control.status,
+    baseGold:
+      round2(
+        baseGold
+      ),
+    importanceMultiplier:
+      round2(
+        importanceMultiplier
+      ),
     connectivityMultiplier:
-      round2(connectivityMultiplier),
+      round2(
+        connectivityMultiplier
+      ),
     roadSecurityMultiplier:
-      round2(roadSecurityMultiplier),
+      round2(
+        roadSecurityMultiplier
+      ),
     controlMultiplier:
-      round2(controlMultiplier),
-    grossGold: round2(grossGold),
+      round2(
+        controlMultiplier
+      ),
+    grossGold:
+      round2(
+        grossGold
+      ),
     homeIncomeGold:
-      round2(homeIncomeGold),
+      round2(
+        homeIncomeGold
+      ),
     occupationIncomeGold:
-      round2(occupationIncomeGold),
+      round2(
+        occupationIncomeGold
+      ),
     hostileArmyKingdomIds:
-      control.hostileArmyKingdomIds,
+      control
+        .hostileArmyKingdomIds,
   };
 }
 
 export function getAllTerritoryNodeEconomies():
   TerritoryNodeEconomy[] {
   return getMapNodes()
-    .filter(isEconomicTransitNode)
-    .map((node) =>
-      getTerritoryNodeEconomy(node.id)
+    .filter(
+      isEconomicTransitNode
+    )
+    .map(
+      (
+        node
+      ) =>
+        getTerritoryNodeEconomy(
+          node.id
+        )
     )
     .filter(
       (
         value
-      ): value is TerritoryNodeEconomy =>
-        value !== undefined
+      ): value is
+        TerritoryNodeEconomy =>
+          value !==
+          undefined
     )
-    .sort((a, b) =>
-      a.nodeId.localeCompare(b.nodeId)
+    .sort(
+      (
+        a,
+        b
+      ) =>
+        a.nodeId.localeCompare(
+          b.nodeId
+        )
     );
 }
 
 export function getKingdomTerritoryEconomy(
-  kingdomId: string
+  kingdomId:
+    string
 ): KingdomTerritoryEconomy {
   const relevant =
     getAllTerritoryNodeEconomies();
 
   const homeNodes =
     relevant.filter(
-      (node) =>
-        node.homeKingdomId === kingdomId
+      (
+        node
+      ) =>
+        node.homeKingdomId ===
+        kingdomId
     );
 
   const occupationNodes =
     relevant.filter(
-      (node) =>
-        node.status === "occupied" &&
-        node.controllerKingdomId === kingdomId &&
-        node.homeKingdomId !== kingdomId
+      (
+        node
+      ) =>
+        node.status ===
+          "occupied" &&
+        node.controllerKingdomId ===
+          kingdomId &&
+        node.homeKingdomId !==
+          kingdomId
     );
 
   const homePotentialGold =
     homeNodes.reduce(
-      (total, node) =>
-        total + node.grossGold,
+      (
+        total,
+        node
+      ) =>
+        total +
+        node.grossGold,
       0
     );
 
   const homeRealizedGold =
     homeNodes.reduce(
-      (total, node) =>
-        total + node.homeIncomeGold,
+      (
+        total,
+        node
+      ) =>
+        total +
+        node.homeIncomeGold,
       0
     );
 
   const occupationIncomeGold =
     occupationNodes.reduce(
-      (total, node) =>
-        total + node.occupationIncomeGold,
+      (
+        total,
+        node
+      ) =>
+        total +
+        node
+          .occupationIncomeGold,
       0
     );
 
   return {
     kingdomId,
-    homeNodeCount: homeNodes.length,
+    homeNodeCount:
+      homeNodes.length,
     secureNodeCount:
       homeNodes.filter(
-        (node) => node.status === "secure"
+        (
+          node
+        ) =>
+          node.status ===
+          "secure"
       ).length,
     threatenedNodeCount:
       homeNodes.filter(
-        (node) => node.status === "threatened"
+        (
+          node
+        ) =>
+          node.status ===
+          "threatened"
       ).length,
     contestedNodeCount:
       homeNodes.filter(
-        (node) => node.status === "contested"
+        (
+          node
+        ) =>
+          node.status ===
+          "contested"
       ).length,
     occupiedHomeNodeCount:
       homeNodes.filter(
-        (node) => node.status === "occupied"
+        (
+          node
+        ) =>
+          node.status ===
+          "occupied"
       ).length,
     homePotentialGold:
-      round2(homePotentialGold),
+      round2(
+        homePotentialGold
+      ),
     homeRealizedGold:
-      round2(homeRealizedGold),
+      round2(
+        homeRealizedGold
+      ),
     occupationIncomeGold:
-      round2(occupationIncomeGold),
+      round2(
+        occupationIncomeGold
+      ),
     dailyTerritoryGold:
       round2(
         homeRealizedGold +
-          occupationIncomeGold
+        occupationIncomeGold
       ),
     disruptedGold:
       round2(
         Math.max(
           0,
           homePotentialGold -
-            homeRealizedGold
+          homeRealizedGold
         )
       ),
     nodes: [

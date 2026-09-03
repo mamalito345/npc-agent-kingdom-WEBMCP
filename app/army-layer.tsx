@@ -2,6 +2,7 @@
 
 import {
   useMemo,
+  useState,
   useSyncExternalStore,
 } from "react";
 
@@ -27,6 +28,8 @@ import {
 } from "@/lib/session/observation";
 
 import {
+  chooseMapDestination,
+  chooseMapNodeDestination,
   getMapInteractionState,
   selectMapArmy,
   targetMapArmy,
@@ -152,6 +155,30 @@ export default function ArmyLayer() {
       getMapInteractionState
     );
 
+  /*
+   * Native HTML5 drag-and-drop fights the existing pan/zoom pointer
+   * handling on the map viewport, so army drag is implemented with
+   * pointer capture instead: grab an army marker, drag it over the
+   * map, and drop it on any settlement or strategic node to queue a
+   * move there — exactly as if it had been clicked as a destination.
+   * A short movement threshold still lets a plain tap keep selecting
+   * the army like before.
+   */
+  const [
+    dragPointer,
+    setDragPointer,
+  ] = useState<
+    | {
+        armyId: string;
+        startX: number;
+        startY: number;
+        x: number;
+        y: number;
+        dragging: boolean;
+      }
+    | null
+  >(null);
+
   const playerId =
     world.session
       .localPlayerId;
@@ -194,6 +221,26 @@ export default function ArmyLayer() {
         army.status !==
           "destroyed" &&
         army.ownerId ===
+          ownKingdomId
+    );
+
+  /*
+   * Every other kingdom's armies, shown at their real current position
+   * regardless of fog-of-war/intel range. The player asked to stop
+   * hiding rival armies by distance -- the map should just show where
+   * everyone's forces actually are. This is read-only: no drag, no
+   * click-to-order. The knowledge-gated `latestEnemyFacts` markers
+   * below stay as-is since order validation (interception eligibility)
+   * still depends on that intel system.
+   */
+  const otherArmies =
+    Object.values(
+      world.armies
+    ).filter(
+      (army) =>
+        army.status !==
+          "destroyed" &&
+        army.ownerId !==
           ownKingdomId
     );
 
@@ -264,6 +311,20 @@ export default function ArmyLayer() {
 
   return (
     <>
+      {dragPointer?.dragging ? (
+        <div
+          className="pointer-events-none fixed z-[70] -translate-x-1/2 -translate-y-[140%] whitespace-nowrap rounded-full border border-yellow-300/80 bg-black/85 px-2 py-1 text-[10px] font-semibold text-yellow-100 shadow-lg"
+          style={{
+            left:
+              dragPointer.x,
+            top:
+              dragPointer.y,
+          }}
+        >
+          Bırak → hedefe hareket emri
+        </div>
+      ) : null}
+
       {ownArmies.map(
         (army) => {
           const position =
@@ -327,6 +388,27 @@ export default function ArmyLayer() {
                   army.ownerId
                 );
 
+          const soldiers =
+            getArmySoldierCount(
+              army.id
+            );
+
+          const markerSize =
+            Math.max(
+              44,
+              Math.min(
+                82,
+                42 +
+                  Math.sqrt(
+                    Math.max(
+                      1,
+                      soldiers
+                    )
+                  ) *
+                    0.45
+              )
+            );
+
           return (
             <button
               key={
@@ -338,25 +420,180 @@ export default function ArmyLayer() {
               }
               onPointerDown={(
                 event
-              ) =>
-                event
-                  .stopPropagation()
-              }
-              onClick={(
-                event
               ) => {
                 event.stopPropagation();
 
-                selectMapArmy(
-                  selected
-                    ? null
-                    : army.id
+                event.currentTarget.setPointerCapture(
+                  event.pointerId
+                );
+
+                setDragPointer({
+                  armyId:
+                    army.id,
+                  startX:
+                    event.clientX,
+                  startY:
+                    event.clientY,
+                  x:
+                    event.clientX,
+                  y:
+                    event.clientY,
+                  dragging:
+                    false,
+                });
+              }}
+              onPointerMove={(
+                event
+              ) => {
+                if (
+                  dragPointer?.armyId !==
+                  army.id
+                ) {
+                  return;
+                }
+
+                event.stopPropagation();
+
+                setDragPointer(
+                  (
+                    current
+                  ) => {
+                    if (
+                      !current ||
+                      current.armyId !==
+                        army.id
+                    ) {
+                      return current;
+                    }
+
+                    const dx =
+                      event.clientX -
+                      current.startX;
+
+                    const dy =
+                      event.clientY -
+                      current.startY;
+
+                    return {
+                      ...current,
+                      x:
+                        event.clientX,
+                      y:
+                        event.clientY,
+                      dragging:
+                        current.dragging ||
+                        Math.hypot(
+                          dx,
+                          dy
+                        ) >
+                          6,
+                    };
+                  }
                 );
               }}
-              className={`absolute z-40 grid min-h-14 min-w-14 place-items-center rounded-md border-2 px-2 py-1 shadow-[0_8px_22px_rgba(0,0,0,0.5)] transition ${
+              onPointerUp={(
+                event
+              ) => {
+                if (
+                  dragPointer?.armyId !==
+                  army.id
+                ) {
+                  return;
+                }
+
+                event.stopPropagation();
+
+                const wasDragging =
+                  dragPointer.dragging;
+
+                if (
+                  !wasDragging
+                ) {
+                  setDragPointer(
+                    null
+                  );
+
+                  selectMapArmy(
+                    selected
+                      ? null
+                      : army.id
+                  );
+
+                  return;
+                }
+
+                const dropTarget =
+                  document
+                    .elementFromPoint(
+                      event.clientX,
+                      event.clientY
+                    )
+                    ?.closest<HTMLElement>(
+                      "[data-map-node-id]"
+                    );
+
+                const nodeId =
+                  dropTarget?.getAttribute(
+                    "data-map-node-id"
+                  );
+
+                setDragPointer(
+                  null
+                );
+
+                if (
+                  !nodeId
+                ) {
+                  return;
+                }
+
+                if (
+                  !selected
+                ) {
+                  selectMapArmy(
+                    army.id
+                  );
+                }
+
+                const settlementId =
+                  dropTarget?.getAttribute(
+                    "data-settlement-id"
+                  );
+
+                if (
+                  settlementId
+                ) {
+                  chooseMapDestination(
+                    settlementId,
+                    nodeId
+                  );
+                } else {
+                  chooseMapNodeDestination(
+                    nodeId
+                  );
+                }
+              }}
+              onPointerCancel={() => {
+                setDragPointer(
+                  (
+                    current
+                  ) =>
+                    current?.armyId ===
+                    army.id
+                      ? null
+                      : current
+                );
+              }}
+              className={`absolute z-40 grid place-items-center rounded-full border-2 shadow-[0_8px_22px_rgba(0,0,0,0.5)] transition ${
                 selected
                   ? "scale-110 ring-4 ring-yellow-300/70"
                   : ""
+              } ${
+                dragPointer?.armyId ===
+                  army.id &&
+                dragPointer.dragging
+                  ? "cursor-grabbing opacity-70"
+                  : "cursor-grab"
               } ${
                 KINGDOM_CLASSES[
                   army.ownerId
@@ -368,6 +605,10 @@ export default function ArmyLayer() {
                   point.x,
                 top:
                   point.y,
+                width:
+                  markerSize,
+                height:
+                  markerSize,
                 transform:
                   "translate(-50%, -50%)",
               }}
@@ -384,9 +625,7 @@ export default function ArmyLayer() {
               </span>
 
               <span className="text-[9px] font-semibold text-white/80">
-                {getArmySoldierCount(
-                  army.id
-                ).toLocaleString()}
+                {soldiers.toLocaleString()}
               </span>
 
               {moving ? (
@@ -419,6 +658,145 @@ export default function ArmyLayer() {
                   : controlLabel}
               </span>
             </button>
+          );
+        }
+      )}
+
+      {otherArmies.map(
+        (army) => {
+          const position =
+            world.simulation
+              .entityPositions[
+                army.id
+              ];
+
+          if (!position) {
+            return null;
+          }
+
+          const point =
+            getPointForPosition(
+              position
+            );
+
+          if (!point) {
+            return null;
+          }
+
+          const battle =
+            activeBattles.find(
+              (
+                candidate
+              ) =>
+                candidate
+                  .attackerArmyIds
+                  .includes(
+                    army.id
+                  ) ||
+                candidate
+                  .defenderArmyIds
+                  .includes(
+                    army.id
+                  )
+            );
+
+          const moving =
+            Boolean(
+              world.simulation
+                .activeMovements[
+                  army.id
+                ]
+            );
+
+          const isLordArmy =
+            lordArmyIds.has(
+              army.id
+            );
+
+          const controlLabel =
+            isLordArmy
+              ? "GM CHARACTER · LORD"
+              : getRealmControlLabel(
+                  army.ownerId
+                );
+
+          const soldiers =
+            getArmySoldierCount(
+              army.id
+            );
+
+          const markerSize =
+            Math.max(
+              34,
+              Math.min(
+                62,
+                34 +
+                  Math.sqrt(
+                    Math.max(
+                      1,
+                      soldiers
+                    )
+                  ) *
+                    0.35
+              )
+            );
+
+          return (
+            <div
+              key={`live-${army.id}`}
+              title={`${army.id} (real-time position)`}
+              className={`pointer-events-none absolute z-30 grid place-items-center rounded-full border border-dashed opacity-80 shadow-[0_6px_16px_rgba(0,0,0,0.4)] ${
+                KINGDOM_CLASSES[
+                  army.ownerId
+                ] ??
+                "border-neutral-300 bg-neutral-900"
+              }`}
+              style={{
+                left:
+                  point.x,
+                top:
+                  point.y,
+                width:
+                  markerSize,
+                height:
+                  markerSize,
+                transform:
+                  "translate(-50%, -50%)",
+              }}
+            >
+              <span className="text-xs font-black">
+                {isLordArmy
+                  ? "♜"
+                  : "⚔"}{" "}
+                {
+                  KINGDOM_LABELS[
+                    army.ownerId
+                  ] ?? "?"
+                }
+              </span>
+
+              <span className="text-[8px] font-semibold text-white/70">
+                {soldiers.toLocaleString()}
+              </span>
+
+              {moving ? (
+                <span className="absolute -bottom-4 whitespace-nowrap rounded bg-black/80 px-1 text-[7px] text-neutral-300">
+                  MARCHING
+                </span>
+              ) : null}
+
+              {battle ? (
+                <span className="absolute -top-4 rounded bg-red-700 px-1 text-[7px] font-bold text-white">
+                  BATTLE
+                </span>
+              ) : null}
+
+              <span className="absolute -right-1 -top-1 whitespace-nowrap rounded-full border border-neutral-500 bg-black/80 px-1 text-[7px] text-neutral-300">
+                {isLordArmy
+                  ? "LORD"
+                  : controlLabel}
+              </span>
+            </div>
           );
         }
       )}
@@ -463,6 +841,23 @@ export default function ArmyLayer() {
                   .approximateSoldiers
               : undefined;
 
+          const enemyMarkerSize =
+            Math.max(
+              38,
+              Math.min(
+                70,
+                38 +
+                  Math.sqrt(
+                    Math.max(
+                      1,
+                      approximateSoldiers ??
+                        500
+                    )
+                  ) *
+                    0.35
+              )
+            );
+
           const canTarget =
             targeting
               .canTarget;
@@ -501,7 +896,7 @@ export default function ArmyLayer() {
                         .subjectId
                 );
               }}
-              className={`absolute z-35 grid min-h-14 min-w-14 place-items-center rounded-full border border-dashed px-1 text-red-100 shadow-[0_6px_18px_rgba(0,0,0,0.45)] backdrop-blur-[1px] transition ${
+              className={`absolute z-35 grid place-items-center rounded-full border border-dashed px-1 text-red-100 shadow-[0_6px_18px_rgba(0,0,0,0.45)] backdrop-blur-[1px] transition ${
                 targeted
                   ? "scale-110 border-yellow-200 bg-red-950/70 ring-4 ring-yellow-300/30"
                   : canTarget
@@ -513,6 +908,10 @@ export default function ArmyLayer() {
                   point.x,
                 top:
                   point.y,
+                width:
+                  enemyMarkerSize,
+                height:
+                  enemyMarkerSize,
                 transform:
                   "translate(-50%, -50%)",
               }}

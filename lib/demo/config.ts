@@ -10,6 +10,7 @@ import {
 
 import type {
   PlayerControllerType,
+  RealmControlRole,
 } from "@/types/session";
 
 export type DemoMode =
@@ -41,7 +42,8 @@ const listeners =
     () => void
   >();
 
-function emit(): void {
+function emit():
+  void {
   for (
     const listener
     of listeners
@@ -56,7 +58,8 @@ export function getDemoConfig():
 }
 
 export function subscribeDemoConfig(
-  listener: () => void
+  listener:
+    () => void
 ): () => void {
   listeners.add(
     listener
@@ -70,7 +73,9 @@ export function subscribeDemoConfig(
 
 export function setDemoConfig(
   patch:
-    Partial<DemoUiConfig>
+    Partial<
+      DemoUiConfig
+    >
 ): void {
   config = {
     ...config,
@@ -80,22 +85,92 @@ export function setDemoConfig(
   emit();
 }
 
+function resetCommandCycleWithOrder(
+  orderedPlayerIds:
+    string[]
+): void {
+  updateRuntimeWorldState(
+    (
+      current
+    ) => ({
+      ...current,
+      session: {
+        ...current.session,
+        commandCycle: {
+          ...current
+            .session
+            .commandCycle,
+          phase:
+            "planning",
+          playerOrder:
+            orderedPlayerIds,
+          requiredPlayerIds:
+            orderedPlayerIds,
+          readyPlayerIds:
+            [],
+          currentPlayerId:
+            orderedPlayerIds[
+              0
+            ],
+          windowOpenedAt:
+            current
+              .simulation
+              .worldTimeMinutes,
+          executionStartedAt:
+            undefined,
+          interrupt:
+            undefined,
+        },
+      },
+    })
+  );
+}
+
 export function startObserverDemo():
   void {
   configureAllActivePlayersAsLlm();
 
+  const world =
+    getRuntimeWorldState();
+
+  const activePlayers =
+    Object.values(
+      world.session
+        .players
+    )
+      .filter(
+        (
+          player
+        ) =>
+          player.active
+      )
+      .map(
+        (
+          player
+        ) =>
+          player.id
+      );
+
   updateRuntimeWorldState(
-    (current) => ({
+    (
+      current
+    ) => ({
       ...current,
       session: {
         ...current.session,
         localPlayerId:
-          "player-edwyn",
+          activePlayers[
+            0
+          ] ??
+          current.session
+            .localPlayerId,
         campaignControl: {
           humanPlayerId:
             undefined,
           actorPlayerId:
-            undefined,
+            activePlayers[
+              0
+            ],
           roleByKingdomId:
             Object.fromEntries(
               Object.values(
@@ -103,13 +178,19 @@ export function startObserverDemo():
                   .players
               )
                 .filter(
-                  (player) =>
+                  (
+                    player
+                  ) =>
                     player.active
                 )
                 .map(
-                  (player) => [
-                    player.kingdomId,
-                    "ACTOR_LLM",
+                  (
+                    player
+                  ) => [
+                    player
+                      .kingdomId,
+                    "ACTOR_LLM" as
+                      RealmControlRole,
                   ]
                 )
             ),
@@ -117,18 +198,27 @@ export function startObserverDemo():
       },
       simulation: {
         ...current.simulation,
-        paused: false,
-        pauseReasons: [],
+        paused:
+          false,
+        pauseReasons:
+          [],
       },
     })
+  );
+
+  resetCommandCycleWithOrder(
+    activePlayers
   );
 
   config = {
     mode:
       "observer",
-    speed: 4,
-    running: true,
-    gmEnabled: true,
+    speed:
+      4,
+    running:
+      true,
+    gmEnabled:
+      true,
   };
 
   emit();
@@ -168,53 +258,202 @@ export function configureKingdomControllers(
     mapped
   );
 
-  const human =
-    Object.entries(
-      mapped
-    ).find(
-      ([, value]) =>
-        value ===
+  const world =
+    getRuntimeWorldState();
+
+  const activePlayers =
+    Object.values(
+      world.session
+        .players
+    ).filter(
+      (
+        player
+      ) =>
+        player.active
+    );
+
+  const humanPlayers =
+    activePlayers.filter(
+      (
+        player
+      ) =>
+        mapped[
+          player.id
+        ] ===
         "human"
     );
 
-  if (human) {
-    updateRuntimeWorldState(
-      (current) => ({
+  const human =
+    humanPlayers[
+      0
+    ];
+
+  const llmPlayers =
+    activePlayers.filter(
+      (
+        player
+      ) =>
+        mapped[
+          player.id
+        ] ===
+        "webmcp_llm"
+    );
+
+  /*
+   * Human command windows must start with the actually selected human.
+   * The previous implementation changed localPlayerId but left the old
+   * command-cycle order intact, so "End Orders" could hand control to an
+   * unrelated pre-existing current player before the human ever got a turn.
+   */
+  const llmPlayerIds =
+    new Set(
+      llmPlayers.map(
+        (
+          player
+        ) =>
+          player.id
+      )
+    );
+
+  const humanPlayerIds =
+    new Set(
+      humanPlayers.map(
+        (
+          player
+        ) =>
+          player.id
+      )
+    );
+
+  const orderedPlayerIds = [
+    ...humanPlayers.map(
+      (
+        player
+      ) =>
+        player.id
+    ),
+    ...llmPlayers.map(
+      (
+        player
+      ) =>
+        player.id
+    ),
+    ...activePlayers
+      .filter(
+        (
+          player
+        ) =>
+          !humanPlayerIds.has(
+            player.id
+          ) &&
+          !llmPlayerIds.has(
+            player.id
+          )
+      )
+      .map(
+        (
+          player
+        ) =>
+          player.id
+      ),
+  ];
+
+  const roleByKingdomId:
+    Record<
+      string,
+      RealmControlRole
+    > =
+    Object.fromEntries(
+      activePlayers.map(
+        (
+          player
+        ) => [
+          player.kingdomId,
+          mapped[
+            player.id
+          ] ===
+          "human"
+            ? "HUMAN"
+            : "ACTOR_LLM",
+        ]
+      )
+    );
+
+  updateRuntimeWorldState(
+    (
+      current
+    ) => {
+      const localPlayerId =
+        human?.id ??
+        orderedPlayerIds[
+          0
+        ] ??
+        current.session
+          .localPlayerId;
+
+      const localPlayer =
+        current.session
+          .players[
+            localPlayerId
+          ];
+
+      const localCharacter =
+        localPlayer
+          ? current
+              .characters[
+                localPlayer
+                  .characterId
+              ]
+          : undefined;
+
+      return {
         ...current,
         session: {
           ...current.session,
-          localPlayerId:
-            human[0],
+          localPlayerId,
+          campaignControl: {
+            humanPlayerId:
+              human?.id,
+            actorPlayerId:
+              llmPlayers[
+                0
+              ]?.id,
+            roleByKingdomId,
+          },
         },
         player: {
           characterId:
-            current.session
-              .players[
-                human[0]
-              ]
+            localPlayer
               ?.characterId ??
             current.player
               .characterId,
           locationId:
-            current.characters[
-              current.session
-                .players[
-                  human[0]
-                ]
-                ?.characterId ??
-                ""
-            ]?.locationId ??
+            localCharacter
+              ?.locationId ??
             current.player
               .locationId,
         },
-      })
-    );
-  }
+        simulation: {
+          ...current.simulation,
+          paused:
+            false,
+          pauseReasons:
+            [],
+        },
+      };
+    }
+  );
+
+  resetCommandCycleWithOrder(
+    orderedPlayerIds
+  );
 
   config = {
     ...config,
-    mode: "player",
-    running: true,
+    mode:
+      "player",
+    running:
+      true,
   };
 
   emit();
@@ -226,7 +465,9 @@ export function activeHumanPlayerId():
     getRuntimeWorldState()
       .session.players
   ).find(
-    (player) =>
+    (
+      player
+    ) =>
       player.active &&
       player.controllerType ===
         "human"

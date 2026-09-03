@@ -5,10 +5,24 @@ import type {
   ScheduledEvent,
   WorldMinute,
 } from "@/types/simulation";
-import type { Settlement } from "@/types/settlement";
-import type { Courier, WorldMessage } from "@/types/courier";
-import type { ResourceStockpile } from "@/types/resources";
-import type { GameSessionState } from "@/types/session";
+
+import type {
+  Settlement,
+} from "@/types/settlement";
+
+import type {
+  Courier,
+  WorldMessage,
+} from "@/types/courier";
+
+import type {
+  ResourceStockpile,
+} from "@/types/resources";
+
+import type {
+  GameSessionState,
+} from "@/types/session";
+
 import type {
   Army,
   ArmyContact,
@@ -23,7 +37,9 @@ import type {
   War,
 } from "@/types/military";
 
-export type CharacterRank = "king" | "lord";
+export type CharacterRank =
+  | "king"
+  | "lord";
 
 export interface Kingdom {
   id: string;
@@ -52,6 +68,7 @@ export interface Character {
 
 export type LocationType =
   | "capital"
+  | "city"
   | "castle"
   | "town"
   | "village"

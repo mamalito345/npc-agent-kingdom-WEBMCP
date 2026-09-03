@@ -15,7 +15,12 @@ export type SettlementType =
   | "strategic_location";
 
 export type SettlementDevelopmentLevel =
-  0 | 1 | 2 | 3;
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5;
 
 export type SettlementDevelopmentFocus =
   | "food"
@@ -24,92 +29,101 @@ export type SettlementDevelopmentFocus =
   | "stone"
   | "metal";
 
+export type SettlementSpecialization =
+  | "mixed"
+  | "farming"
+  | "pastoral"
+  | "logging"
+  | "mining"
+  | "trade"
+  | "military"
+  | "oasis";
+
+export type SettlementBuildingType =
+  | "farms"
+  | "market"
+  | "lumber_yard"
+  | "quarry"
+  | "mine"
+  | "warehouse"
+  | "barracks"
+  | "stables"
+  | "walls"
+  | "keep"
+  | "watchtower";
+
+export type SettlementBuildingLevel =
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5;
+
+export type SettlementBuildings =
+  Partial<
+    Record<
+      SettlementBuildingType,
+      SettlementBuildingLevel
+    >
+  >;
+
 export interface Settlement {
-  id:
-    string;
-
-  locationId:
-    string;
-
-  name:
-    string;
+  id: string;
+  locationId: string;
+  name: string;
 
   /**
    * Canonical political / legal owner kingdom.
-   *
    * Capture does NOT immediately change this.
    */
-  kingdomId:
-    string;
+  kingdomId: string;
 
-  /**
-   * Optional character / local lord owner.
-   * Existing Package 2 field.
-   */
-  ownerId?:
-    string;
+  ownerId?: string;
 
   /**
    * Current military controller.
-   *
-   * Undefined means:
-   * controller === kingdomId
+   * Undefined means controller === kingdomId.
    */
-  controllerKingdomId?:
-    string;
+  controllerKingdomId?: string;
+
+  occupiedAt?: WorldMinute;
+
+  type: SettlementType;
+
+  resources: ResourceStockpile;
 
   /**
-   * When foreign military occupation began.
+   * Scenario/base economic output before development, prosperity,
+   * specialization and building multipliers.
    */
-  occupiedAt?:
-    WorldMinute;
+  dailyProduction: ResourceStockpile;
 
-  type:
-    SettlementType;
-
-  resources:
-    ResourceStockpile;
-
-  dailyProduction:
-    ResourceStockpile;
+  developmentLevel?: SettlementDevelopmentLevel;
+  developmentFocus?: SettlementDevelopmentFocus;
 
   /**
-   * Economic investment level. Optional keeps old saves compatible.
+   * 0-100 civilian/economic health. High prosperity makes investment
+   * and road access matter without becoming a hidden random modifier.
    */
-  developmentLevel?:
-    SettlementDevelopmentLevel;
+  prosperity?: number;
 
   /**
-   * Last production branch improved by the ruler.
+   * 0-100 persistent structural damage / decline.
+   * Temporary raid/sack damage continues to use productionDamage.
    */
-  developmentFocus?:
-    SettlementDevelopmentFocus;
+  devastation?: number;
 
-  /**
-   * One canonical fortification truth.
-   */
-  fortificationLevel?:
-    0 | 1 | 2 | 3;
+  specialization?: SettlementSpecialization;
+  buildings?: SettlementBuildings;
+  strategicRole?: string;
 
-  /**
-   * Current physical condition of the existing fortification.
-   *
-   * 0   = destroyed
-   * 100 = fully intact
-   */
-  fortificationIntegrity?:
-    number;
+  fortificationLevel?: 0 | 1 | 2 | 3;
+  fortificationIntegrity?: number;
 
-  /**
-   * Production damage caused by raid / sack.
-   */
   productionDamage?: {
-    multiplier:
-      number;
-
-    until:
-      WorldMinute;
-
+    multiplier: number;
+    until: WorldMinute;
     cause:
       | "raid"
       | "sack";

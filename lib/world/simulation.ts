@@ -321,9 +321,18 @@ function processSimulationMoment(
       armyContactInterrupt;
   }
 
-  processDailyBoundary(
-    worldTime
-  );
+  const dailyBoundaryInterrupt =
+    processDailyBoundary(
+      worldTime
+    );
+
+  if (
+    !interrupt &&
+    dailyBoundaryInterrupt
+  ) {
+    interrupt =
+      dailyBoundaryInterrupt;
+  }
 
   const briefingInterrupt =
     processStrategicBriefings(

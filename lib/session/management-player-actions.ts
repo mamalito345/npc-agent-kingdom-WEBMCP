@@ -264,20 +264,31 @@ export function assignPlayerArmyCommander(
   }
 
   /*
-   * Direct assignment is deliberately limited to the player's own ruler.
-   * Independent lords remain political actors and must still be commanded
-   * through issue_character_order rather than being silently puppeted.
+   * The ruler may command an army personally, or appoint one of their own
+   * kingdom's lords as its commander (subject to the normal same-kingdom /
+   * same-node / not-moving / not-in-battle checks inside assignArmyCommander
+   * itself). A rival or unrelated kingdom's character can never be puppeted
+   * this way -- that is still handled only through issue_character_order.
    */
+  const world =
+    getRuntimeWorldState();
+
+  const character =
+    world.characters[
+      characterId
+    ];
+
   if (
-    characterId !==
-    access.player
-      .characterId
+    !character ||
+    character.kingdomId !==
+      access.player
+        .kingdomId
   ) {
     return {
       ok:
         false as const,
       error:
-        "COMMANDER_MUST_BE_PLAYER_CHARACTER" as const,
+        "COMMANDER_MUST_BE_OWN_KINGDOM_CHARACTER" as const,
     };
   }
 

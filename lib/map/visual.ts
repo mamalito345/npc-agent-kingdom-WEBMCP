@@ -6,6 +6,10 @@ import {
   settlementVisuals,
 } from "@/data/map/settlement-visuals";
 
+import {
+  getMapNode,
+} from "@/lib/map/graph";
+
 import type {
   Position,
 } from "@/types/simulation";
@@ -16,23 +20,30 @@ export interface MapPoint {
 }
 
 function distanceBetween(
-  a: MapPoint,
-  b: MapPoint
+  a:
+    MapPoint,
+  b:
+    MapPoint
 ): number {
   const dx =
-    b.x - a.x;
+    b.x -
+    a.x;
 
   const dy =
-    b.y - a.y;
+    b.y -
+    a.y;
 
   return Math.sqrt(
-    dx * dx +
-      dy * dy
+    dx *
+      dx +
+      dy *
+        dy
   );
 }
 
 export function getSettlementMapPoint(
-  settlementId: string
+  settlementId:
+    string
 ): MapPoint | null {
   const visual =
     settlementVisuals[
@@ -44,26 +55,66 @@ export function getSettlementMapPoint(
   }
 
   return {
-    x: visual.x,
-    y: visual.y,
+    x:
+      visual.x,
+    y:
+      visual.y,
+  };
+}
+
+export function getMapNodePoint(
+  nodeId:
+    string
+): MapPoint | null {
+  const settlementPoint =
+    getSettlementMapPoint(
+      nodeId
+    );
+
+  if (
+    settlementPoint
+  ) {
+    return settlementPoint;
+  }
+
+  const node =
+    getMapNode(
+      nodeId
+    );
+
+  if (!node) {
+    return null;
+  }
+
+  return {
+    x:
+      node.x,
+    y:
+      node.y,
   };
 }
 
 export function getPointAlongPolyline(
-  points: MapPoint[],
-  progress: number
+  points:
+    MapPoint[],
+  progress:
+    number
 ): MapPoint | null {
   if (
-    points.length === 0
+    points.length ===
+    0
   ) {
     return null;
   }
 
   if (
-    points.length === 1
+    points.length ===
+    1
   ) {
     return {
-      ...points[0],
+      ...points[
+        0
+      ],
     };
   }
 
@@ -77,38 +128,52 @@ export function getPointAlongPolyline(
     );
 
   if (
-    normalizedProgress === 0
-  ) {
-    return {
-      ...points[0],
-    };
-  }
-
-  if (
-    normalizedProgress === 1
+    normalizedProgress ===
+    0
   ) {
     return {
       ...points[
-        points.length - 1
+        0
       ],
     };
   }
 
-  const segmentLengths: number[] =
-    [];
+  if (
+    normalizedProgress ===
+    1
+  ) {
+    return {
+      ...points[
+        points.length -
+        1
+      ],
+    };
+  }
 
-  let totalLength = 0;
+  const segmentLengths:
+    number[] = [];
+
+  let totalLength =
+    0;
 
   for (
-    let index = 0;
+    let index =
+      0;
     index <
-    points.length - 1;
-    index += 1
+    points.length -
+      1;
+    index +=
+      1
   ) {
     const length =
       distanceBetween(
-        points[index],
-        points[index + 1]
+        points[
+          index
+        ],
+        points[
+          index +
+          1
+        ]
       );
 
     segmentLengths.push(
@@ -120,10 +185,13 @@ export function getPointAlongPolyline(
   }
 
   if (
-    totalLength === 0
+    totalLength ===
+    0
   ) {
     return {
-      ...points[0],
+      ...points[
+        0
+      ],
     };
   }
 
@@ -131,16 +199,21 @@ export function getPointAlongPolyline(
     totalLength *
     normalizedProgress;
 
-  let traversed = 0;
+  let traversed =
+    0;
 
   for (
-    let index = 0;
+    let index =
+      0;
     index <
     segmentLengths.length;
-    index += 1
+    index +=
+      1
   ) {
     const segmentLength =
-      segmentLengths[index];
+      segmentLengths[
+        index
+      ];
 
     const nextTraversed =
       traversed +
@@ -155,26 +228,38 @@ export function getPointAlongPolyline(
         traversed;
 
       const localProgress =
-        segmentLength === 0
+        segmentLength ===
+        0
           ? 0
           : localDistance /
             segmentLength;
 
       const from =
-        points[index];
+        points[
+          index
+        ];
 
       const to =
-        points[index + 1];
+        points[
+          index +
+          1
+        ];
 
       return {
         x:
           from.x +
-          (to.x - from.x) *
+          (
+            to.x -
+            from.x
+          ) *
             localProgress,
 
         y:
           from.y +
-          (to.y - from.y) *
+          (
+            to.y -
+            from.y
+          ) *
             localProgress,
       };
     }
@@ -185,17 +270,22 @@ export function getPointAlongPolyline(
 
   return {
     ...points[
-      points.length - 1
+      points.length -
+      1
     ],
   };
 }
 
 export function getPointAlongRoad(
-  edgeId: string,
-  progress: number
+  edgeId:
+    string,
+  progress:
+    number
 ): MapPoint | null {
   const road =
-    roadVisuals[edgeId];
+    roadVisuals[
+      edgeId
+    ];
 
   if (!road) {
     return null;
@@ -208,12 +298,20 @@ export function getPointAlongRoad(
 }
 
 export function getPointForPosition(
-  position: Position
+  position:
+    Position
 ): MapPoint | null {
   if (
-    position.kind === "node"
+    position.kind ===
+    "node"
   ) {
-    return getSettlementMapPoint(
+    /*
+     * Critical fix for the dense strategic graph:
+     * armies can stop on passes, crossings, hills and junctions.
+     * The old implementation only knew settlement visuals, making an
+     * army effectively disappear whenever it occupied a transit node.
+     */
+    return getMapNodePoint(
       position.nodeId
     );
   }

@@ -59,6 +59,11 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
   } catch (error) {
+    console.error(
+      "[AI:gm-lord-order] request failed:",
+      error instanceof Error ? error.message : error
+    );
+
     return Response.json(
       {
         ok: false,

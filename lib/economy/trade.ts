@@ -7,6 +7,10 @@ import {
 } from "@/lib/economy/road-security";
 
 import {
+  getSettlementEconomicProfile,
+} from "@/lib/economy/settlement-economy";
+
+import {
   getKingdomTerritoryEconomy,
 } from "@/lib/economy/territory-economy";
 
@@ -20,7 +24,8 @@ import type {
 } from "@/types/economy";
 
 function clamp01(
-  value: number
+  value:
+    number
 ): number {
   return Math.max(
     0,
@@ -31,8 +36,20 @@ function clamp01(
   );
 }
 
+function round2(
+  value:
+    number
+): number {
+  return Math.round(
+    value *
+    100
+  ) /
+  100;
+}
+
 export function getOccupationTradeMultiplier(
-  settlementId: string
+  settlementId:
+    string
 ): number {
   const world =
     getRuntimeWorldState();
@@ -49,7 +66,8 @@ export function getOccupationTradeMultiplier(
   }
 
   const controller =
-    settlement.controllerKingdomId ??
+    settlement
+      .controllerKingdomId ??
     settlement.kingdomId;
 
   if (
@@ -61,7 +79,7 @@ export function getOccupationTradeMultiplier(
 
   if (
     settlement.occupiedAt ===
-      undefined
+    undefined
   ) {
     return 0.25;
   }
@@ -71,7 +89,8 @@ export function getOccupationTradeMultiplier(
       0,
       world.simulation
         .worldTimeMinutes -
-        settlement.occupiedAt
+        settlement
+          .occupiedAt
     );
 
   const occupationDays =
@@ -105,7 +124,8 @@ export function getOccupationTradeMultiplier(
 }
 
 export function getSettlementTradeState(
-  settlementId: string
+  settlementId:
+    string
 ): SettlementTradeState {
   const world =
     getRuntimeWorldState();
@@ -128,7 +148,9 @@ export function getSettlementTradeState(
 
   const roadMultipliers =
     edges.map(
-      (edge) =>
+      (
+        edge
+      ) =>
         getRoadSecurity(
           edge.id
         ).multiplier
@@ -137,7 +159,7 @@ export function getSettlementTradeState(
   const averageRoadMultiplier =
     roadMultipliers.length ===
     0
-      ? 0
+      ? 0.65
       : roadMultipliers.reduce(
           (
             total,
@@ -160,26 +182,75 @@ export function getSettlementTradeState(
         occupationMultiplier
     );
 
+  const economy =
+    getSettlementEconomicProfile(
+      settlementId
+    );
+
+  /*
+   * Taxes are less sensitive to roads than commerce; occupation still
+   * suppresses both. This keeps an isolated settlement useful while making
+   * road control economically meaningful.
+   */
+  const dailyTaxGold =
+    economy.taxBaseGold *
+    (
+      0.75 +
+      averageRoadMultiplier *
+        0.25
+    ) *
+    occupationMultiplier;
+
+  const dailyMarketGold =
+    economy.marketBaseGold *
+    tradeMultiplier;
+
   const dailyTradeGold =
     Math.max(
       0,
-      settlement.dailyProduction.gold *
-        tradeMultiplier
+      dailyTaxGold +
+        dailyMarketGold
     );
 
   return {
     settlementId,
     connectedRoadCount:
       edges.length,
-    averageRoadMultiplier,
-    occupationMultiplier,
-    tradeMultiplier,
-    dailyTradeGold,
+    averageRoadMultiplier:
+      round2(
+        averageRoadMultiplier
+      ),
+    occupationMultiplier:
+      round2(
+        occupationMultiplier
+      ),
+    tradeMultiplier:
+      round2(
+        tradeMultiplier
+      ),
+    dailyTaxGold:
+      round2(
+        dailyTaxGold
+      ),
+    dailyMarketGold:
+      round2(
+        dailyMarketGold
+      ),
+    grossEconomicGold:
+      round2(
+        economy.taxBaseGold +
+        economy.marketBaseGold
+      ),
+    dailyTradeGold:
+      round2(
+        dailyTradeGold
+      ),
   };
 }
 
 export function getKingdomDailySettlementTradeIncome(
-  kingdomId: string
+  kingdomId:
+    string
 ): number {
   const world =
     getRuntimeWorldState();
@@ -188,9 +259,12 @@ export function getKingdomDailySettlementTradeIncome(
     world.settlements
   )
     .filter(
-      (settlement) =>
+      (
+        settlement
+      ) =>
         (
-          settlement.controllerKingdomId ??
+          settlement
+            .controllerKingdomId ??
           settlement.kingdomId
         ) ===
         kingdomId
@@ -209,7 +283,8 @@ export function getKingdomDailySettlementTradeIncome(
 }
 
 export function getKingdomDailyTradeIncome(
-  kingdomId: string
+  kingdomId:
+    string
 ): number {
   return (
     getKingdomDailySettlementTradeIncome(
@@ -250,7 +325,9 @@ export function processDailyTradeIncome():
   }
 
   updateRuntimeWorldState(
-    (current) => {
+    (
+      current
+    ) => {
       const kingdoms = {
         ...current.kingdoms,
       };

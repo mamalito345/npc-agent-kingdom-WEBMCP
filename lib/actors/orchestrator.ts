@@ -15,6 +15,15 @@ import {
   runLlmPlayerActivation,
 } from "@/lib/actors/runner";
 
+import {
+  RemoteGmRealmAdapter,
+  RemotePlayerLlmAdapter,
+} from "@/lib/ai/remote-adapters";
+
+import {
+  getPlayerControlRole,
+} from "@/lib/demo/realm-control";
+
 import type {
   CommandInterruptType,
 } from "@/types/session";
@@ -212,5 +221,113 @@ export async function advanceAutonomousWorldBy(
     ok: false,
     error: "AUTONOMOUS_LOOP_GUARD",
     currentTime: getWorldTime(),
+  };
+}
+
+//
+// ============================================================
+// WORLD CATCH-UP (WEBMCP-DRIVEN)
+// ============================================================
+//
+// The demo browser tab used to be the ONLY thing that ever moved the
+// world clock forward (a client-side setTimeout loop in DemoRuntime).
+// That means a WebMCP host (e.g. a ChatGPT App widget) that queues an
+// order or proposes an agreement can get back "ok: true" while nothing
+// physically happens, because the tab driving the widget may be
+// backgrounded, throttled, or remounted between tool calls.
+//
+// runWorldCatchUp() makes real progress possible without relying on
+// that timer: it is invoked after every mutating WebMCP tool call
+// (see lib/webmcp/identity-guard.ts) and, right there in the same
+// request, resolves the "executing" phase deterministically and runs
+// any pending NPC/actor-LLM command windows in the correct order,
+// stopping only when the human player is genuinely needed again or a
+// safety guard is hit. It is intentionally idempotent/resumable: if
+// the guard is hit, the next tool call simply continues the work.
+//
+
+const CATCH_UP_ITERATION_GUARD = 40;
+const CATCH_UP_HORIZON_MINUTES = 60 * 24 * 30;
+
+const catchUpPlayerAdapter = new RemotePlayerLlmAdapter();
+const catchUpGmRealmAdapter = new RemoteGmRealmAdapter();
+
+export type WorldCatchUpResult = {
+  advanced: boolean;
+  currentTime: number;
+  activations: number;
+  stoppedFor?:
+    | "HUMAN_TURN"
+    | "MODEL_ERROR"
+    | "LOOP_GUARD";
+};
+
+export async function runWorldCatchUp(): Promise<WorldCatchUpResult> {
+  const startTime = getWorldTime();
+  let activations = 0;
+
+  for (let guard = 0; guard < CATCH_UP_ITERATION_GUARD; guard += 1) {
+    const cycle = getRuntimeWorldState().session.commandCycle;
+
+    if (cycle.phase === "executing") {
+      const result = advanceWorldUntil(
+        getWorldTime() + CATCH_UP_HORIZON_MINUTES
+      );
+
+      if (result.reachedTarget) {
+        return {
+          advanced: getWorldTime() !== startTime,
+          currentTime: getWorldTime(),
+          activations,
+        };
+      }
+
+      // An interrupt or a fresh command window opened mid-advance;
+      // the next loop iteration re-reads the command cycle and
+      // handles whatever it now needs.
+      continue;
+    }
+
+    const activation = getCurrentLlmActivation();
+
+    if (!activation) {
+      return {
+        advanced: getWorldTime() !== startTime,
+        currentTime: getWorldTime(),
+        activations,
+        stoppedFor: "HUMAN_TURN",
+      };
+    }
+
+    const role = getPlayerControlRole(activation.playerId);
+
+    const adapter =
+      role === "GM"
+        ? catchUpGmRealmAdapter
+        : catchUpPlayerAdapter;
+
+    const result = await runLlmPlayerActivation(
+      activation.playerId,
+      activation.reason,
+      adapter
+    );
+
+    activations += 1;
+
+    if (!result.ok) {
+      return {
+        advanced: getWorldTime() !== startTime,
+        currentTime: getWorldTime(),
+        activations,
+        stoppedFor: "MODEL_ERROR",
+      };
+    }
+  }
+
+  return {
+    advanced: getWorldTime() !== startTime,
+    currentTime: getWorldTime(),
+    activations,
+    stoppedFor: "LOOP_GUARD",
   };
 }

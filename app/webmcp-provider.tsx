@@ -37,100 +37,114 @@ import {
 } from "@/lib/webmcp/register-war-tools";
 
 import {
+  registerMapWebMCPTools,
+} from "@/lib/webmcp/register-map-tools";
+
+import {
   installWebMcpIdentityGuard,
 } from "@/lib/webmcp/identity-guard";
 
 export default function WebMCPProvider() {
-  useEffect(() => {
-    let alive =
-      true;
+  useEffect(
+    () => {
+      let alive =
+        true;
 
-    const guard =
-      installWebMcpIdentityGuard();
+      const guard =
+        installWebMcpIdentityGuard();
 
-    if (
-      guard ===
-      "failed"
-    ) {
-      console.error(
-        "[WebMCP] refusing to register gameplay tools without identity binding"
-      );
+      if (
+        guard ===
+        "failed"
+      ) {
+        console.error(
+          "[WebMCP] refusing to register gameplay tools without identity binding"
+        );
 
-      return;
-    }
+        return;
+      }
 
-    if (
-      guard ===
-      "unavailable"
-    ) {
-      console.log(
-        "[WebMCP] unavailable"
-      );
+      if (
+        guard ===
+        "unavailable"
+      ) {
+        console.log(
+          "[WebMCP] unavailable"
+        );
 
-      return;
-    }
+        return;
+      }
 
-    void Promise.all([
-      registerWebMCPTools(),
-      registerConversationWebMCPTools(),
-      registerLordWebMCPTools(),
-      registerPoliticsWebMCPTools(),
-      registerBorderWebMCPTools(),
-      registerArmyManagementWebMCPTools(),
-      registerAudienceWebMCPTools(),
-      registerWarWebMCPTools(),
-    ])
-      .then(
-        ([
-          coreRegistered,
-          conversationRegistered,
-          lordRegistered,
-          politicsRegistered,
-          borderRegistered,
-          armyManagementRegistered,
-          audienceRegistered,
-          warRegistered,
-        ]) => {
-          if (!alive) {
-            return;
-          }
-
-          console.log(
-            "[WebMCP] identity-bound facade registration:",
-            {
-              guard,
-              coreRegistered,
-              conversationRegistered,
-              lordRegistered,
-              politicsRegistered,
-              borderRegistered,
-              armyManagementRegistered,
-              audienceRegistered,
-              warRegistered,
+      void Promise.all([
+        registerWebMCPTools(),
+        registerConversationWebMCPTools(),
+        registerLordWebMCPTools(),
+        registerPoliticsWebMCPTools(),
+        registerBorderWebMCPTools(),
+        registerArmyManagementWebMCPTools(),
+        registerAudienceWebMCPTools(),
+        registerWarWebMCPTools(),
+        registerMapWebMCPTools(),
+      ])
+        .then(
+          ([
+            coreRegistered,
+            conversationRegistered,
+            lordRegistered,
+            politicsRegistered,
+            borderRegistered,
+            armyManagementRegistered,
+            audienceRegistered,
+            warRegistered,
+            mapRegistered,
+          ]) => {
+            if (
+              !alive
+            ) {
+              return;
             }
-          );
-        }
-      )
-      .catch(
-        (
-          error
-        ) => {
-          if (!alive) {
-            return;
+
+            console.log(
+              "[WebMCP] identity-bound facade registration:",
+              {
+                guard,
+                coreRegistered,
+                conversationRegistered,
+                lordRegistered,
+                politicsRegistered,
+                borderRegistered,
+                armyManagementRegistered,
+                audienceRegistered,
+                warRegistered,
+                mapRegistered,
+              }
+            );
           }
-
-          console.error(
-            "[WebMCP] tool registration failed:",
+        )
+        .catch(
+          (
             error
-          );
-        }
-      );
+          ) => {
+            if (
+              !alive
+            ) {
+              return;
+            }
 
-    return () => {
-      alive =
-        false;
-    };
-  }, []);
+            console.error(
+              "[WebMCP] tool registration failed:",
+              error
+            );
+          }
+        );
+
+      return () => {
+        alive =
+          false;
+      };
+    },
+    []
+  );
 
   return null;
 }

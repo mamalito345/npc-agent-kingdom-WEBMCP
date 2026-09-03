@@ -1,589 +1,5530 @@
 {
   "id": "five-kingdoms",
-  "name": "War of the Five Kingdoms",
-
+  "name": "War of the Five Kingdoms \u2014 Strategic Campaign Map",
   "image": {
     "url": "/maps/world-map.png",
-    "width": 5000,
-    "height": 3200
+    "width": 1536,
+    "height": 1024
   },
-
   "camera": {
-    "initialX": 100,
-    "initialY": 50,
-    "initialZoom": 0.55,
-    "minZoom": 0.25,
-    "maxZoom": 2.5
+    "initialX": 0,
+    "initialY": 0,
+    "initialZoom": 0.82,
+    "minZoom": 0.48,
+    "maxZoom": 2.4
   },
-
   "nodes": {
     "northwatch": {
       "id": "northwatch",
       "locationId": "northwatch",
-      "x": 1800,
-      "y": 420,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 820,
+      "y": 118,
       "iconUrl": "/assets/map/capital.png",
-      "scale": 1.15,
+      "scale": 1.16,
       "terrain": "hills",
-      "features": ["high_ground", "fortified_position"]
+      "features": [
+        "high_ground",
+        "fortified_position"
+      ],
+      "displayName": "Northwatch",
+      "importance": "critical",
+      "strategicRole": "Northern political center controlling the King's Pass approaches."
     },
-
     "stoneford": {
       "id": "stoneford",
       "locationId": "stoneford",
-      "x": 1450,
-      "y": 980,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 645,
+      "y": 215,
       "iconUrl": "/assets/map/castle.png",
-      "terrain": "hills",
-      "features": ["high_ground"]
+      "scale": 1.0,
+      "terrain": "mountain",
+      "features": [
+        "narrow_pass",
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Stoneford",
+      "importance": "critical",
+      "strategicRole": "Western fortress controlling the mountain approach."
     },
-
     "riverhold": {
       "id": "riverhold",
       "locationId": "riverhold",
-      "x": 1700,
-      "y": 760,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 1115,
+      "y": 158,
       "iconUrl": "/assets/map/city.png",
-      "terrain": "river_crossing",
-      "features": ["bridge"]
+      "scale": 1.0,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Riverhold",
+      "importance": "major",
+      "strategicRole": "Northern regional market tying the eastern valleys together."
     },
-
     "highcrest": {
       "id": "highcrest",
       "locationId": "highcrest",
-      "x": 2150,
-      "y": 820,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 1260,
+      "y": 128,
       "iconUrl": "/assets/map/city.png",
-      "terrain": "mountain",
-      "features": ["high_ground", "narrow_pass"]
+      "scale": 0.88,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Highcrest",
+      "importance": "regional",
+      "strategicRole": "Eastern trade town on the cold coastal approach."
     },
-
     "frostmere": {
       "id": "frostmere",
       "locationId": "frostmere",
-      "x": 2450,
-      "y": 540,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 990,
+      "y": 190,
       "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
       "terrain": "forest",
-      "features": []
+      "features": [],
+      "displayName": "Frostmere",
+      "importance": "regional",
+      "strategicRole": "Logging village feeding Riverhold's workshops."
     },
-
-    "eastkeep": {
-      "id": "eastkeep",
-      "locationId": "eastkeep",
-      "x": 3300,
-      "y": 980,
-      "iconUrl": "/assets/map/capital.png",
-      "scale": 1.15,
-      "terrain": "plains",
-      "features": ["fortified_position"]
-    },
-
-    "greenharbor": {
-      "id": "greenharbor",
-      "locationId": "greenharbor",
-      "x": 3850,
-      "y": 900,
-      "iconUrl": "/assets/map/city.png",
-      "terrain": "plains",
-      "features": []
-    },
-
-    "elmstead": {
-      "id": "elmstead",
-      "locationId": "elmstead",
-      "x": 4200,
-      "y": 1120,
+    "wolfpine": {
+      "id": "wolfpine",
+      "locationId": "wolfpine",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 742,
+      "y": 170,
       "iconUrl": "/assets/map/village.png",
-      "terrain": "forest",
-      "features": []
+      "scale": 0.72,
+      "terrain": "dense_forest",
+      "features": [],
+      "displayName": "Wolfpine",
+      "importance": "regional",
+      "strategicRole": "Dense snow-forest logging village below Wolf Ridge."
     },
-
-    "dawnfort": {
-      "id": "dawnfort",
-      "locationId": "dawnfort",
-      "x": 3500,
-      "y": 1350,
+    "frostfield": {
+      "id": "frostfield",
+      "locationId": "frostfield",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 1140,
+      "y": 215,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Frostfield",
+      "importance": "regional",
+      "strategicRole": "Cold farming and pastoral village."
+    },
+    "ironfrost": {
+      "id": "ironfrost",
+      "locationId": "ironfrost",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 910,
+      "y": 105,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "mountain",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Ironfrost",
+      "importance": "regional",
+      "strategicRole": "Mountain mine supplying northern stone and metal."
+    },
+    "icewatch": {
+      "id": "icewatch",
+      "locationId": "icewatch",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "northreach",
+      "x": 1070,
+      "y": 235,
       "iconUrl": "/assets/map/castle.png",
-      "terrain": "hills",
-      "features": ["fortified_position"]
+      "scale": 1.0,
+      "terrain": "mountain",
+      "features": [
+        "narrow_pass",
+        "fortified_position"
+      ],
+      "displayName": "Icewatch",
+      "importance": "major",
+      "strategicRole": "Fortress controlling the eastern northern approach."
     },
-
     "moorhall": {
       "id": "moorhall",
       "locationId": "moorhall",
-      "x": 1150,
-      "y": 1900,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 245,
+      "y": 375,
       "iconUrl": "/assets/map/capital.png",
-      "scale": 1.15,
-      "terrain": "marsh",
-      "features": []
+      "scale": 1.16,
+      "terrain": "forest",
+      "features": [
+        "high_ground",
+        "fortified_position"
+      ],
+      "displayName": "Moorhall",
+      "importance": "critical",
+      "strategicRole": "Forest capital governing the western woodland roads."
     },
-
     "blackfen": {
       "id": "blackfen",
       "locationId": "blackfen",
-      "x": 700,
-      "y": 2050,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 330,
+      "y": 455,
       "iconUrl": "/assets/map/city.png",
-      "terrain": "marsh",
-      "features": []
+      "scale": 1.0,
+      "terrain": "forest",
+      "features": [],
+      "displayName": "Blackfen",
+      "importance": "major",
+      "strategicRole": "Regional forest city linking timber villages to central markets."
     },
-
     "greywatch": {
       "id": "greywatch",
       "locationId": "greywatch",
-      "x": 1450,
-      "y": 2250,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 430,
+      "y": 405,
       "iconUrl": "/assets/map/castle.png",
-      "terrain": "hills",
-      "features": ["high_ground"]
+      "scale": 1.0,
+      "terrain": "forest",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Greywatch",
+      "importance": "critical",
+      "strategicRole": "Border fortress controlling the forest-to-plains road."
     },
-
     "reedmere": {
       "id": "reedmere",
       "locationId": "reedmere",
-      "x": 450,
-      "y": 2350,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 110,
+      "y": 400,
       "iconUrl": "/assets/map/village.png",
-      "terrain": "marsh",
-      "features": []
+      "scale": 0.72,
+      "terrain": "forest",
+      "features": [],
+      "displayName": "Reedmere",
+      "importance": "regional",
+      "strategicRole": "Remote forest village supporting Deepwood."
     },
-
+    "deepwood": {
+      "id": "deepwood",
+      "locationId": "deepwood",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 155,
+      "y": 480,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "dense_forest",
+      "features": [],
+      "displayName": "Deepwood",
+      "importance": "regional",
+      "strategicRole": "Woodland market deep inside the western forest."
+    },
+    "oakmarket": {
+      "id": "oakmarket",
+      "locationId": "oakmarket",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 330,
+      "y": 565,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "forest",
+      "features": [],
+      "displayName": "Oakmarket",
+      "importance": "major",
+      "strategicRole": "Southern forest market joining timber and farm routes."
+    },
+    "blackpine": {
+      "id": "blackpine",
+      "locationId": "blackpine",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 190,
+      "y": 330,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "dense_forest",
+      "features": [],
+      "displayName": "Blackpine",
+      "importance": "regional",
+      "strategicRole": "Dense-forest logging village."
+    },
+    "oakrest": {
+      "id": "oakrest",
+      "locationId": "oakrest",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 280,
+      "y": 525,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "forest",
+      "features": [],
+      "displayName": "Oakrest",
+      "importance": "regional",
+      "strategicRole": "Logging and farming village on the Oakmarket road."
+    },
+    "greenfield-west": {
+      "id": "greenfield-west",
+      "locationId": "greenfield-west",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 415,
+      "y": 585,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Greenfield",
+      "importance": "regional",
+      "strategicRole": "Productive farming village in a broad woodland clearing."
+    },
+    "oakshield": {
+      "id": "oakshield",
+      "locationId": "oakshield",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "westmoor",
+      "x": 350,
+      "y": 610,
+      "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Oakshield",
+      "importance": "major",
+      "strategicRole": "Castle controlling the southern forest road."
+    },
     "sunspire": {
       "id": "sunspire",
       "locationId": "sunspire",
-      "x": 2800,
-      "y": 2350,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 755,
+      "y": 392,
       "iconUrl": "/assets/map/capital.png",
-      "scale": 1.15,
+      "scale": 1.16,
       "terrain": "plains",
-      "features": ["fortified_position"]
+      "features": [
+        "fortified_position"
+      ],
+      "displayName": "Sunspire",
+      "importance": "critical",
+      "strategicRole": "Rich central capital commanding the primary road network."
     },
-
     "goldmeadow": {
       "id": "goldmeadow",
       "locationId": "goldmeadow",
-      "x": 3050,
-      "y": 2700,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 665,
+      "y": 480,
       "iconUrl": "/assets/map/city.png",
+      "scale": 1.0,
       "terrain": "plains",
-      "features": []
+      "features": [],
+      "displayName": "Goldmeadow",
+      "importance": "major",
+      "strategicRole": "Fertile city and agricultural collection point."
     },
-
     "redfield": {
       "id": "redfield",
       "locationId": "redfield",
-      "x": 2700,
-      "y": 2950,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 885,
+      "y": 495,
       "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
       "terrain": "plains",
-      "features": []
+      "features": [],
+      "displayName": "Redfield",
+      "importance": "major",
+      "strategicRole": "High-output farming village supporting central food supply."
     },
-
     "southgate": {
       "id": "southgate",
       "locationId": "southgate",
-      "x": 3500,
-      "y": 2700,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 545,
+      "y": 390,
       "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
       "terrain": "hills",
-      "features": ["narrow_pass"]
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Southgate",
+      "importance": "major",
+      "strategicRole": "Western castle protecting the central realm from the forest frontier."
     },
-
+    "kingscross": {
+      "id": "kingscross",
+      "locationId": "kingscross",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 690,
+      "y": 400,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Kingscross",
+      "importance": "critical",
+      "strategicRole": "Major crossroads whose control opens several campaign routes."
+    },
+    "highfield": {
+      "id": "highfield",
+      "locationId": "highfield",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 570,
+      "y": 475,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Highfield",
+      "importance": "major",
+      "strategicRole": "Agricultural town gathering western harvests."
+    },
+    "wheatbrook": {
+      "id": "wheatbrook",
+      "locationId": "wheatbrook",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 625,
+      "y": 550,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Wheatbrook",
+      "importance": "regional",
+      "strategicRole": "Farming village south of Goldmeadow."
+    },
+    "stonebrook": {
+      "id": "stonebrook",
+      "locationId": "stonebrook",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 820,
+      "y": 325,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Stonebrook",
+      "importance": "regional",
+      "strategicRole": "Hill quarry supplying central stone."
+    },
+    "greenmead": {
+      "id": "greenmead",
+      "locationId": "greenmead",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 730,
+      "y": 515,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Greenmead",
+      "importance": "regional",
+      "strategicRole": "Farming village between Goldmeadow and South Cross."
+    },
+    "stonehill": {
+      "id": "stonehill",
+      "locationId": "stonehill",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "southmark",
+      "x": 875,
+      "y": 340,
+      "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Stonehill",
+      "importance": "critical",
+      "strategicRole": "High-ground castle controlling the northeast approach."
+    },
+    "eastkeep": {
+      "id": "eastkeep",
+      "locationId": "eastkeep",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1210,
+      "y": 392,
+      "iconUrl": "/assets/map/capital.png",
+      "scale": 1.16,
+      "terrain": "plains",
+      "features": [
+        "fortified_position"
+      ],
+      "displayName": "Eastkeep",
+      "importance": "critical",
+      "strategicRole": "Eastern capital overlooking open military corridors."
+    },
+    "greenharbor": {
+      "id": "greenharbor",
+      "locationId": "greenharbor",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1110,
+      "y": 485,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 1.0,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Greenharbor",
+      "importance": "major",
+      "strategicRole": "Fertile eastern city supporting the main east-west road."
+    },
+    "elmstead": {
+      "id": "elmstead",
+      "locationId": "elmstead",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1340,
+      "y": 530,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Elmstead",
+      "importance": "regional",
+      "strategicRole": "Productive farming village on the southern eastern plain."
+    },
+    "dawnfort": {
+      "id": "dawnfort",
+      "locationId": "dawnfort",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1390,
+      "y": 340,
+      "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Dawnfort",
+      "importance": "major",
+      "strategicRole": "Fortress guarding the eastern frontier and coast road."
+    },
+    "suncrest": {
+      "id": "suncrest",
+      "locationId": "suncrest",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1320,
+      "y": 460,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Suncrest",
+      "importance": "major",
+      "strategicRole": "Open-plains trade town east of the capital."
+    },
+    "greencrest": {
+      "id": "greencrest",
+      "locationId": "greencrest",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1045,
+      "y": 455,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Greencrest",
+      "importance": "major",
+      "strategicRole": "Rolling-hill market near the central frontier."
+    },
+    "eastbrook": {
+      "id": "eastbrook",
+      "locationId": "eastbrook",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1150,
+      "y": 545,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Eastbrook",
+      "importance": "regional",
+      "strategicRole": "Farming village feeding Greenharbor."
+    },
+    "hillstead": {
+      "id": "hillstead",
+      "locationId": "hillstead",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1050,
+      "y": 335,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Hillstead",
+      "importance": "regional",
+      "strategicRole": "Pastoral hill village below the northern ridge."
+    },
+    "coastfield": {
+      "id": "coastfield",
+      "locationId": "coastfield",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1430,
+      "y": 440,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Coastfield",
+      "importance": "regional",
+      "strategicRole": "Coastal market village and future naval trade anchor."
+    },
+    "greencrest-fort": {
+      "id": "greencrest-fort",
+      "locationId": "greencrest-fort",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "eastvale",
+      "x": 1010,
+      "y": 390,
+      "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Greencrest Fort",
+      "importance": "critical",
+      "strategicRole": "Border fortress protecting the central/eastern corridor."
+    },
     "ironhold": {
       "id": "ironhold",
       "locationId": "ironhold",
-      "x": 4300,
-      "y": 1900,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 1245,
+      "y": 775,
       "iconUrl": "/assets/map/capital.png",
-      "scale": 1.15,
-      "terrain": "mountain",
-      "features": ["fortified_position", "narrow_pass"]
+      "scale": 1.16,
+      "terrain": "hills",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Ironhold",
+      "importance": "critical",
+      "strategicRole": "Rocky-desert capital dominating the eastern caravan network."
     },
-
     "emberfall": {
       "id": "emberfall",
       "locationId": "emberfall",
-      "x": 4550,
-      "y": 2200,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 820,
+      "y": 760,
       "iconUrl": "/assets/map/city.png",
-      "terrain": "mountain",
-      "features": []
+      "scale": 1.0,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Emberfall",
+      "importance": "major",
+      "strategicRole": "Great caravan city at the center of the desert road system."
     },
-
     "stonevein": {
       "id": "stonevein",
       "locationId": "stonevein",
-      "x": 4700,
-      "y": 2550,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 1240,
+      "y": 905,
       "iconUrl": "/assets/map/village.png",
-      "terrain": "mountain",
-      "features": ["narrow_pass"]
+      "scale": 0.72,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Stonevein",
+      "importance": "regional",
+      "strategicRole": "Southern mine producing stone and metal."
     },
-
     "ashguard": {
       "id": "ashguard",
       "locationId": "ashguard",
-      "x": 4050,
-      "y": 2450,
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 1110,
+      "y": 860,
       "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Ashguard",
+      "importance": "major",
+      "strategicRole": "Castle controlling the rocky southern route."
+    },
+    "redhaven": {
+      "id": "redhaven",
+      "locationId": "redhaven",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 1080,
+      "y": 825,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Redhaven",
+      "importance": "major",
+      "strategicRole": "Rocky city combining mining and caravan wealth."
+    },
+    "oasisfall": {
+      "id": "oasisfall",
+      "locationId": "oasisfall",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 625,
+      "y": 700,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Oasisfall",
+      "importance": "major",
+      "strategicRole": "Oasis town controlling the western desert supply chain."
+    },
+    "dustmarket": {
+      "id": "dustmarket",
+      "locationId": "dustmarket",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 1370,
+      "y": 675,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Dustmarket",
+      "importance": "major",
+      "strategicRole": "Eastern caravan market on the Ironhold road."
+    },
+    "sunwell": {
+      "id": "sunwell",
+      "locationId": "sunwell",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 755,
+      "y": 865,
+      "iconUrl": "/assets/map/city.png",
+      "scale": 0.88,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Sunwell",
+      "importance": "major",
+      "strategicRole": "Southern oasis town anchoring the western desert route."
+    },
+    "sandbrook": {
+      "id": "sandbrook",
+      "locationId": "sandbrook",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 675,
+      "y": 790,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Sandbrook",
+      "importance": "regional",
+      "strategicRole": "Oasis farming village supporting Emberfall."
+    },
+    "redstone": {
+      "id": "redstone",
+      "locationId": "redstone",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 1100,
+      "y": 735,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Redstone",
+      "importance": "regional",
+      "strategicRole": "Rocky-desert stone village on the eastern caravan route."
+    },
+    "dunefield": {
+      "id": "dunefield",
+      "locationId": "dunefield",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 930,
+      "y": 835,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Dunefield",
+      "importance": "regional",
+      "strategicRole": "Pastoral settlement at the edge of the deep dunes."
+    },
+    "caravan-rest": {
+      "id": "caravan-rest",
+      "locationId": "caravan-rest",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 1410,
+      "y": 785,
+      "iconUrl": "/assets/map/village.png",
+      "scale": 0.72,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Caravan Rest",
+      "importance": "regional",
+      "strategicRole": "Road village servicing merchants approaching Ironhold."
+    },
+    "dunegate": {
+      "id": "dunegate",
+      "locationId": "dunegate",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 975,
+      "y": 650,
+      "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "narrow_pass",
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Dunegate",
+      "importance": "critical",
+      "strategicRole": "Fortress controlling the central greenland-to-desert approach."
+    },
+    "sunwatch": {
+      "id": "sunwatch",
+      "locationId": "sunwatch",
+      "kind": "settlement",
+      "hidden": false,
+      "territoryKingdomId": "ironhollow",
+      "x": 650,
+      "y": 620,
+      "iconUrl": "/assets/map/castle.png",
+      "scale": 1.0,
+      "terrain": "hills",
+      "features": [
+        "fortified_position",
+        "high_ground"
+      ],
+      "displayName": "Sunwatch",
+      "importance": "major",
+      "strategicRole": "Fortress controlling the western desert entrance."
+    },
+    "wolf-ridge": {
+      "id": "wolf-ridge",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "northreach",
+      "x": 760,
+      "y": 235,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Wolf Ridge",
+      "importance": "major",
+      "strategicRole": "High ridge overlooking the western northern valleys."
+    },
+    "western-frost-pass": {
+      "id": "western-frost-pass",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "mountain_pass",
+      "territoryKingdomId": "northreach",
+      "x": 530,
+      "y": 255,
+      "terrain": "mountain",
+      "features": [
+        "narrow_pass",
+        "high_ground"
+      ],
+      "displayName": "Western Frost Pass",
+      "importance": "critical",
+      "strategicRole": "Western infantry-favored invasion corridor into Northreach."
+    },
+    "kings-pass": {
+      "id": "kings-pass",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "mountain_pass",
+      "territoryKingdomId": "northreach",
+      "x": 735,
+      "y": 265,
+      "terrain": "mountain",
+      "features": [
+        "narrow_pass"
+      ],
+      "displayName": "King's Pass",
+      "importance": "critical",
+      "strategicRole": "Fastest central northern corridor; narrow and heavily defensible."
+    },
+    "eastern-ice-pass": {
+      "id": "eastern-ice-pass",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "mountain_pass",
+      "territoryKingdomId": "northreach",
+      "x": 1025,
+      "y": 265,
+      "terrain": "mountain",
+      "features": [
+        "narrow_pass"
+      ],
+      "displayName": "Eastern Ice Pass",
+      "importance": "critical",
+      "strategicRole": "Long eastern mountain approach linking Riverhold to Stonehill."
+    },
+    "frozen-valley": {
+      "id": "frozen-valley",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "northreach",
+      "x": 875,
+      "y": 255,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Frozen Valley",
+      "importance": "major",
+      "strategicRole": "Open frozen valley connecting the northern approaches."
+    },
+    "snowpine-crossing": {
+      "id": "snowpine-crossing",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "forest_path",
+      "territoryKingdomId": "northreach",
+      "x": 1185,
+      "y": 235,
+      "terrain": "forest",
+      "features": [],
+      "displayName": "Snowpine Crossing",
+      "importance": "regional",
+      "strategicRole": "Snowy woodland crossing where cavalry maneuver is restricted."
+    },
+    "whitepass-ford": {
+      "id": "whitepass-ford",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "river_crossing",
+      "territoryKingdomId": "northreach",
+      "x": 930,
+      "y": 270,
+      "terrain": "river_crossing",
+      "features": [
+        "bridge"
+      ],
+      "displayName": "Whitepass Ford",
+      "importance": "major",
+      "strategicRole": "Cold river crossing below the eastern ridge."
+    },
+    "deepwood-crossing": {
+      "id": "deepwood-crossing",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "westmoor",
+      "x": 265,
+      "y": 430,
+      "terrain": "forest",
+      "features": [],
+      "displayName": "Deepwood Crossing",
+      "importance": "major",
+      "strategicRole": "Forest junction tying Blackfen, Moorhall and Deepwood together."
+    },
+    "greywood-hill": {
+      "id": "greywood-hill",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "westmoor",
+      "x": 385,
+      "y": 365,
+      "terrain": "forest",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Greywood Hill",
+      "importance": "critical",
+      "strategicRole": "Forest hill: excellent ground for infantry against cavalry."
+    },
+    "old-oak-road": {
+      "id": "old-oak-road",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "forest_path",
+      "territoryKingdomId": "westmoor",
+      "x": 390,
+      "y": 500,
+      "terrain": "forest",
+      "features": [],
+      "displayName": "Old Oak Road",
+      "importance": "regional",
+      "strategicRole": "Secondary woodland route around the main Greywatch road."
+    },
+    "western-clearing": {
+      "id": "western-clearing",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "plains_waypoint",
+      "territoryKingdomId": "westmoor",
+      "x": 245,
+      "y": 585,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Western Clearing",
+      "importance": "local",
+      "strategicRole": "Broad clearing suitable for assembly before the southern road."
+    },
+    "blackwood-ridge": {
+      "id": "blackwood-ridge",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "westmoor",
+      "x": 155,
+      "y": 555,
       "terrain": "dense_forest",
-      "features": []
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Blackwood Ridge",
+      "importance": "major",
+      "strategicRole": "Wooded ridge controlling Deepwood's southern approach."
+    },
+    "west-road-clearing": {
+      "id": "west-road-clearing",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "plains_waypoint",
+      "territoryKingdomId": "westmoor",
+      "x": 455,
+      "y": 470,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "West Road Clearing",
+      "importance": "regional",
+      "strategicRole": "Open clearing between Greywatch and the central frontier."
+    },
+    "central-hill": {
+      "id": "central-hill",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "southmark",
+      "x": 820,
+      "y": 450,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Central Hill",
+      "importance": "major",
+      "strategicRole": "Central high ground overlooking the southern route."
+    },
+    "kings-road-junction": {
+      "id": "kings-road-junction",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "southmark",
+      "x": 680,
+      "y": 430,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "King's Road Junction",
+      "importance": "critical",
+      "strategicRole": "Major road junction immediately south of Sunspire."
+    },
+    "west-road-junction": {
+      "id": "west-road-junction",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "southmark",
+      "x": 500,
+      "y": 420,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "West Road Junction",
+      "importance": "major",
+      "strategicRole": "Western gateway between forest and central farmland."
+    },
+    "east-road-junction": {
+      "id": "east-road-junction",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "southmark",
+      "x": 975,
+      "y": 415,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "East Road Junction",
+      "importance": "critical",
+      "strategicRole": "Eastern gateway where routes toward Eastvale divide."
+    },
+    "south-cross": {
+      "id": "south-cross",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "southmark",
+      "x": 755,
+      "y": 555,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "South Cross",
+      "importance": "critical",
+      "strategicRole": "Major junction controlling the central route into the desert."
+    },
+    "watch-hill": {
+      "id": "watch-hill",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "southmark",
+      "x": 940,
+      "y": 365,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Watch Hill",
+      "importance": "major",
+      "strategicRole": "Observation hill between Stonehill and Greencrest Fort."
+    },
+    "green-valley": {
+      "id": "green-valley",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "plains_waypoint",
+      "territoryKingdomId": "southmark",
+      "x": 585,
+      "y": 525,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Green Valley",
+      "importance": "regional",
+      "strategicRole": "Fertile valley providing a safer southern approach from Westmoor."
+    },
+    "crown-ridge": {
+      "id": "crown-ridge",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "southmark",
+      "x": 790,
+      "y": 335,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Crown Ridge",
+      "importance": "major",
+      "strategicRole": "Ridge below King's Pass overlooking Sunspire."
+    },
+    "stonebridge": {
+      "id": "stonebridge",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "bridge",
+      "territoryKingdomId": "southmark",
+      "x": 900,
+      "y": 420,
+      "terrain": "river_crossing",
+      "features": [
+        "bridge",
+        "narrow_pass"
+      ],
+      "displayName": "Stonebridge",
+      "importance": "critical",
+      "strategicRole": "Narrow bridge worth holding on the northeastern central road."
+    },
+    "eastern-hill": {
+      "id": "eastern-hill",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "eastvale",
+      "x": 1150,
+      "y": 320,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Eastern Hill",
+      "importance": "major",
+      "strategicRole": "Defensible hill north of Eastkeep."
+    },
+    "golden-road": {
+      "id": "golden-road",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "eastvale",
+      "x": 1260,
+      "y": 430,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Golden Road",
+      "importance": "major",
+      "strategicRole": "Fast major road linking Eastkeep and Suncrest."
+    },
+    "east-border-crossing": {
+      "id": "east-border-crossing",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "border_crossing",
+      "territoryKingdomId": "eastvale",
+      "x": 1005,
+      "y": 420,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "East Border Crossing",
+      "importance": "critical",
+      "strategicRole": "Primary central/eastern border post."
+    },
+    "sun-ridge": {
+      "id": "sun-ridge",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "eastvale",
+      "x": 1290,
+      "y": 345,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Sun Ridge",
+      "importance": "regional",
+      "strategicRole": "Rolling ridge restricting cavalry near Dawnfort."
+    },
+    "eastern-plain": {
+      "id": "eastern-plain",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "plains_waypoint",
+      "territoryKingdomId": "eastvale",
+      "x": 1160,
+      "y": 445,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Eastern Plain",
+      "importance": "major",
+      "strategicRole": "Excellent cavalry ground between Eastkeep and Greenharbor."
+    },
+    "east-coast-road": {
+      "id": "east-coast-road",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "coast_road",
+      "territoryKingdomId": "eastvale",
+      "x": 1405,
+      "y": 390,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "East Coast Road",
+      "importance": "regional",
+      "strategicRole": "Coastal military road linking Dawnfort and Coastfield."
+    },
+    "desert-gate-west": {
+      "id": "desert-gate-west",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "mountain_pass",
+      "territoryKingdomId": "ironhollow",
+      "x": 535,
+      "y": 600,
+      "terrain": "hills",
+      "features": [
+        "narrow_pass"
+      ],
+      "displayName": "Desert Gate West",
+      "importance": "critical",
+      "strategicRole": "Western rocky entrance into the desert."
+    },
+    "desert-gate-central": {
+      "id": "desert-gate-central",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "mountain_pass",
+      "territoryKingdomId": "ironhollow",
+      "x": 765,
+      "y": 610,
+      "terrain": "hills",
+      "features": [
+        "narrow_pass"
+      ],
+      "displayName": "Desert Gate Central",
+      "importance": "critical",
+      "strategicRole": "Central descent from fertile country into the caravan network."
+    },
+    "desert-gate-east": {
+      "id": "desert-gate-east",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "mountain_pass",
+      "territoryKingdomId": "ironhollow",
+      "x": 1040,
+      "y": 590,
+      "terrain": "hills",
+      "features": [
+        "narrow_pass"
+      ],
+      "displayName": "Desert Gate East",
+      "importance": "critical",
+      "strategicRole": "Eastern rocky entrance toward Dunegate."
+    },
+    "west-oasis": {
+      "id": "west-oasis",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "ironhollow",
+      "x": 560,
+      "y": 755,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "West Oasis",
+      "importance": "major",
+      "strategicRole": "Strategic water and supply point on the western caravan road."
+    },
+    "caravan-cross": {
+      "id": "caravan-cross",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "ironhollow",
+      "x": 815,
+      "y": 705,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Caravan Cross",
+      "importance": "critical",
+      "strategicRole": "The desert's most important caravan junction."
+    },
+    "red-dunes": {
+      "id": "red-dunes",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "plains_waypoint",
+      "territoryKingdomId": "ironhollow",
+      "x": 1015,
+      "y": 760,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Red Dunes",
+      "importance": "major",
+      "strategicRole": "Deep desert corridor: exposed and supply-intensive."
+    },
+    "eastern-rocks": {
+      "id": "eastern-rocks",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "ironhollow",
+      "x": 1210,
+      "y": 690,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Eastern Rocks",
+      "importance": "major",
+      "strategicRole": "Rocky desert ground favoring defenders over cavalry."
+    },
+    "southern-oasis": {
+      "id": "southern-oasis",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "road_junction",
+      "territoryKingdomId": "ironhollow",
+      "x": 930,
+      "y": 905,
+      "terrain": "plains",
+      "features": [],
+      "displayName": "Southern Oasis",
+      "importance": "major",
+      "strategicRole": "Southern water source joining Sunwell and Ashguard."
+    },
+    "broken-ridge": {
+      "id": "broken-ridge",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "ironhollow",
+      "x": 1130,
+      "y": 935,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Broken Ridge",
+      "importance": "major",
+      "strategicRole": "Rocky ridge guarding the southern approach to Ironhold."
+    },
+    "dry-ridge": {
+      "id": "dry-ridge",
+      "kind": "transit",
+      "hidden": true,
+      "transitType": "hill_road",
+      "territoryKingdomId": "ironhollow",
+      "x": 900,
+      "y": 650,
+      "terrain": "hills",
+      "features": [
+        "high_ground"
+      ],
+      "displayName": "Dry Ridge",
+      "importance": "regional",
+      "strategicRole": "Dry high ground overlooking the central desert gate."
     }
   },
-
   "edges": {
-    "stoneford_riverhold": {
-      "id": "stoneford_riverhold",
-      "fromNodeId": "stoneford",
-      "toNodeId": "riverhold",
-      "distanceKm": 160,
-      "travelModifier": 1,
+    "road-001-northwatch-wolf-ridge": {
+      "id": "road-001-northwatch-wolf-ridge",
+      "fromNodeId": "northwatch",
+      "toNodeId": "wolf-ridge",
+      "distanceKm": 45,
+      "travelModifier": 1.0,
       "difficulty": 2,
       "terrain": "road",
+      "roadClass": "regional_road",
       "points": [
-        {"x":1450,"y":980},
-        {"x":1520,"y":900},
-        {"x":1600,"y":820},
-        {"x":1700,"y":760}
-      ]
+        {
+          "x": 820,
+          "y": 118
+        },
+        {
+          "x": 801,
+          "y": 145
+        },
+        {
+          "x": 781,
+          "y": 172
+        },
+        {
+          "x": 771,
+          "y": 203
+        },
+        {
+          "x": 760,
+          "y": 235
+        }
+      ],
+      "territoryKingdomId": "northreach"
     },
-
-    "riverhold_northwatch": {
-      "id": "riverhold_northwatch",
-      "fromNodeId": "riverhold",
-      "toNodeId": "northwatch",
-      "distanceKm": 220,
-      "travelModifier": 1.1,
-      "difficulty": 3,
+    "road-002-wolf-ridge-kings-pass": {
+      "id": "road-002-wolf-ridge-kings-pass",
+      "fromNodeId": "wolf-ridge",
+      "toNodeId": "kings-pass",
+      "distanceKm": 13,
+      "travelModifier": 1.32,
+      "difficulty": 4,
       "terrain": "mountain_road",
+      "roadClass": "mountain_route",
       "points": [
-        {"x":1700,"y":760},
-        {"x":1740,"y":650},
-        {"x":1770,"y":520},
-        {"x":1800,"y":420}
-      ]
+        {
+          "x": 760,
+          "y": 235
+        },
+        {
+          "x": 759,
+          "y": 247
+        },
+        {
+          "x": 757,
+          "y": 258
+        },
+        {
+          "x": 746,
+          "y": 262
+        },
+        {
+          "x": 735,
+          "y": 265
+        }
+      ],
+      "territoryKingdomId": "northreach"
     },
-
-    "riverhold_highcrest": {
-      "id": "riverhold_highcrest",
+    "road-003-northwatch-ironfrost": {
+      "id": "road-003-northwatch-ironfrost",
+      "fromNodeId": "northwatch",
+      "toNodeId": "ironfrost",
+      "distanceKm": 31,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 820,
+          "y": 118
+        },
+        {
+          "x": 842,
+          "y": 109
+        },
+        {
+          "x": 863,
+          "y": 101
+        },
+        {
+          "x": 887,
+          "y": 103
+        },
+        {
+          "x": 910,
+          "y": 105
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-004-northwatch-frozen-valley": {
+      "id": "road-004-northwatch-frozen-valley",
+      "fromNodeId": "northwatch",
+      "toNodeId": "frozen-valley",
+      "distanceKm": 50,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 820,
+          "y": 118
+        },
+        {
+          "x": 843,
+          "y": 149
+        },
+        {
+          "x": 865,
+          "y": 179
+        },
+        {
+          "x": 870,
+          "y": 217
+        },
+        {
+          "x": 875,
+          "y": 255
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-005-ironfrost-frostmere": {
+      "id": "road-005-ironfrost-frostmere",
+      "fromNodeId": "ironfrost",
+      "toNodeId": "frostmere",
+      "distanceKm": 40,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 910,
+          "y": 105
+        },
+        {
+          "x": 924,
+          "y": 132
+        },
+        {
+          "x": 938,
+          "y": 158
+        },
+        {
+          "x": 964,
+          "y": 174
+        },
+        {
+          "x": 990,
+          "y": 190
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-006-frostmere-riverhold": {
+      "id": "road-006-frostmere-riverhold",
+      "fromNodeId": "frostmere",
+      "toNodeId": "riverhold",
+      "distanceKm": 44,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 990,
+          "y": 190
+        },
+        {
+          "x": 1020,
+          "y": 176
+        },
+        {
+          "x": 1049,
+          "y": 161
+        },
+        {
+          "x": 1082,
+          "y": 160
+        },
+        {
+          "x": 1115,
+          "y": 158
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-007-riverhold-highcrest": {
+      "id": "road-007-riverhold-highcrest",
       "fromNodeId": "riverhold",
       "toNodeId": "highcrest",
-      "distanceKm": 130,
-      "travelModifier": 1.15,
-      "difficulty": 3,
-      "terrain": "mountain_road",
-      "points": [
-        {"x":1700,"y":760},
-        {"x":1830,"y":750},
-        {"x":1990,"y":770},
-        {"x":2150,"y":820}
-      ]
-    },
-
-    "highcrest_frostmere": {
-      "id": "highcrest_frostmere",
-      "fromNodeId": "highcrest",
-      "toNodeId": "frostmere",
-      "distanceKm": 120,
-      "travelModifier": 1.2,
-      "difficulty": 4,
-      "terrain": "mountain_road",
-      "points": [
-        {"x":2150,"y":820},
-        {"x":2250,"y":720},
-        {"x":2350,"y":620},
-        {"x":2450,"y":540}
-      ]
-    },
-
-    "highcrest_eastkeep": {
-      "id": "highcrest_eastkeep",
-      "fromNodeId": "highcrest",
-      "toNodeId": "eastkeep",
-      "distanceKm": 310,
-      "travelModifier": 1.05,
-      "difficulty": 2,
-      "terrain": "road",
-      "points": [
-        {"x":2150,"y":820},
-        {"x":2500,"y":780},
-        {"x":2900,"y":840},
-        {"x":3300,"y":980}
-      ]
-    },
-
-    "eastkeep_greenharbor": {
-      "id": "eastkeep_greenharbor",
-      "fromNodeId": "eastkeep",
-      "toNodeId": "greenharbor",
-      "distanceKm": 145,
-      "travelModifier": 0.95,
+      "distanceKm": 50,
+      "travelModifier": 0.9,
       "difficulty": 1,
       "terrain": "road",
+      "roadClass": "major_road",
       "points": [
-        {"x":3300,"y":980},
-        {"x":3500,"y":940},
-        {"x":3700,"y":910},
-        {"x":3850,"y":900}
-      ]
+        {
+          "x": 1115,
+          "y": 158
+        },
+        {
+          "x": 1153,
+          "y": 158
+        },
+        {
+          "x": 1191,
+          "y": 159
+        },
+        {
+          "x": 1225,
+          "y": 143
+        },
+        {
+          "x": 1260,
+          "y": 128
+        }
+      ],
+      "territoryKingdomId": "northreach"
     },
-
-    "greenharbor_elmstead": {
-      "id": "greenharbor_elmstead",
-      "fromNodeId": "greenharbor",
-      "toNodeId": "elmstead",
-      "distanceKm": 95,
-      "travelModifier": 1.05,
-      "difficulty": 2,
-      "terrain": "forest_road",
-      "points": [
-        {"x":3850,"y":900},
-        {"x":3960,"y":970},
-        {"x":4080,"y":1040},
-        {"x":4200,"y":1120}
-      ]
-    },
-
-    "eastkeep_dawnfort": {
-      "id": "eastkeep_dawnfort",
-      "fromNodeId": "eastkeep",
-      "toNodeId": "dawnfort",
-      "distanceKm": 170,
-      "travelModifier": 1,
+    "road-008-riverhold-frostfield": {
+      "id": "road-008-riverhold-frostfield",
+      "fromNodeId": "riverhold",
+      "toNodeId": "frostfield",
+      "distanceKm": 21,
+      "travelModifier": 1.08,
       "difficulty": 2,
       "terrain": "road",
+      "roadClass": "local_road",
       "points": [
-        {"x":3300,"y":980},
-        {"x":3360,"y":1100},
-        {"x":3430,"y":1230},
-        {"x":3500,"y":1350}
-      ]
+        {
+          "x": 1115,
+          "y": 158
+        },
+        {
+          "x": 1127,
+          "y": 170
+        },
+        {
+          "x": 1139,
+          "y": 181
+        },
+        {
+          "x": 1140,
+          "y": 198
+        },
+        {
+          "x": 1140,
+          "y": 215
+        }
+      ],
+      "territoryKingdomId": "northreach"
     },
-
-    "stoneford_moorhall": {
-      "id": "stoneford_moorhall",
+    "road-009-riverhold-snowpine-crossing": {
+      "id": "road-009-riverhold-snowpine-crossing",
+      "fromNodeId": "riverhold",
+      "toNodeId": "snowpine-crossing",
+      "distanceKm": 35,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 1115,
+          "y": 158
+        },
+        {
+          "x": 1127,
+          "y": 182
+        },
+        {
+          "x": 1140,
+          "y": 206
+        },
+        {
+          "x": 1162,
+          "y": 220
+        },
+        {
+          "x": 1185,
+          "y": 235
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-010-snowpine-crossing-highcrest": {
+      "id": "road-010-snowpine-crossing-highcrest",
+      "fromNodeId": "snowpine-crossing",
+      "toNodeId": "highcrest",
+      "distanceKm": 44,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1185,
+          "y": 235
+        },
+        {
+          "x": 1210,
+          "y": 213
+        },
+        {
+          "x": 1236,
+          "y": 191
+        },
+        {
+          "x": 1248,
+          "y": 159
+        },
+        {
+          "x": 1260,
+          "y": 128
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-011-frozen-valley-whitepass-ford": {
+      "id": "road-011-frozen-valley-whitepass-ford",
+      "fromNodeId": "frozen-valley",
+      "toNodeId": "whitepass-ford",
+      "distanceKm": 19,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 875,
+          "y": 255
+        },
+        {
+          "x": 890,
+          "y": 254
+        },
+        {
+          "x": 905,
+          "y": 254
+        },
+        {
+          "x": 917,
+          "y": 262
+        },
+        {
+          "x": 930,
+          "y": 270
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-012-whitepass-ford-eastern-ice-pass": {
+      "id": "road-012-whitepass-ford-eastern-ice-pass",
+      "fromNodeId": "whitepass-ford",
+      "toNodeId": "eastern-ice-pass",
+      "distanceKm": 32,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 930,
+          "y": 270
+        },
+        {
+          "x": 953,
+          "y": 263
+        },
+        {
+          "x": 977,
+          "y": 257
+        },
+        {
+          "x": 1001,
+          "y": 261
+        },
+        {
+          "x": 1025,
+          "y": 265
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-013-frozen-valley-eastern-ice-pass": {
+      "id": "road-013-frozen-valley-eastern-ice-pass",
+      "fromNodeId": "frozen-valley",
+      "toNodeId": "eastern-ice-pass",
+      "distanceKm": 51,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 875,
+          "y": 255
+        },
+        {
+          "x": 913,
+          "y": 249
+        },
+        {
+          "x": 951,
+          "y": 243
+        },
+        {
+          "x": 988,
+          "y": 254
+        },
+        {
+          "x": 1025,
+          "y": 265
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-014-frozen-valley-kings-pass": {
+      "id": "road-014-frozen-valley-kings-pass",
+      "fromNodeId": "frozen-valley",
+      "toNodeId": "kings-pass",
+      "distanceKm": 48,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 875,
+          "y": 255
+        },
+        {
+          "x": 841,
+          "y": 266
+        },
+        {
+          "x": 806,
+          "y": 277
+        },
+        {
+          "x": 771,
+          "y": 271
+        },
+        {
+          "x": 735,
+          "y": 265
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-015-stoneford-western-frost-pass": {
+      "id": "road-015-stoneford-western-frost-pass",
       "fromNodeId": "stoneford",
-      "toNodeId": "moorhall",
-      "distanceKm": 340,
-      "travelModifier": 1.15,
-      "difficulty": 3,
-      "terrain": "marsh_road",
-      "points": [
-        {"x":1450,"y":980},
-        {"x":1380,"y":1250},
-        {"x":1250,"y":1550},
-        {"x":1150,"y":1900}
-      ]
-    },
-
-    "moorhall_blackfen": {
-      "id": "moorhall_blackfen",
-      "fromNodeId": "moorhall",
-      "toNodeId": "blackfen",
-      "distanceKm": 130,
-      "travelModifier": 1.2,
-      "difficulty": 4,
-      "terrain": "marsh_road",
-      "points": [
-        {"x":1150,"y":1900},
-        {"x":1000,"y":1930},
-        {"x":850,"y":1990},
-        {"x":700,"y":2050}
-      ]
-    },
-
-    "blackfen_reedmere": {
-      "id": "blackfen_reedmere",
-      "fromNodeId": "blackfen",
-      "toNodeId": "reedmere",
-      "distanceKm": 85,
-      "travelModifier": 1.25,
-      "difficulty": 4,
-      "terrain": "marsh_road",
-      "points": [
-        {"x":700,"y":2050},
-        {"x":620,"y":2140},
-        {"x":530,"y":2250},
-        {"x":450,"y":2350}
-      ]
-    },
-
-    "moorhall_greywatch": {
-      "id": "moorhall_greywatch",
-      "fromNodeId": "moorhall",
-      "toNodeId": "greywatch",
-      "distanceKm": 165,
-      "travelModifier": 1.05,
-      "difficulty": 2,
-      "terrain": "road",
-      "points": [
-        {"x":1150,"y":1900},
-        {"x":1220,"y":2010},
-        {"x":1340,"y":2140},
-        {"x":1450,"y":2250}
-      ]
-    },
-
-    "moorhall_sunspire": {
-      "id": "moorhall_sunspire",
-      "fromNodeId": "moorhall",
-      "toNodeId": "sunspire",
-      "distanceKm": 280,
-      "travelModifier": 1,
-      "difficulty": 2,
-      "terrain": "road",
-      "points": [
-        {"x":1150,"y":1900},
-        {"x":1700,"y":1980},
-        {"x":2300,"y":2150},
-        {"x":2800,"y":2350}
-      ]
-    },
-
-    "sunspire_goldmeadow": {
-      "id": "sunspire_goldmeadow",
-      "fromNodeId": "sunspire",
-      "toNodeId": "goldmeadow",
-      "distanceKm": 125,
-      "travelModifier": 0.95,
-      "difficulty": 1,
-      "terrain": "road",
-      "points": [
-        {"x":2800,"y":2350},
-        {"x":2880,"y":2470},
-        {"x":2970,"y":2600},
-        {"x":3050,"y":2700}
-      ]
-    },
-
-    "goldmeadow_redfield": {
-      "id": "goldmeadow_redfield",
-      "fromNodeId": "goldmeadow",
-      "toNodeId": "redfield",
-      "distanceKm": 90,
-      "travelModifier": 0.95,
-      "difficulty": 1,
-      "terrain": "road",
-      "points": [
-        {"x":3050,"y":2700},
-        {"x":2930,"y":2800},
-        {"x":2820,"y":2890},
-        {"x":2700,"y":2950}
-      ]
-    },
-
-    "sunspire_southgate": {
-      "id": "sunspire_southgate",
-      "fromNodeId": "sunspire",
-      "toNodeId": "southgate",
-      "distanceKm": 175,
-      "travelModifier": 1.1,
-      "difficulty": 3,
-      "terrain": "mountain_road",
-      "points": [
-        {"x":2800,"y":2350},
-        {"x":3000,"y":2450},
-        {"x":3250,"y":2580},
-        {"x":3500,"y":2700}
-      ]
-    },
-
-    "eastkeep_sunspire": {
-      "id": "eastkeep_sunspire",
-      "fromNodeId": "eastkeep",
-      "toNodeId": "sunspire",
-      "distanceKm": 260,
-      "travelModifier": 1.05,
-      "difficulty": 2,
-      "terrain": "road",
-      "points": [
-        {"x":3300,"y":980},
-        {"x":3200,"y":1400},
-        {"x":3000,"y":1900},
-        {"x":2800,"y":2350}
-      ]
-    },
-
-    "eastkeep_ironhold": {
-      "id": "eastkeep_ironhold",
-      "fromNodeId": "eastkeep",
-      "toNodeId": "ironhold",
-      "distanceKm": 390,
-      "travelModifier": 1.15,
-      "difficulty": 3,
-      "terrain": "mountain_road",
-      "points": [
-        {"x":3300,"y":980},
-        {"x":3600,"y":1200},
-        {"x":4000,"y":1500},
-        {"x":4300,"y":1900}
-      ]
-    },
-
-    "moorhall_ironhold": {
-      "id": "moorhall_ironhold",
-      "fromNodeId": "moorhall",
-      "toNodeId": "ironhold",
-      "distanceKm": 360,
-      "travelModifier": 1,
-      "difficulty": 2,
-      "terrain": "road",
-      "points": [
-        {"x":1150,"y":1900},
-        {"x":2200,"y":1850},
-        {"x":3300,"y":1870},
-        {"x":4300,"y":1900}
-      ]
-    },
-
-    "ironhold_emberfall": {
-      "id": "ironhold_emberfall",
-      "fromNodeId": "ironhold",
-      "toNodeId": "emberfall",
-      "distanceKm": 140,
-      "travelModifier": 1.15,
-      "difficulty": 3,
-      "terrain": "mountain_road",
-      "points": [
-        {"x":4300,"y":1900},
-        {"x":4400,"y":2000},
-        {"x":4480,"y":2100},
-        {"x":4550,"y":2200}
-      ]
-    },
-
-    "emberfall_stonevein": {
-      "id": "emberfall_stonevein",
-      "fromNodeId": "emberfall",
-      "toNodeId": "stonevein",
-      "distanceKm": 105,
-      "travelModifier": 1.2,
+      "toNodeId": "western-frost-pass",
+      "distanceKm": 41,
+      "travelModifier": 1.32,
       "difficulty": 4,
       "terrain": "mountain_road",
+      "roadClass": "mountain_route",
       "points": [
-        {"x":4550,"y":2200},
-        {"x":4610,"y":2310},
-        {"x":4660,"y":2430},
-        {"x":4700,"y":2550}
-      ]
+        {
+          "x": 645,
+          "y": 215
+        },
+        {
+          "x": 619,
+          "y": 234
+        },
+        {
+          "x": 594,
+          "y": 253
+        },
+        {
+          "x": 562,
+          "y": 254
+        },
+        {
+          "x": 530,
+          "y": 255
+        }
+      ],
+      "territoryKingdomId": "northreach"
     },
-
-    "ironhold_ashguard": {
-      "id": "ironhold_ashguard",
-      "fromNodeId": "ironhold",
-      "toNodeId": "ashguard",
-      "distanceKm": 180,
-      "travelModifier": 1.15,
+    "road-016-wolfpine-stoneford": {
+      "id": "road-016-wolfpine-stoneford",
+      "fromNodeId": "wolfpine",
+      "toNodeId": "stoneford",
+      "distanceKm": 36,
+      "travelModifier": 1.22,
       "difficulty": 3,
       "terrain": "forest_road",
+      "roadClass": "forest_trail",
       "points": [
-        {"x":4300,"y":1900},
-        {"x":4220,"y":2080},
-        {"x":4140,"y":2270},
-        {"x":4050,"y":2450}
-      ]
+        {
+          "x": 742,
+          "y": 170
+        },
+        {
+          "x": 721,
+          "y": 188
+        },
+        {
+          "x": 700,
+          "y": 206
+        },
+        {
+          "x": 672,
+          "y": 211
+        },
+        {
+          "x": 645,
+          "y": 215
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-017-wolfpine-wolf-ridge": {
+      "id": "road-017-wolfpine-wolf-ridge",
+      "fromNodeId": "wolfpine",
+      "toNodeId": "wolf-ridge",
+      "distanceKm": 23,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 742,
+          "y": 170
+        },
+        {
+          "x": 752,
+          "y": 185
+        },
+        {
+          "x": 762,
+          "y": 200
+        },
+        {
+          "x": 761,
+          "y": 217
+        },
+        {
+          "x": 760,
+          "y": 235
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-018-western-frost-pass-southgate": {
+      "id": "road-018-western-frost-pass-southgate",
+      "fromNodeId": "western-frost-pass",
+      "toNodeId": "southgate",
+      "distanceKm": 46,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 530,
+          "y": 255
+        },
+        {
+          "x": 540,
+          "y": 288
+        },
+        {
+          "x": 550,
+          "y": 321
+        },
+        {
+          "x": 548,
+          "y": 356
+        },
+        {
+          "x": 545,
+          "y": 390
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "northreach",
+        "toKingdomId": "southmark"
+      }
+    },
+    "road-019-kings-pass-crown-ridge": {
+      "id": "road-019-kings-pass-crown-ridge",
+      "fromNodeId": "kings-pass",
+      "toNodeId": "crown-ridge",
+      "distanceKm": 30,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 735,
+          "y": 265
+        },
+        {
+          "x": 743,
+          "y": 287
+        },
+        {
+          "x": 751,
+          "y": 309
+        },
+        {
+          "x": 771,
+          "y": 322
+        },
+        {
+          "x": 790,
+          "y": 335
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "northreach",
+        "toKingdomId": "southmark"
+      }
+    },
+    "road-020-crown-ridge-sunspire": {
+      "id": "road-020-crown-ridge-sunspire",
+      "fromNodeId": "crown-ridge",
+      "toNodeId": "sunspire",
+      "distanceKm": 23,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 790,
+          "y": 335
+        },
+        {
+          "x": 788,
+          "y": 353
+        },
+        {
+          "x": 785,
+          "y": 371
+        },
+        {
+          "x": 770,
+          "y": 382
+        },
+        {
+          "x": 755,
+          "y": 392
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-021-eastern-ice-pass-stonehill": {
+      "id": "road-021-eastern-ice-pass-stonehill",
+      "fromNodeId": "eastern-ice-pass",
+      "toNodeId": "stonehill",
+      "distanceKm": 57,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 1025,
+          "y": 265
+        },
+        {
+          "x": 991,
+          "y": 290
+        },
+        {
+          "x": 957,
+          "y": 316
+        },
+        {
+          "x": 916,
+          "y": 328
+        },
+        {
+          "x": 875,
+          "y": 340
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "northreach",
+        "toKingdomId": "southmark"
+      }
+    },
+    "road-022-stonehill-sunspire": {
+      "id": "road-022-stonehill-sunspire",
+      "fromNodeId": "stonehill",
+      "toNodeId": "sunspire",
+      "distanceKm": 44,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 875,
+          "y": 340
+        },
+        {
+          "x": 848,
+          "y": 360
+        },
+        {
+          "x": 821,
+          "y": 380
+        },
+        {
+          "x": 788,
+          "y": 386
+        },
+        {
+          "x": 755,
+          "y": 392
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-023-moorhall-blackpine": {
+      "id": "road-023-moorhall-blackpine",
+      "fromNodeId": "moorhall",
+      "toNodeId": "blackpine",
+      "distanceKm": 24,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 245,
+          "y": 375
+        },
+        {
+          "x": 234,
+          "y": 361
+        },
+        {
+          "x": 223,
+          "y": 346
+        },
+        {
+          "x": 206,
+          "y": 338
+        },
+        {
+          "x": 190,
+          "y": 330
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-024-moorhall-deepwood-crossing": {
+      "id": "road-024-moorhall-deepwood-crossing",
+      "fromNodeId": "moorhall",
+      "toNodeId": "deepwood-crossing",
+      "distanceKm": 20,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 245,
+          "y": 375
+        },
+        {
+          "x": 245,
+          "y": 390
+        },
+        {
+          "x": 246,
+          "y": 406
+        },
+        {
+          "x": 255,
+          "y": 418
+        },
+        {
+          "x": 265,
+          "y": 430
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-025-reedmere-moorhall": {
+      "id": "road-025-reedmere-moorhall",
+      "fromNodeId": "reedmere",
+      "toNodeId": "moorhall",
+      "distanceKm": 47,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 110,
+          "y": 400
+        },
+        {
+          "x": 144,
+          "y": 398
+        },
+        {
+          "x": 179,
+          "y": 395
+        },
+        {
+          "x": 212,
+          "y": 385
+        },
+        {
+          "x": 245,
+          "y": 375
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-026-reedmere-deepwood": {
+      "id": "road-026-reedmere-deepwood",
+      "fromNodeId": "reedmere",
+      "toNodeId": "deepwood",
+      "distanceKm": 31,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 110,
+          "y": 400
+        },
+        {
+          "x": 127,
+          "y": 417
+        },
+        {
+          "x": 144,
+          "y": 434
+        },
+        {
+          "x": 149,
+          "y": 457
+        },
+        {
+          "x": 155,
+          "y": 480
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-027-deepwood-deepwood-crossing": {
+      "id": "road-027-deepwood-deepwood-crossing",
+      "fromNodeId": "deepwood",
+      "toNodeId": "deepwood-crossing",
+      "distanceKm": 41,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 155,
+          "y": 480
+        },
+        {
+          "x": 185,
+          "y": 472
+        },
+        {
+          "x": 214,
+          "y": 464
+        },
+        {
+          "x": 240,
+          "y": 447
+        },
+        {
+          "x": 265,
+          "y": 430
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-028-deepwood-crossing-blackfen": {
+      "id": "road-028-deepwood-crossing-blackfen",
+      "fromNodeId": "deepwood-crossing",
+      "toNodeId": "blackfen",
+      "distanceKm": 24,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 265,
+          "y": 430
+        },
+        {
+          "x": 278,
+          "y": 444
+        },
+        {
+          "x": 292,
+          "y": 457
+        },
+        {
+          "x": 311,
+          "y": 456
+        },
+        {
+          "x": 330,
+          "y": 455
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-029-blackfen-old-oak-road": {
+      "id": "road-029-blackfen-old-oak-road",
+      "fromNodeId": "blackfen",
+      "toNodeId": "old-oak-road",
+      "distanceKm": 26,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 330,
+          "y": 455
+        },
+        {
+          "x": 351,
+          "y": 459
+        },
+        {
+          "x": 371,
+          "y": 462
+        },
+        {
+          "x": 381,
+          "y": 481
+        },
+        {
+          "x": 390,
+          "y": 500
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-030-old-oak-road-oakrest": {
+      "id": "road-030-old-oak-road-oakrest",
+      "fromNodeId": "old-oak-road",
+      "toNodeId": "oakrest",
+      "distanceKm": 38,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 390,
+          "y": 500
+        },
+        {
+          "x": 361,
+          "y": 501
+        },
+        {
+          "x": 333,
+          "y": 503
+        },
+        {
+          "x": 306,
+          "y": 514
+        },
+        {
+          "x": 280,
+          "y": 525
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-031-oakrest-oakmarket": {
+      "id": "road-031-oakrest-oakmarket",
+      "fromNodeId": "oakrest",
+      "toNodeId": "oakmarket",
+      "distanceKm": 22,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 280,
+          "y": 525
+        },
+        {
+          "x": 298,
+          "y": 528
+        },
+        {
+          "x": 316,
+          "y": 532
+        },
+        {
+          "x": 323,
+          "y": 548
+        },
+        {
+          "x": 330,
+          "y": 565
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-032-oakmarket-western-clearing": {
+      "id": "road-032-oakmarket-western-clearing",
+      "fromNodeId": "oakmarket",
+      "toNodeId": "western-clearing",
+      "distanceKm": 30,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 330,
+          "y": 565
+        },
+        {
+          "x": 310,
+          "y": 574
+        },
+        {
+          "x": 290,
+          "y": 584
+        },
+        {
+          "x": 267,
+          "y": 584
+        },
+        {
+          "x": 245,
+          "y": 585
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-033-western-clearing-blackwood-ridge": {
+      "id": "road-033-western-clearing-blackwood-ridge",
+      "fromNodeId": "western-clearing",
+      "toNodeId": "blackwood-ridge",
+      "distanceKm": 32,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 245,
+          "y": 585
+        },
+        {
+          "x": 220,
+          "y": 585
+        },
+        {
+          "x": 195,
+          "y": 584
+        },
+        {
+          "x": 175,
+          "y": 570
+        },
+        {
+          "x": 155,
+          "y": 555
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-034-blackwood-ridge-deepwood": {
+      "id": "road-034-blackwood-ridge-deepwood",
+      "fromNodeId": "blackwood-ridge",
+      "toNodeId": "deepwood",
+      "distanceKm": 26,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 155,
+          "y": 555
+        },
+        {
+          "x": 146,
+          "y": 536
+        },
+        {
+          "x": 136,
+          "y": 518
+        },
+        {
+          "x": 146,
+          "y": 499
+        },
+        {
+          "x": 155,
+          "y": 480
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-035-greywood-hill-greywatch": {
+      "id": "road-035-greywood-hill-greywatch",
+      "fromNodeId": "greywood-hill",
+      "toNodeId": "greywatch",
+      "distanceKm": 20,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 385,
+          "y": 365
+        },
+        {
+          "x": 401,
+          "y": 370
+        },
+        {
+          "x": 416,
+          "y": 375
+        },
+        {
+          "x": 423,
+          "y": 390
+        },
+        {
+          "x": 430,
+          "y": 405
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-036-moorhall-greywood-hill": {
+      "id": "road-036-moorhall-greywood-hill",
+      "fromNodeId": "moorhall",
+      "toNodeId": "greywood-hill",
+      "distanceKm": 48,
+      "travelModifier": 1.22,
+      "difficulty": 3,
+      "terrain": "forest_road",
+      "roadClass": "forest_trail",
+      "points": [
+        {
+          "x": 245,
+          "y": 375
+        },
+        {
+          "x": 280,
+          "y": 378
+        },
+        {
+          "x": 316,
+          "y": 382
+        },
+        {
+          "x": 350,
+          "y": 373
+        },
+        {
+          "x": 385,
+          "y": 365
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-037-blackfen-greywatch": {
+      "id": "road-037-blackfen-greywatch",
+      "fromNodeId": "blackfen",
+      "toNodeId": "greywatch",
+      "distanceKm": 38,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 330,
+          "y": 455
+        },
+        {
+          "x": 357,
+          "y": 446
+        },
+        {
+          "x": 384,
+          "y": 437
+        },
+        {
+          "x": 407,
+          "y": 421
+        },
+        {
+          "x": 430,
+          "y": 405
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-038-greywatch-west-road-clearing": {
+      "id": "road-038-greywatch-west-road-clearing",
+      "fromNodeId": "greywatch",
+      "toNodeId": "west-road-clearing",
+      "distanceKm": 24,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 430,
+          "y": 405
+        },
+        {
+          "x": 443,
+          "y": 419
+        },
+        {
+          "x": 457,
+          "y": 432
+        },
+        {
+          "x": 456,
+          "y": 451
+        },
+        {
+          "x": 455,
+          "y": 470
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-039-west-road-clearing-west-road-junction": {
+      "id": "road-039-west-road-clearing-west-road-junction",
+      "fromNodeId": "west-road-clearing",
+      "toNodeId": "west-road-junction",
+      "distanceKm": 23,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 455,
+          "y": 470
+        },
+        {
+          "x": 459,
+          "y": 451
+        },
+        {
+          "x": 463,
+          "y": 432
+        },
+        {
+          "x": 482,
+          "y": 426
+        },
+        {
+          "x": 500,
+          "y": 420
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "westmoor",
+        "toKingdomId": "southmark"
+      }
+    },
+    "road-040-west-road-junction-sunspire": {
+      "id": "road-040-west-road-junction-sunspire",
+      "fromNodeId": "west-road-junction",
+      "toNodeId": "sunspire",
+      "distanceKm": 87,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 500,
+          "y": 420
+        },
+        {
+          "x": 564,
+          "y": 417
+        },
+        {
+          "x": 628,
+          "y": 414
+        },
+        {
+          "x": 692,
+          "y": 403
+        },
+        {
+          "x": 755,
+          "y": 392
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-041-oakmarket-oakshield": {
+      "id": "road-041-oakmarket-oakshield",
+      "fromNodeId": "oakmarket",
+      "toNodeId": "oakshield",
+      "distanceKm": 17,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 330,
+          "y": 565
+        },
+        {
+          "x": 330,
+          "y": 579
+        },
+        {
+          "x": 329,
+          "y": 592
+        },
+        {
+          "x": 340,
+          "y": 601
+        },
+        {
+          "x": 350,
+          "y": 610
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-042-oakshield-greenfield-west": {
+      "id": "road-042-oakshield-greenfield-west",
+      "fromNodeId": "oakshield",
+      "toNodeId": "greenfield-west",
+      "distanceKm": 24,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 350,
+          "y": 610
+        },
+        {
+          "x": 369,
+          "y": 612
+        },
+        {
+          "x": 389,
+          "y": 614
+        },
+        {
+          "x": 402,
+          "y": 600
+        },
+        {
+          "x": 415,
+          "y": 585
+        }
+      ],
+      "territoryKingdomId": "westmoor"
+    },
+    "road-043-greenfield-west-green-valley": {
+      "id": "road-043-greenfield-west-green-valley",
+      "fromNodeId": "greenfield-west",
+      "toNodeId": "green-valley",
+      "distanceKm": 61,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 415,
+          "y": 585
+        },
+        {
+          "x": 459,
+          "y": 576
+        },
+        {
+          "x": 504,
+          "y": 566
+        },
+        {
+          "x": 544,
+          "y": 546
+        },
+        {
+          "x": 585,
+          "y": 525
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "westmoor",
+        "toKingdomId": "southmark"
+      }
+    },
+    "road-044-green-valley-highfield": {
+      "id": "road-044-green-valley-highfield",
+      "fromNodeId": "green-valley",
+      "toNodeId": "highfield",
+      "distanceKm": 18,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 585,
+          "y": 525
+        },
+        {
+          "x": 590,
+          "y": 510
+        },
+        {
+          "x": 595,
+          "y": 495
+        },
+        {
+          "x": 582,
+          "y": 485
+        },
+        {
+          "x": 570,
+          "y": 475
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-045-highfield-sunspire": {
+      "id": "road-045-highfield-sunspire",
+      "fromNodeId": "highfield",
+      "toNodeId": "sunspire",
+      "distanceKm": 69,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 570,
+          "y": 475
+        },
+        {
+          "x": 619,
+          "y": 461
+        },
+        {
+          "x": 668,
+          "y": 446
+        },
+        {
+          "x": 712,
+          "y": 419
+        },
+        {
+          "x": 755,
+          "y": 392
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-046-sunspire-kingscross": {
+      "id": "road-046-sunspire-kingscross",
+      "fromNodeId": "sunspire",
+      "toNodeId": "kingscross",
+      "distanceKm": 22,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 755,
+          "y": 392
+        },
+        {
+          "x": 738,
+          "y": 387
+        },
+        {
+          "x": 721,
+          "y": 382
+        },
+        {
+          "x": 705,
+          "y": 391
+        },
+        {
+          "x": 690,
+          "y": 400
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-047-kingscross-kings-road-junction": {
+      "id": "road-047-kingscross-kings-road-junction",
+      "fromNodeId": "kingscross",
+      "toNodeId": "kings-road-junction",
+      "distanceKm": 12,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 690,
+          "y": 400
+        },
+        {
+          "x": 697,
+          "y": 411
+        },
+        {
+          "x": 703,
+          "y": 421
+        },
+        {
+          "x": 692,
+          "y": 426
+        },
+        {
+          "x": 680,
+          "y": 430
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-048-kings-road-junction-goldmeadow": {
+      "id": "road-048-kings-road-junction-goldmeadow",
+      "fromNodeId": "kings-road-junction",
+      "toNodeId": "goldmeadow",
+      "distanceKm": 18,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 680,
+          "y": 430
+        },
+        {
+          "x": 682,
+          "y": 444
+        },
+        {
+          "x": 683,
+          "y": 458
+        },
+        {
+          "x": 674,
+          "y": 469
+        },
+        {
+          "x": 665,
+          "y": 480
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-049-goldmeadow-highfield": {
+      "id": "road-049-goldmeadow-highfield",
+      "fromNodeId": "goldmeadow",
+      "toNodeId": "highfield",
+      "distanceKm": 32,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 665,
+          "y": 480
+        },
+        {
+          "x": 642,
+          "y": 470
+        },
+        {
+          "x": 618,
+          "y": 460
+        },
+        {
+          "x": 594,
+          "y": 467
+        },
+        {
+          "x": 570,
+          "y": 475
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-050-goldmeadow-greenmead": {
+      "id": "road-050-goldmeadow-greenmead",
+      "fromNodeId": "goldmeadow",
+      "toNodeId": "greenmead",
+      "distanceKm": 25,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 665,
+          "y": 480
+        },
+        {
+          "x": 685,
+          "y": 482
+        },
+        {
+          "x": 705,
+          "y": 484
+        },
+        {
+          "x": 717,
+          "y": 500
+        },
+        {
+          "x": 730,
+          "y": 515
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-051-greenmead-south-cross": {
+      "id": "road-051-greenmead-south-cross",
+      "fromNodeId": "greenmead",
+      "toNodeId": "south-cross",
+      "distanceKm": 16,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 730,
+          "y": 515
+        },
+        {
+          "x": 733,
+          "y": 527
+        },
+        {
+          "x": 736,
+          "y": 539
+        },
+        {
+          "x": 745,
+          "y": 547
+        },
+        {
+          "x": 755,
+          "y": 555
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-052-wheatbrook-green-valley": {
+      "id": "road-052-wheatbrook-green-valley",
+      "fromNodeId": "wheatbrook",
+      "toNodeId": "green-valley",
+      "distanceKm": 16,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 625,
+          "y": 550
+        },
+        {
+          "x": 613,
+          "y": 548
+        },
+        {
+          "x": 600,
+          "y": 545
+        },
+        {
+          "x": 593,
+          "y": 535
+        },
+        {
+          "x": 585,
+          "y": 525
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-053-wheatbrook-south-cross": {
+      "id": "road-053-wheatbrook-south-cross",
+      "fromNodeId": "wheatbrook",
+      "toNodeId": "south-cross",
+      "distanceKm": 44,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 625,
+          "y": 550
+        },
+        {
+          "x": 657,
+          "y": 557
+        },
+        {
+          "x": 690,
+          "y": 564
+        },
+        {
+          "x": 722,
+          "y": 560
+        },
+        {
+          "x": 755,
+          "y": 555
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-054-redfield-central-hill": {
+      "id": "road-054-redfield-central-hill",
+      "fromNodeId": "redfield",
+      "toNodeId": "central-hill",
+      "distanceKm": 27,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 885,
+          "y": 495
+        },
+        {
+          "x": 865,
+          "y": 489
+        },
+        {
+          "x": 845,
+          "y": 483
+        },
+        {
+          "x": 833,
+          "y": 467
+        },
+        {
+          "x": 820,
+          "y": 450
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-055-redfield-south-cross": {
+      "id": "road-055-redfield-south-cross",
+      "fromNodeId": "redfield",
+      "toNodeId": "south-cross",
+      "distanceKm": 49,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 885,
+          "y": 495
+        },
+        {
+          "x": 850,
+          "y": 504
+        },
+        {
+          "x": 814,
+          "y": 512
+        },
+        {
+          "x": 785,
+          "y": 534
+        },
+        {
+          "x": 755,
+          "y": 555
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-056-stonebrook-crown-ridge": {
+      "id": "road-056-stonebrook-crown-ridge",
+      "fromNodeId": "stonebrook",
+      "toNodeId": "crown-ridge",
+      "distanceKm": 12,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 820,
+          "y": 325
+        },
+        {
+          "x": 815,
+          "y": 334
+        },
+        {
+          "x": 809,
+          "y": 342
+        },
+        {
+          "x": 800,
+          "y": 339
+        },
+        {
+          "x": 790,
+          "y": 335
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-057-stonebrook-stonehill": {
+      "id": "road-057-stonebrook-stonehill",
+      "fromNodeId": "stonebrook",
+      "toNodeId": "stonehill",
+      "distanceKm": 19,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 820,
+          "y": 325
+        },
+        {
+          "x": 836,
+          "y": 321
+        },
+        {
+          "x": 852,
+          "y": 316
+        },
+        {
+          "x": 863,
+          "y": 328
+        },
+        {
+          "x": 875,
+          "y": 340
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-058-stonehill-watch-hill": {
+      "id": "road-058-stonehill-watch-hill",
+      "fromNodeId": "stonehill",
+      "toNodeId": "watch-hill",
+      "distanceKm": 24,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 875,
+          "y": 340
+        },
+        {
+          "x": 889,
+          "y": 351
+        },
+        {
+          "x": 904,
+          "y": 362
+        },
+        {
+          "x": 922,
+          "y": 363
+        },
+        {
+          "x": 940,
+          "y": 365
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-059-watch-hill-stonebridge": {
+      "id": "road-059-watch-hill-stonebridge",
+      "fromNodeId": "watch-hill",
+      "toNodeId": "stonebridge",
+      "distanceKm": 23,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 940,
+          "y": 365
+        },
+        {
+          "x": 927,
+          "y": 376
+        },
+        {
+          "x": 914,
+          "y": 388
+        },
+        {
+          "x": 907,
+          "y": 404
+        },
+        {
+          "x": 900,
+          "y": 420
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-060-stonebridge-east-road-junction": {
+      "id": "road-060-stonebridge-east-road-junction",
+      "fromNodeId": "stonebridge",
+      "toNodeId": "east-road-junction",
+      "distanceKm": 26,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 900,
+          "y": 420
+        },
+        {
+          "x": 919,
+          "y": 423
+        },
+        {
+          "x": 938,
+          "y": 425
+        },
+        {
+          "x": 957,
+          "y": 420
+        },
+        {
+          "x": 975,
+          "y": 415
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-061-sunspire-central-hill": {
+      "id": "road-061-sunspire-central-hill",
+      "fromNodeId": "sunspire",
+      "toNodeId": "central-hill",
+      "distanceKm": 30,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 755,
+          "y": 392
+        },
+        {
+          "x": 767,
+          "y": 412
+        },
+        {
+          "x": 778,
+          "y": 431
+        },
+        {
+          "x": 799,
+          "y": 441
+        },
+        {
+          "x": 820,
+          "y": 450
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-062-sunspire-east-road-junction": {
+      "id": "road-062-sunspire-east-road-junction",
+      "fromNodeId": "sunspire",
+      "toNodeId": "east-road-junction",
+      "distanceKm": 75,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 755,
+          "y": 392
+        },
+        {
+          "x": 811,
+          "y": 390
+        },
+        {
+          "x": 867,
+          "y": 389
+        },
+        {
+          "x": 921,
+          "y": 402
+        },
+        {
+          "x": 975,
+          "y": 415
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-063-kings-road-junction-south-cross": {
+      "id": "road-063-kings-road-junction-south-cross",
+      "fromNodeId": "kings-road-junction",
+      "toNodeId": "south-cross",
+      "distanceKm": 50,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 680,
+          "y": 430
+        },
+        {
+          "x": 694,
+          "y": 464
+        },
+        {
+          "x": 707,
+          "y": 499
+        },
+        {
+          "x": 731,
+          "y": 527
+        },
+        {
+          "x": 755,
+          "y": 555
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-064-central-hill-south-cross": {
+      "id": "road-064-central-hill-south-cross",
+      "fromNodeId": "central-hill",
+      "toNodeId": "south-cross",
+      "distanceKm": 42,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 820,
+          "y": 450
+        },
+        {
+          "x": 808,
+          "y": 479
+        },
+        {
+          "x": 795,
+          "y": 507
+        },
+        {
+          "x": 775,
+          "y": 531
+        },
+        {
+          "x": 755,
+          "y": 555
+        }
+      ],
+      "territoryKingdomId": "southmark"
+    },
+    "road-065-east-road-junction-east-border-crossing": {
+      "id": "road-065-east-road-junction-east-border-crossing",
+      "fromNodeId": "east-road-junction",
+      "toNodeId": "east-border-crossing",
+      "distanceKm": 12,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 975,
+          "y": 415
+        },
+        {
+          "x": 984,
+          "y": 409
+        },
+        {
+          "x": 992,
+          "y": 403
+        },
+        {
+          "x": 999,
+          "y": 411
+        },
+        {
+          "x": 1005,
+          "y": 420
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "southmark",
+        "toKingdomId": "eastvale"
+      }
+    },
+    "road-066-east-border-crossing-greencrest-fort": {
+      "id": "road-066-east-border-crossing-greencrest-fort",
+      "fromNodeId": "east-border-crossing",
+      "toNodeId": "greencrest-fort",
+      "distanceKm": 12,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 1005,
+          "y": 420
+        },
+        {
+          "x": 1000,
+          "y": 411
+        },
+        {
+          "x": 995,
+          "y": 403
+        },
+        {
+          "x": 1002,
+          "y": 396
+        },
+        {
+          "x": 1010,
+          "y": 390
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-067-greencrest-fort-greencrest": {
+      "id": "road-067-greencrest-fort-greencrest",
+      "fromNodeId": "greencrest-fort",
+      "toNodeId": "greencrest",
+      "distanceKm": 25,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1010,
+          "y": 390
+        },
+        {
+          "x": 1013,
+          "y": 409
+        },
+        {
+          "x": 1017,
+          "y": 428
+        },
+        {
+          "x": 1031,
+          "y": 442
+        },
+        {
+          "x": 1045,
+          "y": 455
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-068-greencrest-eastkeep": {
+      "id": "road-068-greencrest-eastkeep",
+      "fromNodeId": "greencrest",
+      "toNodeId": "eastkeep",
+      "distanceKm": 60,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 1045,
+          "y": 455
+        },
+        {
+          "x": 1088,
+          "y": 444
+        },
+        {
+          "x": 1131,
+          "y": 433
+        },
+        {
+          "x": 1171,
+          "y": 412
+        },
+        {
+          "x": 1210,
+          "y": 392
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-069-watch-hill-greencrest-fort": {
+      "id": "road-069-watch-hill-greencrest-fort",
+      "fromNodeId": "watch-hill",
+      "toNodeId": "greencrest-fort",
+      "distanceKm": 25,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 940,
+          "y": 365
+        },
+        {
+          "x": 955,
+          "y": 379
+        },
+        {
+          "x": 970,
+          "y": 393
+        },
+        {
+          "x": 990,
+          "y": 391
+        },
+        {
+          "x": 1010,
+          "y": 390
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "southmark",
+        "toKingdomId": "eastvale"
+      }
+    },
+    "road-070-central-hill-greenharbor": {
+      "id": "road-070-central-hill-greenharbor",
+      "fromNodeId": "central-hill",
+      "toNodeId": "greenharbor",
+      "distanceKm": 99,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 820,
+          "y": 450
+        },
+        {
+          "x": 893,
+          "y": 452
+        },
+        {
+          "x": 967,
+          "y": 455
+        },
+        {
+          "x": 1038,
+          "y": 470
+        },
+        {
+          "x": 1110,
+          "y": 485
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "southmark",
+        "toKingdomId": "eastvale"
+      }
+    },
+    "road-071-greenharbor-eastern-plain": {
+      "id": "road-071-greenharbor-eastern-plain",
+      "fromNodeId": "greenharbor",
+      "toNodeId": "eastern-plain",
+      "distanceKm": 22,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1110,
+          "y": 485
+        },
+        {
+          "x": 1127,
+          "y": 480
+        },
+        {
+          "x": 1144,
+          "y": 476
+        },
+        {
+          "x": 1152,
+          "y": 460
+        },
+        {
+          "x": 1160,
+          "y": 445
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-072-eastern-plain-eastkeep": {
+      "id": "road-072-eastern-plain-eastkeep",
+      "fromNodeId": "eastern-plain",
+      "toNodeId": "eastkeep",
+      "distanceKm": 25,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 1160,
+          "y": 445
+        },
+        {
+          "x": 1177,
+          "y": 436
+        },
+        {
+          "x": 1194,
+          "y": 427
+        },
+        {
+          "x": 1202,
+          "y": 409
+        },
+        {
+          "x": 1210,
+          "y": 392
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-073-greencrest-greenharbor": {
+      "id": "road-073-greencrest-greenharbor",
+      "fromNodeId": "greencrest",
+      "toNodeId": "greenharbor",
+      "distanceKm": 24,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1045,
+          "y": 455
+        },
+        {
+          "x": 1064,
+          "y": 456
+        },
+        {
+          "x": 1084,
+          "y": 456
+        },
+        {
+          "x": 1097,
+          "y": 471
+        },
+        {
+          "x": 1110,
+          "y": 485
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-074-greenharbor-eastbrook": {
+      "id": "road-074-greenharbor-eastbrook",
+      "fromNodeId": "greenharbor",
+      "toNodeId": "eastbrook",
+      "distanceKm": 25,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 1110,
+          "y": 485
+        },
+        {
+          "x": 1128,
+          "y": 495
+        },
+        {
+          "x": 1146,
+          "y": 504
+        },
+        {
+          "x": 1148,
+          "y": 525
+        },
+        {
+          "x": 1150,
+          "y": 545
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-075-eastbrook-elmstead": {
+      "id": "road-075-eastbrook-elmstead",
+      "fromNodeId": "eastbrook",
+      "toNodeId": "elmstead",
+      "distanceKm": 65,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1150,
+          "y": 545
+        },
+        {
+          "x": 1198,
+          "y": 549
+        },
+        {
+          "x": 1246,
+          "y": 553
+        },
+        {
+          "x": 1293,
+          "y": 542
+        },
+        {
+          "x": 1340,
+          "y": 530
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-076-elmstead-suncrest": {
+      "id": "road-076-elmstead-suncrest",
+      "fromNodeId": "elmstead",
+      "toNodeId": "suncrest",
+      "distanceKm": 25,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1340,
+          "y": 530
+        },
+        {
+          "x": 1340,
+          "y": 511
+        },
+        {
+          "x": 1340,
+          "y": 492
+        },
+        {
+          "x": 1330,
+          "y": 476
+        },
+        {
+          "x": 1320,
+          "y": 460
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-077-eastkeep-golden-road": {
+      "id": "road-077-eastkeep-golden-road",
+      "fromNodeId": "eastkeep",
+      "toNodeId": "golden-road",
+      "distanceKm": 21,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 1210,
+          "y": 392
+        },
+        {
+          "x": 1225,
+          "y": 398
+        },
+        {
+          "x": 1240,
+          "y": 404
+        },
+        {
+          "x": 1250,
+          "y": 417
+        },
+        {
+          "x": 1260,
+          "y": 430
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-078-golden-road-suncrest": {
+      "id": "road-078-golden-road-suncrest",
+      "fromNodeId": "golden-road",
+      "toNodeId": "suncrest",
+      "distanceKm": 23,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 1260,
+          "y": 430
+        },
+        {
+          "x": 1271,
+          "y": 445
+        },
+        {
+          "x": 1283,
+          "y": 459
+        },
+        {
+          "x": 1301,
+          "y": 460
+        },
+        {
+          "x": 1320,
+          "y": 460
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-079-eastkeep-eastern-hill": {
+      "id": "road-079-eastkeep-eastern-hill",
+      "fromNodeId": "eastkeep",
+      "toNodeId": "eastern-hill",
+      "distanceKm": 32,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1210,
+          "y": 392
+        },
+        {
+          "x": 1200,
+          "y": 370
+        },
+        {
+          "x": 1189,
+          "y": 348
+        },
+        {
+          "x": 1170,
+          "y": 334
+        },
+        {
+          "x": 1150,
+          "y": 320
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-080-eastern-hill-hillstead": {
+      "id": "road-080-eastern-hill-hillstead",
+      "fromNodeId": "eastern-hill",
+      "toNodeId": "hillstead",
+      "distanceKm": 34,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 1150,
+          "y": 320
+        },
+        {
+          "x": 1124,
+          "y": 316
+        },
+        {
+          "x": 1098,
+          "y": 312
+        },
+        {
+          "x": 1074,
+          "y": 323
+        },
+        {
+          "x": 1050,
+          "y": 335
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-081-eastern-hill-sun-ridge": {
+      "id": "road-081-eastern-hill-sun-ridge",
+      "fromNodeId": "eastern-hill",
+      "toNodeId": "sun-ridge",
+      "distanceKm": 48,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1150,
+          "y": 320
+        },
+        {
+          "x": 1186,
+          "y": 320
+        },
+        {
+          "x": 1222,
+          "y": 320
+        },
+        {
+          "x": 1256,
+          "y": 332
+        },
+        {
+          "x": 1290,
+          "y": 345
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-082-sun-ridge-dawnfort": {
+      "id": "road-082-sun-ridge-dawnfort",
+      "fromNodeId": "sun-ridge",
+      "toNodeId": "dawnfort",
+      "distanceKm": 34,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1290,
+          "y": 345
+        },
+        {
+          "x": 1315,
+          "y": 335
+        },
+        {
+          "x": 1339,
+          "y": 326
+        },
+        {
+          "x": 1365,
+          "y": 333
+        },
+        {
+          "x": 1390,
+          "y": 340
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-083-dawnfort-east-coast-road": {
+      "id": "road-083-dawnfort-east-coast-road",
+      "fromNodeId": "dawnfort",
+      "toNodeId": "east-coast-road",
+      "distanceKm": 18,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1390,
+          "y": 340
+        },
+        {
+          "x": 1400,
+          "y": 351
+        },
+        {
+          "x": 1410,
+          "y": 361
+        },
+        {
+          "x": 1407,
+          "y": 376
+        },
+        {
+          "x": 1405,
+          "y": 390
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-084-east-coast-road-coastfield": {
+      "id": "road-084-east-coast-road-coastfield",
+      "fromNodeId": "east-coast-road",
+      "toNodeId": "coastfield",
+      "distanceKm": 19,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1405,
+          "y": 390
+        },
+        {
+          "x": 1417,
+          "y": 400
+        },
+        {
+          "x": 1429,
+          "y": 409
+        },
+        {
+          "x": 1430,
+          "y": 425
+        },
+        {
+          "x": 1430,
+          "y": 440
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-085-suncrest-coastfield": {
+      "id": "road-085-suncrest-coastfield",
+      "fromNodeId": "suncrest",
+      "toNodeId": "coastfield",
+      "distanceKm": 38,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1320,
+          "y": 460
+        },
+        {
+          "x": 1347,
+          "y": 451
+        },
+        {
+          "x": 1373,
+          "y": 441
+        },
+        {
+          "x": 1402,
+          "y": 441
+        },
+        {
+          "x": 1430,
+          "y": 440
+        }
+      ],
+      "territoryKingdomId": "eastvale"
+    },
+    "road-086-highfield-desert-gate-west": {
+      "id": "road-086-highfield-desert-gate-west",
+      "fromNodeId": "highfield",
+      "toNodeId": "desert-gate-west",
+      "distanceKm": 44,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 570,
+          "y": 475
+        },
+        {
+          "x": 567,
+          "y": 508
+        },
+        {
+          "x": 563,
+          "y": 540
+        },
+        {
+          "x": 549,
+          "y": 570
+        },
+        {
+          "x": 535,
+          "y": 600
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "southmark",
+        "toKingdomId": "ironhollow"
+      }
+    },
+    "road-087-desert-gate-west-sunwatch": {
+      "id": "road-087-desert-gate-west-sunwatch",
+      "fromNodeId": "desert-gate-west",
+      "toNodeId": "sunwatch",
+      "distanceKm": 40,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 535,
+          "y": 600
+        },
+        {
+          "x": 563,
+          "y": 611
+        },
+        {
+          "x": 590,
+          "y": 622
+        },
+        {
+          "x": 620,
+          "y": 621
+        },
+        {
+          "x": 650,
+          "y": 620
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-088-sunwatch-oasisfall": {
+      "id": "road-088-sunwatch-oasisfall",
+      "fromNodeId": "sunwatch",
+      "toNodeId": "oasisfall",
+      "distanceKm": 28,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 650,
+          "y": 620
+        },
+        {
+          "x": 637,
+          "y": 638
+        },
+        {
+          "x": 624,
+          "y": 656
+        },
+        {
+          "x": 625,
+          "y": 678
+        },
+        {
+          "x": 625,
+          "y": 700
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-089-oasisfall-west-oasis": {
+      "id": "road-089-oasisfall-west-oasis",
+      "fromNodeId": "oasisfall",
+      "toNodeId": "west-oasis",
+      "distanceKm": 29,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 625,
+          "y": 700
+        },
+        {
+          "x": 604,
+          "y": 708
+        },
+        {
+          "x": 583,
+          "y": 717
+        },
+        {
+          "x": 572,
+          "y": 736
+        },
+        {
+          "x": 560,
+          "y": 755
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-090-west-oasis-emberfall": {
+      "id": "road-090-west-oasis-emberfall",
+      "fromNodeId": "west-oasis",
+      "toNodeId": "emberfall",
+      "distanceKm": 88,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 560,
+          "y": 755
+        },
+        {
+          "x": 625,
+          "y": 747
+        },
+        {
+          "x": 690,
+          "y": 739
+        },
+        {
+          "x": 755,
+          "y": 749
+        },
+        {
+          "x": 820,
+          "y": 760
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-091-south-cross-desert-gate-central": {
+      "id": "road-091-south-cross-desert-gate-central",
+      "fromNodeId": "south-cross",
+      "toNodeId": "desert-gate-central",
+      "distanceKm": 19,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 755,
+          "y": 555
+        },
+        {
+          "x": 763,
+          "y": 568
+        },
+        {
+          "x": 771,
+          "y": 581
+        },
+        {
+          "x": 768,
+          "y": 595
+        },
+        {
+          "x": 765,
+          "y": 610
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "southmark",
+        "toKingdomId": "ironhollow"
+      }
+    },
+    "road-092-desert-gate-central-dry-ridge": {
+      "id": "road-092-desert-gate-central-dry-ridge",
+      "fromNodeId": "desert-gate-central",
+      "toNodeId": "dry-ridge",
+      "distanceKm": 48,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 765,
+          "y": 610
+        },
+        {
+          "x": 796,
+          "y": 629
+        },
+        {
+          "x": 827,
+          "y": 647
+        },
+        {
+          "x": 864,
+          "y": 649
+        },
+        {
+          "x": 900,
+          "y": 650
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-093-dry-ridge-caravan-cross": {
+      "id": "road-093-dry-ridge-caravan-cross",
+      "fromNodeId": "dry-ridge",
+      "toNodeId": "caravan-cross",
+      "distanceKm": 34,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 900,
+          "y": 650
+        },
+        {
+          "x": 874,
+          "y": 656
+        },
+        {
+          "x": 848,
+          "y": 662
+        },
+        {
+          "x": 831,
+          "y": 684
+        },
+        {
+          "x": 815,
+          "y": 705
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-094-caravan-cross-emberfall": {
+      "id": "road-094-caravan-cross-emberfall",
+      "fromNodeId": "caravan-cross",
+      "toNodeId": "emberfall",
+      "distanceKm": 19,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 815,
+          "y": 705
+        },
+        {
+          "x": 809,
+          "y": 719
+        },
+        {
+          "x": 804,
+          "y": 734
+        },
+        {
+          "x": 812,
+          "y": 747
+        },
+        {
+          "x": 820,
+          "y": 760
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-095-east-road-junction-desert-gate-east": {
+      "id": "road-095-east-road-junction-desert-gate-east",
+      "fromNodeId": "east-road-junction",
+      "toNodeId": "desert-gate-east",
+      "distanceKm": 63,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 975,
+          "y": 415
+        },
+        {
+          "x": 988,
+          "y": 460
+        },
+        {
+          "x": 1000,
+          "y": 505
+        },
+        {
+          "x": 1020,
+          "y": 548
+        },
+        {
+          "x": 1040,
+          "y": 590
+        }
+      ],
+      "borderCrossing": {
+        "fromKingdomId": "southmark",
+        "toKingdomId": "ironhollow"
+      }
+    },
+    "road-096-desert-gate-east-dunegate": {
+      "id": "road-096-desert-gate-east-dunegate",
+      "fromNodeId": "desert-gate-east",
+      "toNodeId": "dunegate",
+      "distanceKm": 30,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 1040,
+          "y": 590
+        },
+        {
+          "x": 1018,
+          "y": 599
+        },
+        {
+          "x": 997,
+          "y": 608
+        },
+        {
+          "x": 986,
+          "y": 629
+        },
+        {
+          "x": 975,
+          "y": 650
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-097-dunegate-eastern-rocks": {
+      "id": "road-097-dunegate-eastern-rocks",
+      "fromNodeId": "dunegate",
+      "toNodeId": "eastern-rocks",
+      "distanceKm": 81,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 975,
+          "y": 650
+        },
+        {
+          "x": 1032,
+          "y": 669
+        },
+        {
+          "x": 1089,
+          "y": 688
+        },
+        {
+          "x": 1150,
+          "y": 689
+        },
+        {
+          "x": 1210,
+          "y": 690
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-098-eastern-rocks-ironhold": {
+      "id": "road-098-eastern-rocks-ironhold",
+      "fromNodeId": "eastern-rocks",
+      "toNodeId": "ironhold",
+      "distanceKm": 31,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 1210,
+          "y": 690
+        },
+        {
+          "x": 1211,
+          "y": 714
+        },
+        {
+          "x": 1213,
+          "y": 739
+        },
+        {
+          "x": 1229,
+          "y": 757
+        },
+        {
+          "x": 1245,
+          "y": 775
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-099-west-oasis-caravan-cross": {
+      "id": "road-099-west-oasis-caravan-cross",
+      "fromNodeId": "west-oasis",
+      "toNodeId": "caravan-cross",
+      "distanceKm": 88,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 560,
+          "y": 755
+        },
+        {
+          "x": 622,
+          "y": 733
+        },
+        {
+          "x": 684,
+          "y": 711
+        },
+        {
+          "x": 749,
+          "y": 708
+        },
+        {
+          "x": 815,
+          "y": 705
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-100-oasisfall-caravan-cross": {
+      "id": "road-100-oasisfall-caravan-cross",
+      "fromNodeId": "oasisfall",
+      "toNodeId": "caravan-cross",
+      "distanceKm": 65,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 625,
+          "y": 700
+        },
+        {
+          "x": 672,
+          "y": 705
+        },
+        {
+          "x": 720,
+          "y": 710
+        },
+        {
+          "x": 767,
+          "y": 708
+        },
+        {
+          "x": 815,
+          "y": 705
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-101-emberfall-sandbrook": {
+      "id": "road-101-emberfall-sandbrook",
+      "fromNodeId": "emberfall",
+      "toNodeId": "sandbrook",
+      "distanceKm": 50,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 820,
+          "y": 760
+        },
+        {
+          "x": 785,
+          "y": 775
+        },
+        {
+          "x": 751,
+          "y": 790
+        },
+        {
+          "x": 713,
+          "y": 790
+        },
+        {
+          "x": 675,
+          "y": 790
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-102-sandbrook-sunwell": {
+      "id": "road-102-sandbrook-sunwell",
+      "fromNodeId": "sandbrook",
+      "toNodeId": "sunwell",
+      "distanceKm": 37,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 675,
+          "y": 790
+        },
+        {
+          "x": 689,
+          "y": 815
+        },
+        {
+          "x": 703,
+          "y": 841
+        },
+        {
+          "x": 729,
+          "y": 853
+        },
+        {
+          "x": 755,
+          "y": 865
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-103-emberfall-red-dunes": {
+      "id": "road-103-emberfall-red-dunes",
+      "fromNodeId": "emberfall",
+      "toNodeId": "red-dunes",
+      "distanceKm": 66,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 820,
+          "y": 760
+        },
+        {
+          "x": 869,
+          "y": 756
+        },
+        {
+          "x": 918,
+          "y": 751
+        },
+        {
+          "x": 966,
+          "y": 756
+        },
+        {
+          "x": 1015,
+          "y": 760
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-104-red-dunes-redhaven": {
+      "id": "road-104-red-dunes-redhaven",
+      "fromNodeId": "red-dunes",
+      "toNodeId": "redhaven",
+      "distanceKm": 31,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 1015,
+          "y": 760
+        },
+        {
+          "x": 1034,
+          "y": 773
+        },
+        {
+          "x": 1054,
+          "y": 786
+        },
+        {
+          "x": 1067,
+          "y": 806
+        },
+        {
+          "x": 1080,
+          "y": 825
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-105-redhaven-ironhold": {
+      "id": "road-105-redhaven-ironhold",
+      "fromNodeId": "redhaven",
+      "toNodeId": "ironhold",
+      "distanceKm": 59,
+      "travelModifier": 0.9,
+      "difficulty": 1,
+      "terrain": "road",
+      "roadClass": "major_road",
+      "points": [
+        {
+          "x": 1080,
+          "y": 825
+        },
+        {
+          "x": 1123,
+          "y": 818
+        },
+        {
+          "x": 1166,
+          "y": 811
+        },
+        {
+          "x": 1205,
+          "y": 793
+        },
+        {
+          "x": 1245,
+          "y": 775
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-106-redstone-eastern-rocks": {
+      "id": "road-106-redstone-eastern-rocks",
+      "fromNodeId": "redstone",
+      "toNodeId": "eastern-rocks",
+      "distanceKm": 40,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 1100,
+          "y": 735
+        },
+        {
+          "x": 1124,
+          "y": 715
+        },
+        {
+          "x": 1148,
+          "y": 695
+        },
+        {
+          "x": 1179,
+          "y": 692
+        },
+        {
+          "x": 1210,
+          "y": 690
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-107-redstone-redhaven": {
+      "id": "road-107-redstone-redhaven",
+      "fromNodeId": "redstone",
+      "toNodeId": "redhaven",
+      "distanceKm": 31,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 1100,
+          "y": 735
+        },
+        {
+          "x": 1102,
+          "y": 759
+        },
+        {
+          "x": 1105,
+          "y": 783
+        },
+        {
+          "x": 1092,
+          "y": 804
+        },
+        {
+          "x": 1080,
+          "y": 825
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-108-sunwell-southern-oasis": {
+      "id": "road-108-sunwell-southern-oasis",
+      "fromNodeId": "sunwell",
+      "toNodeId": "southern-oasis",
+      "distanceKm": 61,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 755,
+          "y": 865
+        },
+        {
+          "x": 800,
+          "y": 871
+        },
+        {
+          "x": 845,
+          "y": 876
+        },
+        {
+          "x": 887,
+          "y": 891
+        },
+        {
+          "x": 930,
+          "y": 905
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-109-southern-oasis-ashguard": {
+      "id": "road-109-southern-oasis-ashguard",
+      "fromNodeId": "southern-oasis",
+      "toNodeId": "ashguard",
+      "distanceKm": 63,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 930,
+          "y": 905
+        },
+        {
+          "x": 974,
+          "y": 889
+        },
+        {
+          "x": 1018,
+          "y": 874
+        },
+        {
+          "x": 1064,
+          "y": 867
+        },
+        {
+          "x": 1110,
+          "y": 860
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-110-ashguard-ironhold": {
+      "id": "road-110-ashguard-ironhold",
+      "fromNodeId": "ashguard",
+      "toNodeId": "ironhold",
+      "distanceKm": 54,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1110,
+          "y": 860
+        },
+        {
+          "x": 1147,
+          "y": 844
+        },
+        {
+          "x": 1184,
+          "y": 828
+        },
+        {
+          "x": 1214,
+          "y": 801
+        },
+        {
+          "x": 1245,
+          "y": 775
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-111-southern-oasis-broken-ridge": {
+      "id": "road-111-southern-oasis-broken-ridge",
+      "fromNodeId": "southern-oasis",
+      "toNodeId": "broken-ridge",
+      "distanceKm": 69,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 930,
+          "y": 905
+        },
+        {
+          "x": 981,
+          "y": 903
+        },
+        {
+          "x": 1033,
+          "y": 901
+        },
+        {
+          "x": 1081,
+          "y": 918
+        },
+        {
+          "x": 1130,
+          "y": 935
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-112-broken-ridge-stonevein": {
+      "id": "road-112-broken-ridge-stonevein",
+      "fromNodeId": "broken-ridge",
+      "toNodeId": "stonevein",
+      "distanceKm": 39,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 1130,
+          "y": 935
+        },
+        {
+          "x": 1155,
+          "y": 919
+        },
+        {
+          "x": 1181,
+          "y": 904
+        },
+        {
+          "x": 1210,
+          "y": 904
+        },
+        {
+          "x": 1240,
+          "y": 905
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-113-stonevein-ironhold": {
+      "id": "road-113-stonevein-ironhold",
+      "fromNodeId": "stonevein",
+      "toNodeId": "ironhold",
+      "distanceKm": 44,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1240,
+          "y": 905
+        },
+        {
+          "x": 1250,
+          "y": 873
+        },
+        {
+          "x": 1260,
+          "y": 841
+        },
+        {
+          "x": 1253,
+          "y": 808
+        },
+        {
+          "x": 1245,
+          "y": 775
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-114-dustmarket-eastern-rocks": {
+      "id": "road-114-dustmarket-eastern-rocks",
+      "fromNodeId": "dustmarket",
+      "toNodeId": "eastern-rocks",
+      "distanceKm": 55,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 1370,
+          "y": 675
+        },
+        {
+          "x": 1329,
+          "y": 671
+        },
+        {
+          "x": 1289,
+          "y": 667
+        },
+        {
+          "x": 1249,
+          "y": 678
+        },
+        {
+          "x": 1210,
+          "y": 690
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-115-dustmarket-caravan-rest": {
+      "id": "road-115-dustmarket-caravan-rest",
+      "fromNodeId": "dustmarket",
+      "toNodeId": "caravan-rest",
+      "distanceKm": 40,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 1370,
+          "y": 675
+        },
+        {
+          "x": 1385,
+          "y": 701
+        },
+        {
+          "x": 1400,
+          "y": 726
+        },
+        {
+          "x": 1405,
+          "y": 756
+        },
+        {
+          "x": 1410,
+          "y": 785
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-116-caravan-rest-ironhold": {
+      "id": "road-116-caravan-rest-ironhold",
+      "fromNodeId": "caravan-rest",
+      "toNodeId": "ironhold",
+      "distanceKm": 56,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 1410,
+          "y": 785
+        },
+        {
+          "x": 1369,
+          "y": 774
+        },
+        {
+          "x": 1329,
+          "y": 762
+        },
+        {
+          "x": 1287,
+          "y": 769
+        },
+        {
+          "x": 1245,
+          "y": 775
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-117-dunefield-red-dunes": {
+      "id": "road-117-dunefield-red-dunes",
+      "fromNodeId": "dunefield",
+      "toNodeId": "red-dunes",
+      "distanceKm": 39,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 930,
+          "y": 835
+        },
+        {
+          "x": 948,
+          "y": 813
+        },
+        {
+          "x": 967,
+          "y": 791
+        },
+        {
+          "x": 991,
+          "y": 775
+        },
+        {
+          "x": 1015,
+          "y": 760
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-118-dunefield-sunwell": {
+      "id": "road-118-dunefield-sunwell",
+      "fromNodeId": "dunefield",
+      "toNodeId": "sunwell",
+      "distanceKm": 60,
+      "travelModifier": 1.08,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "local_road",
+      "points": [
+        {
+          "x": 930,
+          "y": 835
+        },
+        {
+          "x": 887,
+          "y": 849
+        },
+        {
+          "x": 845,
+          "y": 863
+        },
+        {
+          "x": 800,
+          "y": 864
+        },
+        {
+          "x": 755,
+          "y": 865
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-119-caravan-cross-red-dunes": {
+      "id": "road-119-caravan-cross-red-dunes",
+      "fromNodeId": "caravan-cross",
+      "toNodeId": "red-dunes",
+      "distanceKm": 71,
+      "travelModifier": 1.16,
+      "difficulty": 3,
+      "terrain": "road",
+      "roadClass": "caravan_route",
+      "points": [
+        {
+          "x": 815,
+          "y": 705
+        },
+        {
+          "x": 863,
+          "y": 727
+        },
+        {
+          "x": 910,
+          "y": 750
+        },
+        {
+          "x": 963,
+          "y": 755
+        },
+        {
+          "x": 1015,
+          "y": 760
+        }
+      ],
+      "territoryKingdomId": "ironhollow"
+    },
+    "road-120-riverhold-icewatch": {
+      "id": "road-120-riverhold-icewatch",
+      "fromNodeId": "riverhold",
+      "toNodeId": "icewatch",
+      "distanceKm": 30,
+      "travelModifier": 1.0,
+      "difficulty": 2,
+      "terrain": "road",
+      "roadClass": "regional_road",
+      "points": [
+        {
+          "x": 1115,
+          "y": 158
+        },
+        {
+          "x": 1097,
+          "y": 173
+        },
+        {
+          "x": 1079,
+          "y": 188
+        },
+        {
+          "x": 1074,
+          "y": 212
+        },
+        {
+          "x": 1070,
+          "y": 235
+        }
+      ],
+      "territoryKingdomId": "northreach"
+    },
+    "road-121-icewatch-eastern-ice-pass": {
+      "id": "road-121-icewatch-eastern-ice-pass",
+      "fromNodeId": "icewatch",
+      "toNodeId": "eastern-ice-pass",
+      "distanceKm": 18,
+      "travelModifier": 1.32,
+      "difficulty": 4,
+      "terrain": "mountain_road",
+      "roadClass": "mountain_route",
+      "points": [
+        {
+          "x": 1070,
+          "y": 235
+        },
+        {
+          "x": 1054,
+          "y": 235
+        },
+        {
+          "x": 1038,
+          "y": 235
+        },
+        {
+          "x": 1031,
+          "y": 250
+        },
+        {
+          "x": 1025,
+          "y": 265
+        }
+      ],
+      "territoryKingdomId": "northreach"
     }
   }
 }

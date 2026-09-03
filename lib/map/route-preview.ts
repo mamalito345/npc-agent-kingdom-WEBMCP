@@ -27,6 +27,8 @@ export interface ArmyRoutePreview {
   armyId: string;
   destinationNodeId: string;
   destinationName: string;
+  destinationTerrain?: string;
+  destinationFeatures: string[];
   physicalDistanceKm: number;
   effectiveDistanceKm: number;
   estimatedDurationMinutes: number;
@@ -155,6 +157,11 @@ export function buildArmyRoutePreview(
         })
       );
 
+  const destinationNode =
+    getMapNode(
+      destinationNodeId
+    );
+
   return {
     ok: true,
     preview: {
@@ -162,6 +169,14 @@ export function buildArmyRoutePreview(
       destinationNodeId,
       destinationName:
         destination.name,
+      destinationTerrain:
+        destinationNode?.terrain,
+      destinationFeatures:
+        destinationNode?.features
+          ? [
+              ...destinationNode.features,
+            ]
+          : [],
       physicalDistanceKm:
         route.totalDistanceKm,
       effectiveDistanceKm:

@@ -23,6 +23,12 @@ export type TransitNodeType =
   | "coast_road"
   | "hill_road";
 
+export type StrategicImportance =
+  | "local"
+  | "regional"
+  | "major"
+  | "critical";
+
 export interface MapNode {
   id: string;
 
@@ -36,16 +42,11 @@ export interface MapNode {
   transitType?: TransitNodeType;
 
   /*
-   * Normal player UI hides transit nodes.
-   * Debug/route tooling may still render them.
+   * Normal player UI hides transit nodes as large settlement markers.
+   * StrategicNodeLayer still renders them as small tactical positions.
    */
   hidden?: boolean;
 
-  /*
-   * Realm whose territory physically contains this node.
-   * Border nodes may use the realm on the near side and carry
-   * explicit border metadata on connected edges.
-   */
   territoryKingdomId?: string;
 
   x: number;
@@ -59,6 +60,14 @@ export interface MapNode {
 
   terrain: BattleTerrain;
   features: BattleFeature[];
+
+  /*
+   * Public geographic metadata. This is map knowledge, not fog-of-war
+   * intelligence about enemy forces.
+   */
+  displayName?: string;
+  importance?: StrategicImportance;
+  strategicRole?: string;
 }
 
 export type RoadTerrain =
@@ -67,6 +76,14 @@ export type RoadTerrain =
   | "mountain_road"
   | "marsh_road"
   | "river_road";
+
+export type RoadClass =
+  | "major_road"
+  | "regional_road"
+  | "local_road"
+  | "forest_trail"
+  | "mountain_route"
+  | "caravan_route";
 
 export interface BorderCrossingDefinition {
   fromKingdomId: string;
@@ -80,14 +97,11 @@ export interface MapEdge {
   fromNodeId: string;
   toNodeId: string;
 
-  /*
-   * Real physical length.
-   */
+  /* Real physical length. */
   distanceKm: number;
 
   /*
    * Movement-cost multiplier.
-   *
    * 1.0 = normal.
    * 1.2 = 20% harder/slower.
    */
@@ -95,18 +109,9 @@ export interface MapEdge {
 
   difficulty: number;
   terrain: RoadTerrain;
+  roadClass?: RoadClass;
 
-  /*
-   * The realm physically containing the road segment where that
-   * segment is unambiguous. Cross-border edges use borderCrossing.
-   */
   territoryKingdomId?: string;
-
-  /*
-   * Metadata only in this phase. The next canonical border-action
-   * integration consumes this rather than guessing border crossings
-   * from settlement ownership.
-   */
   borderCrossing?: BorderCrossingDefinition;
 
   points: MapPoint[];
@@ -115,15 +120,7 @@ export interface MapEdge {
 export interface Route {
   nodeIds: string[];
   edgeIds: string[];
-
-  /*
-   * Physical geographic distance.
-   */
   totalDistanceKm: number;
-
-  /*
-   * Movement cost after terrain / road modifiers.
-   */
   effectiveDistanceKm: number;
 }
 

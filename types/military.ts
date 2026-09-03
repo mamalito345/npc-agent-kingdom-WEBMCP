@@ -99,6 +99,16 @@ export interface Army {
     ArmyStatus;
 
   supportTargetArmyId?: string;
+
+  /**
+   * The strategic node this army most recently traveled FROM before
+   * arriving at its current node (set whenever a queued movement order
+   * completes). Used to detect a genuine multi-directional / pincer
+   * attack when several of this army's owner's armies converge on the
+   * same battle from different approach roads, as opposed to simply
+   * stacking reinforcements behind the same line.
+   */
+  arrivedFromNodeId?: string;
 }
 
 export interface War {

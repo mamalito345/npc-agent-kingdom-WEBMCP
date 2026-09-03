@@ -8,6 +8,10 @@ import {
 } from "@/lib/military/occupation";
 
 import {
+  getEffectiveSettlementProduction,
+} from "@/lib/economy/settlement-economy";
+
+import {
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
 
@@ -86,7 +90,9 @@ function getSettlementOccupationProductionMultiplier(
 export function processDailySettlementProduction():
   void {
   updateRuntimeWorldState(
-    (current) => {
+    (
+      current
+    ) => {
       const settlements = {
         ...current.settlements,
       };
@@ -101,6 +107,11 @@ export function processDailySettlementProduction():
           current.settlements
         )
       ) {
+        const base =
+          getEffectiveSettlementProduction(
+            settlement
+          );
+
         const productionMultiplier =
           getSettlementProductionDamageMultiplier(
             settlement,
@@ -113,33 +124,19 @@ export function processDailySettlementProduction():
 
         const effectiveProduction = {
           food:
-            settlement
-              .dailyProduction
-              .food *
+            base.food *
             productionMultiplier,
-
           gold:
-            settlement
-              .dailyProduction
-              .gold *
+            base.gold *
             productionMultiplier,
-
           wood:
-            settlement
-              .dailyProduction
-              .wood *
+            base.wood *
             productionMultiplier,
-
           stone:
-            settlement
-              .dailyProduction
-              .stone *
+            base.stone *
             productionMultiplier,
-
           metal:
-            settlement
-              .dailyProduction
-              .metal *
+            base.metal *
             productionMultiplier,
         };
 
@@ -147,7 +144,6 @@ export function processDailySettlementProduction():
           settlement.id
         ] = {
           ...settlement,
-
           resources:
             addResources(
               settlement.resources,
@@ -158,7 +154,6 @@ export function processDailySettlementProduction():
 
       return {
         ...current,
-
         settlements,
       };
     }

@@ -2,6 +2,10 @@ import {
   getRuntimeWorldState,
 } from "@/lib/world/runtime";
 
+import {
+  runWorldCatchUp,
+} from "@/lib/actors/orchestrator";
+
 export type WebMcpIdentityValidation =
   | {
       ok: true;
@@ -313,6 +317,18 @@ export function getIdentityBoundWebMcpModelContext() {
           unknown
         >;
 
+      const annotations =
+        (
+          typeof original.annotations === "object" &&
+          original.annotations !== null
+        )
+          ? original.annotations as Record<string, unknown>
+          : undefined;
+
+      const isReadOnlyTool =
+        annotations?.readOnlyHint ===
+        true;
+
       const publicTool = {
         ...original,
         inputSchema:
@@ -333,8 +349,10 @@ export function getIdentityBoundWebMcpModelContext() {
               return bound;
             }
 
+            let result: unknown;
+
             try {
-              return await originalExecute(
+              result = await originalExecute(
                 mergeBoundIdentity(
                   input,
                   bound
@@ -361,6 +379,29 @@ export function getIdentityBoundWebMcpModelContext() {
 
               throw error;
             }
+
+            /*
+             * Gameplay-mutating tool calls are the only reliable signal
+             * that this WebMCP host is actually present and driving the
+             * game right now, so this is also the only reliable place to
+             * push the world clock forward. Read-only "inspect_*" tools
+             * are skipped so a burst of state checks doesn't repeatedly
+             * pay the cost of running NPC/GM turns.
+             */
+            if (!isReadOnlyTool) {
+              try {
+                await runWorldCatchUp();
+              } catch (
+                catchUpError
+              ) {
+                console.error(
+                  "[WebMCP] world catch-up failed after tool execution:",
+                  catchUpError
+                );
+              }
+            }
+
+            return result;
           },
       };
 

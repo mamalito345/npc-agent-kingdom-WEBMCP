@@ -12,6 +12,7 @@ import {
 import {
   canSettlementRecruitUnit,
   getCommittedRecruitmentManpower,
+  getRecruitmentCostMultiplier,
   getRecruitmentManpower,
   getSettlementMilitaryLevel,
   getSettlementMobilizationCapacity,
@@ -327,11 +328,44 @@ export function recruitUnits(
     };
   }
 
-  const totalCost =
+  const costMultiplier =
+    getRecruitmentCostMultiplier(
+      settlement.id,
+      world.recruitmentOrders,
+      world.simulation
+        .worldTimeMinutes
+    );
+
+  const rawTotalCost =
     multiplyResources(
       definition.cost,
-      input.blocks
+      input.blocks *
+        costMultiplier
     );
+
+  const totalCost =
+    {
+      food:
+        Math.round(
+          rawTotalCost.food
+        ),
+      gold:
+        Math.round(
+          rawTotalCost.gold
+        ),
+      wood:
+        Math.round(
+          rawTotalCost.wood
+        ),
+      stone:
+        Math.round(
+          rawTotalCost.stone
+        ),
+      metal:
+        Math.round(
+          rawTotalCost.metal
+        ),
+    };
 
   const available =
     getAvailableSettlementResources(

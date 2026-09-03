@@ -5,6 +5,10 @@ import {
 } from "@/lib/world/runtime";
 
 import {
+  MINUTES_PER_DAY,
+} from "@/lib/world/time";
+
+import {
   validatePlayerAccess,
   validatePlayerCommandAccess,
 } from "@/lib/session/access";
@@ -275,10 +279,10 @@ function applyAudienceConsequence(
           .petitionerCharacterId,
         accepted
           ? 4
-          : -4,
+          : -3,
         accepted
           ? 5
-          : -5
+          : -3
       );
 
       adjustRealm(
@@ -306,10 +310,10 @@ function applyAudienceConsequence(
           .petitionerCharacterId,
         accepted
           ? 6
-          : -5,
+          : -3,
         accepted
           ? 4
-          : -4
+          : -3
       );
 
       adjustRealm(
@@ -337,10 +341,10 @@ function applyAudienceConsequence(
           .petitionerCharacterId,
         accepted
           ? 4
-          : -4,
+          : -3,
         accepted
           ? 6
-          : -5
+          : -3
       );
 
       adjustRealm(
@@ -366,10 +370,10 @@ function applyAudienceConsequence(
           .petitionerCharacterId,
         accepted
           ? 8
-          : -7,
+          : -5,
         accepted
           ? 8
-          : -6
+          : -4
       );
 
       adjustRealm(
@@ -640,6 +644,188 @@ export function seedInitialAudienceRequests():
         Object.keys(
           existing
         ).length,
+        petitioner.loyalty,
+        petitioner
+          .basicTraits
+          .ambition
+      )
+    );
+  }
+}
+
+/*
+ * Minimum in-game days a kingdom's lords wait between resolved audience
+ * requests before the next one is allowed to surface. Without this, a
+ * kingdom whose lowest-loyalty lord stays dissatisfied would generate a
+ * brand-new petition the instant the previous one is resolved, which is
+ * what actually produced the "lords constantly demanding things" feel --
+ * not the cost of any single request. This throttles cadence instead of
+ * silencing the mechanic outright: content courts petition rarely, and a
+ * genuinely troubled court still petitions, just not every tick.
+ */
+const MIN_DAYS_BETWEEN_AUDIENCE_REQUESTS = 5;
+
+/*
+ * A lord who is neither dissatisfied nor ambitious has nothing pressing to
+ * bring to court. Gating on this means loyalty is what actually drives
+ * whether petitions happen at all -- a well-governed kingdom with content,
+ * loyal lords can go long stretches with no petitions, while a kingdom that
+ * lets loyalty rot will see its court petition often. This is the "better
+ * loyalty system" lever: loyalty now has a direct, visible consequence on
+ * how often the Crown is asked for something.
+ */
+const AUDIENCE_DISCONTENT_LOYALTY_THRESHOLD = 65;
+const AUDIENCE_AMBITION_THRESHOLD = 75;
+
+/**
+ * Recurring, throttled counterpart to seedInitialAudienceRequests().
+ *
+ * Called once per in-game day (see processDailyBoundary) for every active
+ * player -- HUMAN, ACTOR_LLM, and GM alike, since it only reads canonical
+ * lord/request state -- so the audience-request mechanic keeps producing
+ * genuine political pressure over the course of a long campaign instead of
+ * firing exactly once at campaign start and then falling silent forever.
+ */
+export function refreshDailyAudienceRequests():
+  void {
+  const world =
+    getRuntimeWorldState();
+
+  const now =
+    world.simulation
+      .worldTimeMinutes;
+
+  const existing =
+    world.session
+      .politics
+      .audienceRequests ??
+    {};
+
+  for (
+    const player
+    of Object.values(
+      world.session.players
+    )
+  ) {
+    if (
+      !player.active
+    ) {
+      continue;
+    }
+
+    const playerRequests =
+      Object.values(
+        existing
+      ).filter(
+        (request) =>
+          request.playerId ===
+          player.id
+      );
+
+    const hasActiveRequest =
+      playerRequests.some(
+        (request) =>
+          request.status ===
+            "REQUESTED" ||
+          request.status ===
+            "PRESENTED" ||
+          request.status ===
+            "DEFERRED"
+      );
+
+    if (hasActiveRequest) {
+      continue;
+    }
+
+    const lastResolvedAt =
+      playerRequests.reduce(
+        (latest, request) => {
+          const resolvedAt =
+            request
+              .consequenceAppliedAt ??
+            request.respondedAt;
+
+          if (
+            resolvedAt ===
+              undefined
+          ) {
+            return latest;
+          }
+
+          return Math.max(
+            latest,
+            resolvedAt
+          );
+        },
+        -Infinity
+      );
+
+    if (
+      lastResolvedAt !==
+        -Infinity &&
+      now -
+        lastResolvedAt <
+        MIN_DAYS_BETWEEN_AUDIENCE_REQUESTS *
+          MINUTES_PER_DAY
+    ) {
+      continue;
+    }
+
+    const lords =
+      Object.values(
+        world.session
+          .lords
+          .profiles
+      )
+        .filter(
+          (profile) =>
+            profile.kingdomId ===
+            player.kingdomId
+        )
+        .sort(
+          (a, b) =>
+            a.loyalty -
+              b.loyalty ||
+            b.basicTraits
+              .ambition -
+              a.basicTraits
+                .ambition ||
+            a.characterId
+              .localeCompare(
+                b.characterId
+              )
+        );
+
+    const petitioner =
+      lords[0];
+
+    if (!petitioner) {
+      continue;
+    }
+
+    const isDiscontented =
+      petitioner.loyalty <
+      AUDIENCE_DISCONTENT_LOYALTY_THRESHOLD;
+
+    const isAmbitious =
+      petitioner
+        .basicTraits
+        .ambition >
+      AUDIENCE_AMBITION_THRESHOLD;
+
+    if (
+      !isDiscontented &&
+      !isAmbitious
+    ) {
+      continue;
+    }
+
+    createAudienceRequest(
+      player.id,
+      petitioner
+        .characterId,
+      pickRequestKind(
+        playerRequests.length,
         petitioner.loyalty,
         petitioner
           .basicTraits

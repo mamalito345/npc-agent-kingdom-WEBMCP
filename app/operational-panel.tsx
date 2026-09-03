@@ -111,6 +111,77 @@ function unitCount(
     );
 }
 
+/*
+ * Short, static tactical read on a destination's terrain -- the actual
+ * combat math (see lib/military/battle-tactics.ts) already gives a
+ * defender real bonuses here (fewer casualties taken, more dealt, holds
+ * position); this just surfaces that as a plain-language hint at the
+ * moment a player is picking where to move an army, so terrain-based
+ * positioning is something they can deliberately choose to do.
+ */
+function terrainTacticalHint(
+  terrain:
+    string,
+  features:
+    string[]
+): string {
+  if (
+    features.includes(
+      "high_ground"
+    )
+  ) {
+    return "High ground: a defending army here takes noticeably fewer casualties and hits harder.";
+  }
+
+  if (
+    features.includes(
+      "narrow_pass"
+    )
+  ) {
+    return "Narrow pass: a chokepoint favors whoever holds it — attackers can't bring full numbers to bear.";
+  }
+
+  if (
+    features.includes(
+      "bridge"
+    )
+  ) {
+    return "Bridge crossing: an attacking force here suffers a real power and casualty penalty. Strong ground to defend, costly to assault.";
+  }
+
+  if (
+    terrain ===
+    "hills"
+  ) {
+    return "Hills: a defending army here takes fewer casualties and fights more effectively.";
+  }
+
+  if (
+    terrain ===
+      "dense_forest" ||
+    terrain ===
+      "forest"
+  ) {
+    return "Forest: casualties are reduced for whoever holds the position.";
+  }
+
+  if (
+    terrain ===
+    "mountain"
+  ) {
+    return "Mountain terrain: difficult ground, favors a dug-in defender.";
+  }
+
+  if (
+    terrain ===
+    "marsh"
+  ) {
+    return "Marsh: slow, difficult ground for maneuver.";
+  }
+
+  return "Open ground: no particular terrain advantage for either side.";
+}
+
 export default function OperationalPanel() {
   const world =
     useSyncExternalStore(
@@ -536,6 +607,47 @@ export default function OperationalPanel() {
         rulerCharacter.id
     );
 
+  const assignableLordCommanders =
+    selectedArmy &&
+    player &&
+    selectedArmyPosition?.kind ===
+      "node"
+      ? Object.values(
+          world.session.lords
+            .profiles
+        ).filter(
+          (profile) => {
+            if (
+              profile.kingdomId !==
+              player.kingdomId
+            ) {
+              return false;
+            }
+
+            if (
+              profile.characterId ===
+              selectedArmy.commanderId
+            ) {
+              return false;
+            }
+
+            const lordPosition =
+              world.simulation
+                .entityPositions[
+                  profile
+                    .characterId
+                ];
+
+            return (
+              lordPosition?.kind ===
+                "node" &&
+              lordPosition.nodeId ===
+                selectedArmyPosition.nodeId
+            );
+          }
+        )
+      : [];
+
   const friendlyPeerArmies =
     selectedArmy &&
     player
@@ -694,7 +806,7 @@ export default function OperationalPanel() {
     }
 
     setMessage(
-      `RECRUITMENT STARTED — ${unitType.toUpperCase()} at ${selectedSettlement.name}`
+      `RECRUITMENT STARTED — ${unitType.toUpperCase()} at ${selectedSettlement.name} (cost ${result.order.reservedResources.gold.toLocaleString()}g)`
     );
   }
 
@@ -858,6 +970,39 @@ export default function OperationalPanel() {
 
     setMessage(
       `COMMANDER ASSIGNED — ${rulerCharacter.name}`
+    );
+  }
+
+  function assignLordCommand(
+    characterId:
+      string,
+    lordName:
+      string
+  ): void {
+    if (!selectedArmy) {
+      return;
+    }
+
+    const result =
+      assignPlayerArmyCommander(
+        world.session.id,
+        playerId,
+        selectedArmy.id,
+        characterId
+      );
+
+    if (
+      result.ok ===
+      false
+    ) {
+      setMessage(
+        `COMMANDER ASSIGNMENT REJECTED — ${result.error}`
+      );
+      return;
+    }
+
+    setMessage(
+      `COMMANDER ASSIGNED — ${lordName}`
     );
   }
 
@@ -1514,6 +1659,52 @@ export default function OperationalPanel() {
                     RULER ASSUMES COMMAND
                   </button>
                 ) : null}
+
+                {assignableLordCommanders.length > 0 ? (
+                  <div className="mt-2 space-y-1">
+                    <div className="text-[10px] uppercase tracking-wider text-neutral-500">
+                      Appoint Lord
+                    </div>
+
+                    {assignableLordCommanders
+                      .slice(0, 4)
+                      .map((profile) => {
+                        const lordCharacter =
+                          world.characters[
+                            profile
+                              .characterId
+                          ];
+
+                        const lordName =
+                          lordCharacter?.name ??
+                          profile.title;
+
+                        return (
+                          <button
+                            key={
+                              profile.characterId
+                            }
+                            type="button"
+                            onClick={() =>
+                              assignLordCommand(
+                                profile.characterId,
+                                lordName
+                              )
+                            }
+                            className="flex w-full items-center justify-between rounded border border-violet-800/70 bg-violet-950/20 px-2 py-2 text-[10px] font-semibold text-violet-200"
+                          >
+                            <span>
+                              {lordName}
+                            </span>
+
+                            <span className="text-violet-400">
+                              loyalty {profile.loyalty}
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -1539,6 +1730,43 @@ export default function OperationalPanel() {
                   )
                 }
               </div>
+
+              {routePreview.preview.destinationTerrain ? (
+                <div className="mt-2 rounded-lg border border-emerald-900/60 bg-emerald-950/20 px-2 py-2 text-[11px] leading-5 text-emerald-200">
+                  <span className="font-semibold uppercase tracking-wide">
+                    Terrain: {
+                      routePreview
+                        .preview
+                        .destinationTerrain
+                        .replaceAll(
+                          "_",
+                          " "
+                        )
+                    }
+                    {
+                      routePreview
+                        .preview
+                        .destinationFeatures
+                        .length >
+                      0
+                        ? ` · ${routePreview.preview.destinationFeatures.join(", ").replaceAll("_", " ")}`
+                        : ""
+                    }
+                  </span>
+                  <div className="mt-1 text-emerald-300/80">
+                    {
+                      terrainTacticalHint(
+                        routePreview
+                          .preview
+                          .destinationTerrain,
+                        routePreview
+                          .preview
+                          .destinationFeatures
+                      )
+                    }
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-3 grid grid-cols-2 gap-y-2 text-xs">
                 <span className="text-neutral-500">

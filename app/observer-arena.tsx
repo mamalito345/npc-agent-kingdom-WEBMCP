@@ -33,6 +33,10 @@ import {
   saveDemoToBrowser,
 } from "@/lib/demo/persistence";
 
+import {
+  requestReturnToMenu,
+} from "@/lib/ui/navigation";
+
 type Filter =
   | "ALL"
   | "PLAYER_LLM"
@@ -135,7 +139,7 @@ export default function ObserverArena() {
             </div>
           </div>
 
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             {[1, 4, 8].map((speed) => (
               <button
                 key={speed}
@@ -154,6 +158,15 @@ export default function ObserverArena() {
                 x{speed}
               </button>
             ))}
+
+            <button
+              type="button"
+              title="Exit to menu"
+              onClick={() => requestReturnToMenu()}
+              className="ml-1 rounded border border-red-900/60 bg-red-950/40 px-2 py-1 text-xs text-red-200 hover:border-red-600"
+            >
+              ✕ Exit
+            </button>
           </div>
         </div>
 

@@ -39,6 +39,11 @@ export async function POST(request: Request): Promise<Response> {
       response,
     });
   } catch (error) {
+    console.error(
+      "[AI:gm-character] request failed:",
+      error instanceof Error ? error.message : error
+    );
+
     return Response.json(
       {
         ok: false,

@@ -18,6 +18,14 @@ import {
 } from "@/lib/ui/game-drawer";
 
 import {
+  getObserverFeed,
+} from "@/lib/demo/observer";
+
+import {
+  formatWorldTime,
+} from "@/lib/world/time";
+
+import {
   issueCharacterOrder,
 } from "@/lib/lords/service";
 
@@ -396,6 +404,7 @@ export default function GameDrawer() {
               "messages",
               "diplomacy",
               "lords",
+              "ai_feed",
               "save",
             ] as const
           ).map(
@@ -1181,6 +1190,62 @@ export default function GameDrawer() {
                 </button>
               </section>
             </div>
+          ) : null}
+
+          {drawer.tab ===
+          "ai_feed" ? (
+            <section className="mx-auto max-w-2xl">
+              <div className="text-xs uppercase tracking-[0.2em] text-amber-400">
+                GM &amp; Actor LLM Decision Feed
+              </div>
+
+              <h3 className="mt-2 font-serif text-2xl">
+                What every other kingdom just did
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-neutral-500">
+                Every decision the GM or the Actor LLM makes for a rival
+                kingdom while you are not directly watching, newest first.
+              </p>
+
+              <div className="mt-5 space-y-2">
+                {getObserverFeed(60)
+                  .slice()
+                  .reverse()
+                  .map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wider text-neutral-500">
+                        <span>
+                          {formatWorldTime(entry.time)}
+                          {entry.kingdomId
+                            ? ` · ${entry.kingdomId}`
+                            : ""}
+                        </span>
+                        <span className="rounded bg-white/5 px-1.5 py-0.5 text-amber-300">
+                          {entry.kind}
+                        </span>
+                      </div>
+
+                      <div className="mt-1 text-sm font-semibold">
+                        {entry.actor} — {entry.title}
+                      </div>
+
+                      <div className="mt-1 text-xs leading-5 text-neutral-400">
+                        {entry.summary}
+                      </div>
+                    </div>
+                  ))}
+
+                {getObserverFeed(1).length === 0 ? (
+                  <div className="text-xs text-neutral-500">
+                    No AI decisions recorded yet this campaign.
+                  </div>
+                ) : null}
+              </div>
+            </section>
           ) : null}
 
           {drawer.tab ===

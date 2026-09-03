@@ -83,6 +83,90 @@ export function processRecruitmentCompletions(
   }
 }
 
+/*
+ * Without this, every single completed recruitment order spawns a brand
+ * new one-off army at the settlement, even when the same kingdom already
+ * has an idle garrison sitting right there. Over a few recruitment cycles
+ * that fragments a kingdom's forces into a pile of tiny standalone armies
+ * the player has to manually MERGE together one at a time -- which is
+ * exactly the "new army gathering works badly" complaint. If a stationary,
+ * non-battling, non-lord-commanded army of the same kingdom is already at
+ * this settlement's node, freshly recruited units join it directly instead
+ * of spawning yet another fragment.
+ */
+function findMergeableGarrisonArmyId(
+  kingdomId:
+    string,
+  nodeId:
+    string
+): string | undefined {
+  const world =
+    getRuntimeWorldState();
+
+  const lordControlledArmyIds =
+    new Set(
+      Object.values(
+        world.session.lords
+          .profiles
+      ).flatMap(
+        (profile) =>
+          profile
+            .controlledArmyIds
+      )
+    );
+
+  const candidate =
+    Object.values(
+      world.armies
+    ).find((army) => {
+      if (
+        army.ownerId !==
+        kingdomId
+      ) {
+        return false;
+      }
+
+      if (
+        army.status ===
+        "battle"
+      ) {
+        return false;
+      }
+
+      if (
+        lordControlledArmyIds.has(
+          army.id
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        world.simulation
+          .activeMovements[
+            army.id
+          ]
+      ) {
+        return false;
+      }
+
+      const position =
+        world.simulation
+          .entityPositions[
+            army.id
+          ];
+
+      return (
+        position?.kind ===
+          "node" &&
+        position.nodeId ===
+          nodeId
+      );
+    });
+
+  return candidate?.id;
+}
+
 function completeRecruitmentOrder(
   order:
     RecruitmentOrder
@@ -157,6 +241,62 @@ function completeRecruitmentOrder(
     createdUnits[
       unit.id
     ] = unit;
+  }
+
+  const mergeableArmyId =
+    findMergeableGarrisonArmyId(
+      settlement.kingdomId,
+      settlement.locationId
+    );
+
+  if (mergeableArmyId) {
+    updateRuntimeWorldState(
+      (current) => ({
+        ...current,
+
+        unitBlocks: {
+          ...current
+            .unitBlocks,
+
+          ...createdUnits,
+        },
+
+        armies: {
+          ...current.armies,
+
+          [mergeableArmyId]: {
+            ...current.armies[
+              mergeableArmyId
+            ],
+
+            unitIds: [
+              ...current.armies[
+                mergeableArmyId
+              ].unitIds,
+
+              ...createdUnitIds,
+            ],
+          },
+        },
+
+        recruitmentOrders: {
+          ...current
+            .recruitmentOrders,
+
+          [order.id]: {
+            ...current
+              .recruitmentOrders[
+                order.id
+              ],
+
+            status:
+              "completed",
+          },
+        },
+      })
+    );
+
+    return;
   }
 
   const armyId =

@@ -70,6 +70,11 @@ export async function POST(request: Request): Promise<Response> {
       proposals: envelope.proposals,
     });
   } catch (error) {
+    console.error(
+      "[AI:director-proposals] request failed:",
+      error instanceof Error ? error.message : error
+    );
+
     return Response.json(
       {
         ok: false,

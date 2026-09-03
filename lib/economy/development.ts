@@ -17,30 +17,48 @@ import type {
 } from "@/types/resources";
 
 import type {
+  SettlementBuildingType,
   SettlementDevelopmentFocus,
   SettlementDevelopmentLevel,
+  SettlementType,
 } from "@/types/settlement";
 
 const MAX_DEVELOPMENT_LEVEL:
   SettlementDevelopmentLevel =
-  3;
+  5;
 
 const BASE_COST:
   ResourceStockpile = {
-  food:
-    0,
+  food: 0,
+  gold: 450,
+  wood: 180,
+  stone: 140,
+  metal: 60,
+};
 
-  gold:
-    120,
+const TYPE_COST_MULTIPLIER:
+  Record<
+    SettlementType,
+    number
+  > = {
+  village: 0.75,
+  town: 1,
+  city: 1.3,
+  capital: 1.55,
+  castle: 1.2,
+  strategic_location: 0.85,
+};
 
-  wood:
-    80,
-
-  stone:
-    60,
-
-  metal:
-    30,
+const BUILDING_BY_FOCUS:
+  Record<
+    SettlementDevelopmentFocus,
+    SettlementBuildingType
+  > = {
+  food: "farms",
+  gold: "market",
+  wood: "lumber_yard",
+  stone: "quarry",
+  metal: "mine",
 };
 
 export type DevelopSettlementError =
@@ -51,14 +69,9 @@ export type DevelopSettlementError =
   | "INSUFFICIENT_RESOURCES";
 
 export interface DevelopSettlementInput {
-  settlementId:
-    string;
-
-  kingdomId:
-    string;
-
-  focus:
-    SettlementDevelopmentFocus;
+  settlementId: string;
+  kingdomId: string;
+  focus: SettlementDevelopmentFocus;
 }
 
 function isFocus(
@@ -81,31 +94,47 @@ function isFocus(
 
 export function getDevelopmentCost(
   level:
-    SettlementDevelopmentLevel
+    SettlementDevelopmentLevel,
+  settlementType:
+    SettlementType =
+    "town"
 ): ResourceStockpile {
-  const multiplier =
-    level + 1;
+  const levelMultiplier =
+    1 +
+    level *
+      0.75;
+
+  const typeMultiplier =
+    TYPE_COST_MULTIPLIER[
+      settlementType
+    ];
 
   return {
-    food:
-      BASE_COST.food *
-      multiplier,
-
+    food: 0,
     gold:
-      BASE_COST.gold *
-      multiplier,
-
+      Math.round(
+        BASE_COST.gold *
+        levelMultiplier *
+        typeMultiplier
+      ),
     wood:
-      BASE_COST.wood *
-      multiplier,
-
+      Math.round(
+        BASE_COST.wood *
+        levelMultiplier *
+        typeMultiplier
+      ),
     stone:
-      BASE_COST.stone *
-      multiplier,
-
+      Math.round(
+        BASE_COST.stone *
+        levelMultiplier *
+        typeMultiplier
+      ),
     metal:
-      BASE_COST.metal *
-      multiplier,
+      Math.round(
+        BASE_COST.metal *
+        levelMultiplier *
+        typeMultiplier
+      ),
   };
 }
 
@@ -123,9 +152,7 @@ export function developSettlement(
 
   if (!settlement) {
     return {
-      ok:
-        false as const,
-
+      ok: false as const,
       error:
         "SETTLEMENT_NOT_FOUND" as const,
     };
@@ -138,9 +165,7 @@ export function developSettlement(
     input.kingdomId
   ) {
     return {
-      ok:
-        false as const,
-
+      ok: false as const,
       error:
         "NOT_CONTROLLER" as const,
     };
@@ -152,9 +177,7 @@ export function developSettlement(
     )
   ) {
     return {
-      ok:
-        false as const,
-
+      ok: false as const,
       error:
         "INVALID_FOCUS" as const,
     };
@@ -170,9 +193,7 @@ export function developSettlement(
     MAX_DEVELOPMENT_LEVEL
   ) {
     return {
-      ok:
-        false as const,
-
+      ok: false as const,
       error:
         "MAX_DEVELOPMENT_REACHED" as const,
     };
@@ -180,7 +201,8 @@ export function developSettlement(
 
   const cost =
     getDevelopmentCost(
-      currentLevel
+      currentLevel,
+      settlement.type
     );
 
   const available =
@@ -196,9 +218,7 @@ export function developSettlement(
     )
   ) {
     return {
-      ok:
-        false as const,
-
+      ok: false as const,
       error:
         "INSUFFICIENT_RESOURCES" as const,
     };
@@ -211,16 +231,21 @@ export function developSettlement(
       ];
 
   /*
-   * Investment is intentionally predictable:
-   * each level improves one chosen production branch by +20% of its current
-   * output, with a minimum +1 so weak villages can still develop.
+   * Development is intentionally legible:
+   * - a permanent +15% (minimum +2) increase to the chosen base output,
+   * - one level of the related economic building,
+   * - small prosperity recovery,
+   * - small devastation recovery.
+   *
+   * The effective economy layer then applies settlement-wide development,
+   * prosperity and specialization multipliers.
    */
   const gain =
     Math.max(
-      1,
+      2,
       Math.round(
         before *
-          0.2
+        0.15
       )
     );
 
@@ -231,8 +256,35 @@ export function developSettlement(
     ) as
       SettlementDevelopmentLevel;
 
+  const building =
+    BUILDING_BY_FOCUS[
+      input.focus
+    ];
+
+  const currentBuildingLevel =
+    settlement
+      .buildings?.[
+        building
+      ] ??
+    0;
+
+  const nextBuildingLevel =
+    Math.min(
+      5,
+      currentBuildingLevel +
+        1
+    ) as
+      0 |
+      1 |
+      2 |
+      3 |
+      4 |
+      5;
+
   updateRuntimeWorldState(
-    (current) => {
+    (
+      current
+    ) => {
       const currentSettlement =
         current.settlements[
           settlement.id
@@ -291,6 +343,39 @@ export function developSettlement(
                 gain,
             },
 
+            buildings: {
+              ...(
+                currentSettlement
+                  .buildings ??
+                {}
+              ),
+
+              [building]:
+                nextBuildingLevel,
+            },
+
+            prosperity:
+              Math.min(
+                100,
+                (
+                  currentSettlement
+                    .prosperity ??
+                  60
+                ) +
+                  3
+              ),
+
+            devastation:
+              Math.max(
+                0,
+                (
+                  currentSettlement
+                    .devastation ??
+                  0
+                ) -
+                  2
+              ),
+
             developmentLevel:
               nextLevel,
 
@@ -303,27 +388,20 @@ export function developSettlement(
   );
 
   return {
-    ok:
-      true as const,
-
+    ok: true as const,
     settlementId:
       settlement.id,
-
     focus:
       input.focus,
-
+    building,
     fromLevel:
       currentLevel,
-
     toLevel:
       nextLevel,
-
     productionBefore:
       before,
-
     productionGain:
       gain,
-
     cost,
   };
 }

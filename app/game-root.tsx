@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  useState,
   useSyncExternalStore,
 } from "react";
 
 import StrategyMap from "@/app/strategy-map";
+import RealmCommandPanel from "@/app/realm-command-panel";
 import OperationalPanel from "@/app/operational-panel";
 import ConversationPanel from "@/app/conversation-panel";
 import ObserverArena from "@/app/observer-arena";
@@ -23,13 +23,13 @@ import {
   subscribeDemoConfig,
 } from "@/lib/demo/config";
 
-export default function GameRoot() {
-  const [
-    entered,
-    setEntered,
-  ] =
-    useState(false);
+import {
+  enterGame,
+  getUiNavState,
+  subscribeUiNav,
+} from "@/lib/ui/navigation";
 
+export default function GameRoot() {
   const demo =
     useSyncExternalStore(
       subscribeDemoConfig,
@@ -37,12 +37,22 @@ export default function GameRoot() {
       getDemoConfig
     );
 
+  const uiNav =
+    useSyncExternalStore(
+      subscribeUiNav,
+      getUiNavState,
+      getUiNavState
+    );
+
+  const entered =
+    uiNav.entered;
+
   return (
     <>
       {!entered ? (
         <GameShell
-          onEnterGame={() =>
-            setEntered(true)
+          onEnterGame={
+            enterGame
           }
         />
       ) : null}
@@ -61,6 +71,7 @@ export default function GameRoot() {
         "player" ? (
           <>
             <KingdomHud />
+            <RealmCommandPanel />
             <StrategicCommandCenter />
             <OperationalPanel />
             <CourtPanel />

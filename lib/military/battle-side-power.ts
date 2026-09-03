@@ -59,6 +59,8 @@ export interface BattleSidePower {
     number;
   orderMultiplier:
     number;
+  convergentAssaultMultiplier:
+    number;
   totalPower:
     number;
 }
@@ -164,11 +166,24 @@ function getReserveMultiplier(
   armyIndex:
     number,
   reserveCommitted:
+    boolean,
+  convergingFromDifferentDirection:
     boolean
 ): number {
   if (
     armyIndex ===
     0
+  ) {
+    return 1;
+  }
+
+  /*
+   * An army that visibly marched in from a different strategic node than
+   * the side's lead army is a genuine pincer force, not a reserve being
+   * held back — it should fight at full strength immediately.
+   */
+  if (
+    convergingFromDifferentDirection
   ) {
     return 1;
   }
@@ -180,6 +195,61 @@ function getReserveMultiplier(
   }
 
   return 0.5;
+}
+
+/**
+ * A side whose armies visibly approached the battle node from two or
+ * more different strategic nodes is attacking (or reinforcing) from
+ * multiple directions at once. The defender cannot fully concentrate
+ * against every axis, so the whole side gets a modest combined-power
+ * bonus on top of each individual army's own strength.
+ */
+function getConvergentAssaultMultiplier(
+  armyIds:
+    string[]
+): number {
+  const world =
+    getRuntimeWorldState();
+
+  const directions =
+    new Set<
+      string
+    >();
+
+  for (
+    const armyId
+    of armyIds
+  ) {
+    const direction =
+      world.armies[
+        armyId
+      ]
+        ?.arrivedFromNodeId;
+
+    if (
+      direction
+    ) {
+      directions.add(
+        direction
+      );
+    }
+  }
+
+  if (
+    directions.size >=
+    3
+  ) {
+    return 1.18;
+  }
+
+  if (
+    directions.size >=
+    2
+  ) {
+    return 1.1;
+  }
+
+  return 1;
 }
 
 function getOrderMultiplier(
@@ -360,6 +430,15 @@ export function calculateBattleSidePower(
       : battle
           .defenderReserveCommitted;
 
+  const leadArmyDirection =
+    armyIds.length >
+    0
+      ? world.armies[
+          armyIds[0]
+        ]
+          ?.arrivedFromNodeId
+      : undefined;
+
   const armyPowers =
     armyIds.map(
       (
@@ -398,10 +477,19 @@ export function calculateBattleSidePower(
             army.supply.state
           );
 
+        const convergingFromDifferentDirection =
+          Boolean(
+            army.arrivedFromNodeId &&
+            leadArmyDirection &&
+            army.arrivedFromNodeId !==
+              leadArmyDirection
+          );
+
         const reserveMultiplier =
           getReserveMultiplier(
             armyIndex,
-            reserveCommitted
+            reserveCommitted,
+            convergingFromDifferentDirection
           );
 
         const operationalPower =
@@ -441,6 +529,11 @@ export function calculateBattleSidePower(
       order
     );
 
+  const convergentAssaultMultiplier =
+    getConvergentAssaultMultiplier(
+      armyIds
+    );
+
   return {
     side,
     armyIds,
@@ -448,8 +541,10 @@ export function calculateBattleSidePower(
     armyPowers,
     rawPower,
     orderMultiplier,
+    convergentAssaultMultiplier,
     totalPower:
       rawPower *
-      orderMultiplier,
+      orderMultiplier *
+      convergentAssaultMultiplier,
   };
 }

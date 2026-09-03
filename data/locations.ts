@@ -1,165 +1,57 @@
-import type {
-  Location,
-} from "@/types/world";
+import type { Location } from "@/types/world";
 
-export const locations: Record<
-  string,
-  Location
-> = {
-  // NORTHREACH
-
-  northwatch: {
-    id: "northwatch",
-    name: "Northwatch",
-    kingdomId: "northreach",
-    type: "capital",
-  },
-
-  stoneford: {
-    id: "stoneford",
-    name: "Stoneford",
-    kingdomId: "northreach",
-    type: "castle",
-  },
-
-  riverhold: {
-    id: "riverhold",
-    name: "Riverhold",
-    kingdomId: "northreach",
-    type: "town",
-  },
-
-  highcrest: {
-    id: "highcrest",
-    name: "Highcrest",
-    kingdomId: "northreach",
-    type: "town",
-  },
-
-  frostmere: {
-    id: "frostmere",
-    name: "Frostmere",
-    kingdomId: "northreach",
-    type: "village",
-  },
-
-  // EASTVALE
-
-  eastkeep: {
-    id: "eastkeep",
-    name: "Eastkeep",
-    kingdomId: "eastvale",
-    type: "capital",
-  },
-
-  greenharbor: {
-    id: "greenharbor",
-    name: "Greenharbor",
-    kingdomId: "eastvale",
-    type: "town",
-  },
-
-  elmstead: {
-    id: "elmstead",
-    name: "Elmstead",
-    kingdomId: "eastvale",
-    type: "village",
-  },
-
-  dawnfort: {
-    id: "dawnfort",
-    name: "Dawnfort",
-    kingdomId: "eastvale",
-    type: "castle",
-  },
-
-  // WESTMOOR
-
-  moorhall: {
-    id: "moorhall",
-    name: "Moorhall",
-    kingdomId: "westmoor",
-    type: "capital",
-  },
-
-  blackfen: {
-    id: "blackfen",
-    name: "Blackfen",
-    kingdomId: "westmoor",
-    type: "town",
-  },
-
-  greywatch: {
-    id: "greywatch",
-    name: "Greywatch",
-    kingdomId: "westmoor",
-    type: "castle",
-  },
-
-  reedmere: {
-    id: "reedmere",
-    name: "Reedmere",
-    kingdomId: "westmoor",
-    type: "village",
-  },
-
-  // SOUTHMARK
-
-  sunspire: {
-    id: "sunspire",
-    name: "Sunspire",
-    kingdomId: "southmark",
-    type: "capital",
-  },
-
-  goldmeadow: {
-    id: "goldmeadow",
-    name: "Goldmeadow",
-    kingdomId: "southmark",
-    type: "town",
-  },
-
-  redfield: {
-    id: "redfield",
-    name: "Redfield",
-    kingdomId: "southmark",
-    type: "village",
-  },
-
-  southgate: {
-    id: "southgate",
-    name: "Southgate",
-    kingdomId: "southmark",
-    type: "castle",
-  },
-
-  // IRONHOLLOW
-
-  ironhold: {
-    id: "ironhold",
-    name: "Ironhold",
-    kingdomId: "ironhollow",
-    type: "capital",
-  },
-
-  emberfall: {
-    id: "emberfall",
-    name: "Emberfall",
-    kingdomId: "ironhollow",
-    type: "town",
-  },
-
-  stonevein: {
-    id: "stonevein",
-    name: "Stonevein",
-    kingdomId: "ironhollow",
-    type: "village",
-  },
-
-  ashguard: {
-    id: "ashguard",
-    name: "Ashguard",
-    kingdomId: "ironhollow",
-    type: "castle",
-  },
+export const locations: Record<string, Location> = {
+  "northwatch": { id: "northwatch", name: "Northwatch", kingdomId: "northreach", type: "capital" },
+  "stoneford": { id: "stoneford", name: "Stoneford", kingdomId: "northreach", type: "castle" },
+  "riverhold": { id: "riverhold", name: "Riverhold", kingdomId: "northreach", type: "city" },
+  "highcrest": { id: "highcrest", name: "Highcrest", kingdomId: "northreach", type: "town" },
+  "frostmere": { id: "frostmere", name: "Frostmere", kingdomId: "northreach", type: "village" },
+  "wolfpine": { id: "wolfpine", name: "Wolfpine", kingdomId: "northreach", type: "village" },
+  "frostfield": { id: "frostfield", name: "Frostfield", kingdomId: "northreach", type: "village" },
+  "ironfrost": { id: "ironfrost", name: "Ironfrost", kingdomId: "northreach", type: "village" },
+  "icewatch": { id: "icewatch", name: "Icewatch", kingdomId: "northreach", type: "castle" },
+  "moorhall": { id: "moorhall", name: "Moorhall", kingdomId: "westmoor", type: "capital" },
+  "blackfen": { id: "blackfen", name: "Blackfen", kingdomId: "westmoor", type: "city" },
+  "greywatch": { id: "greywatch", name: "Greywatch", kingdomId: "westmoor", type: "castle" },
+  "reedmere": { id: "reedmere", name: "Reedmere", kingdomId: "westmoor", type: "village" },
+  "deepwood": { id: "deepwood", name: "Deepwood", kingdomId: "westmoor", type: "town" },
+  "oakmarket": { id: "oakmarket", name: "Oakmarket", kingdomId: "westmoor", type: "town" },
+  "blackpine": { id: "blackpine", name: "Blackpine", kingdomId: "westmoor", type: "village" },
+  "oakrest": { id: "oakrest", name: "Oakrest", kingdomId: "westmoor", type: "village" },
+  "greenfield-west": { id: "greenfield-west", name: "Greenfield", kingdomId: "westmoor", type: "village" },
+  "oakshield": { id: "oakshield", name: "Oakshield", kingdomId: "westmoor", type: "castle" },
+  "sunspire": { id: "sunspire", name: "Sunspire", kingdomId: "southmark", type: "capital" },
+  "goldmeadow": { id: "goldmeadow", name: "Goldmeadow", kingdomId: "southmark", type: "city" },
+  "redfield": { id: "redfield", name: "Redfield", kingdomId: "southmark", type: "village" },
+  "southgate": { id: "southgate", name: "Southgate", kingdomId: "southmark", type: "castle" },
+  "kingscross": { id: "kingscross", name: "Kingscross", kingdomId: "southmark", type: "town" },
+  "highfield": { id: "highfield", name: "Highfield", kingdomId: "southmark", type: "town" },
+  "wheatbrook": { id: "wheatbrook", name: "Wheatbrook", kingdomId: "southmark", type: "village" },
+  "stonebrook": { id: "stonebrook", name: "Stonebrook", kingdomId: "southmark", type: "village" },
+  "greenmead": { id: "greenmead", name: "Greenmead", kingdomId: "southmark", type: "village" },
+  "stonehill": { id: "stonehill", name: "Stonehill", kingdomId: "southmark", type: "castle" },
+  "eastkeep": { id: "eastkeep", name: "Eastkeep", kingdomId: "eastvale", type: "capital" },
+  "greenharbor": { id: "greenharbor", name: "Greenharbor", kingdomId: "eastvale", type: "city" },
+  "elmstead": { id: "elmstead", name: "Elmstead", kingdomId: "eastvale", type: "village" },
+  "dawnfort": { id: "dawnfort", name: "Dawnfort", kingdomId: "eastvale", type: "castle" },
+  "suncrest": { id: "suncrest", name: "Suncrest", kingdomId: "eastvale", type: "town" },
+  "greencrest": { id: "greencrest", name: "Greencrest", kingdomId: "eastvale", type: "town" },
+  "eastbrook": { id: "eastbrook", name: "Eastbrook", kingdomId: "eastvale", type: "village" },
+  "hillstead": { id: "hillstead", name: "Hillstead", kingdomId: "eastvale", type: "village" },
+  "coastfield": { id: "coastfield", name: "Coastfield", kingdomId: "eastvale", type: "village" },
+  "greencrest-fort": { id: "greencrest-fort", name: "Greencrest Fort", kingdomId: "eastvale", type: "castle" },
+  "ironhold": { id: "ironhold", name: "Ironhold", kingdomId: "ironhollow", type: "capital" },
+  "emberfall": { id: "emberfall", name: "Emberfall", kingdomId: "ironhollow", type: "city" },
+  "stonevein": { id: "stonevein", name: "Stonevein", kingdomId: "ironhollow", type: "village" },
+  "ashguard": { id: "ashguard", name: "Ashguard", kingdomId: "ironhollow", type: "castle" },
+  "redhaven": { id: "redhaven", name: "Redhaven", kingdomId: "ironhollow", type: "city" },
+  "oasisfall": { id: "oasisfall", name: "Oasisfall", kingdomId: "ironhollow", type: "town" },
+  "dustmarket": { id: "dustmarket", name: "Dustmarket", kingdomId: "ironhollow", type: "town" },
+  "sunwell": { id: "sunwell", name: "Sunwell", kingdomId: "ironhollow", type: "town" },
+  "sandbrook": { id: "sandbrook", name: "Sandbrook", kingdomId: "ironhollow", type: "village" },
+  "redstone": { id: "redstone", name: "Redstone", kingdomId: "ironhollow", type: "village" },
+  "dunefield": { id: "dunefield", name: "Dunefield", kingdomId: "ironhollow", type: "village" },
+  "caravan-rest": { id: "caravan-rest", name: "Caravan Rest", kingdomId: "ironhollow", type: "village" },
+  "dunegate": { id: "dunegate", name: "Dunegate", kingdomId: "ironhollow", type: "castle" },
+  "sunwatch": { id: "sunwatch", name: "Sunwatch", kingdomId: "ironhollow", type: "castle" },
 };

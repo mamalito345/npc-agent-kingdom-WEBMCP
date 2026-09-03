@@ -4,6 +4,7 @@ export type GameDrawerTab =
   | "messages"
   | "diplomacy"
   | "lords"
+  | "ai_feed"
   | "save";
 
 export interface GameDrawerState {
