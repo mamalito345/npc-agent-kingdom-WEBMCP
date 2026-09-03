@@ -48,6 +48,23 @@ export function areKingdomsAtWar(
   ).atWar;
 }
 
+/*
+ * How many separate active wars this kingdom is currently fighting.
+ * Used to give war a real, immediate economic cost (trade income)
+ * rather than only mattering where armies physically clash.
+ */
+export function getActiveWarCount(
+  kingdomId: string
+): number {
+  const world = getRuntimeWorldState();
+
+  return Object.keys(world.kingdoms).filter(
+    (otherKingdomId) =>
+      otherKingdomId !== kingdomId &&
+      areKingdomsAtWar(kingdomId, otherKingdomId)
+  ).length;
+}
+
 export function declareWar(
   attackerKingdomId: string,
   defenderKingdomId: string,

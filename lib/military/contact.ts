@@ -4,6 +4,10 @@ import {
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
 
+import {
+  areKingdomsAtWar,
+} from "@/lib/politics/war";
+
 import type {
   Army,
   ArmyContact,
@@ -16,15 +20,22 @@ function armiesAreHostile(
   armyB:
     Army
 ): boolean {
-  //
-  // Package 3 baseline:
-  // different realm = hostile.
-  //
-  // Later War model will replace
-  // this with actual war/alliance logic.
-  //
-  return (
-    armyA.ownerId !==
+  /*
+   * Real war model: two armies only fight if their kingdoms are
+   * actually at war with each other. Different-kingdom armies at
+   * peace (or allied) can now share a node/road without triggering
+   * combat, which makes declaring war -- and everything it costs --
+   * mean something instead of being cosmetic.
+   */
+  if (
+    armyA.ownerId ===
+    armyB.ownerId
+  ) {
+    return false;
+  }
+
+  return areKingdomsAtWar(
+    armyA.ownerId,
     armyB.ownerId
   );
 }

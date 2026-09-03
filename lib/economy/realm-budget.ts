@@ -5,6 +5,7 @@ import {
 import {
   getKingdomDailySettlementTradeIncome,
   getKingdomDailyTradeIncome,
+  getWartimeTradeMultiplier,
 } from "@/lib/economy/trade";
 
 import {
@@ -159,6 +160,9 @@ export function getRealmBudgetSnapshot(
 
   const dailySettlementIncomeGold =
     getKingdomDailySettlementTradeIncome(
+      kingdomId
+    ) *
+    getWartimeTradeMultiplier(
       kingdomId
     );
 

@@ -15,6 +15,10 @@ import {
 } from "@/lib/economy/territory-economy";
 
 import {
+  getActiveWarCount,
+} from "@/lib/politics/war";
+
+import {
   getRuntimeWorldState,
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
@@ -282,6 +286,38 @@ export function getKingdomDailySettlementTradeIncome(
     );
 }
 
+/*
+ * War has a real, immediate economic cost, not just wherever armies
+ * physically clash: merchants avoid a kingdom at war, insurance and
+ * transport costs rise, trade partners hedge. Each concurrent war
+ * compounds a 12% hit to settlement trade income (tax income is left
+ * alone -- that is the crown's own land, not cross-border commerce),
+ * floored so a kingdom fighting several wars at once is hurting but
+ * never fully starved out by this alone.
+ */
+const TRADE_INCOME_PER_WAR_MULTIPLIER = 0.88;
+const MIN_WARTIME_TRADE_MULTIPLIER = 0.4;
+
+export function getWartimeTradeMultiplier(
+  kingdomId:
+    string
+): number {
+  const warCount =
+    getActiveWarCount(
+      kingdomId
+    );
+
+  if (warCount <= 0) {
+    return 1;
+  }
+
+  return Math.max(
+    MIN_WARTIME_TRADE_MULTIPLIER,
+    TRADE_INCOME_PER_WAR_MULTIPLIER **
+      warCount
+  );
+}
+
 export function getKingdomDailyTradeIncome(
   kingdomId:
     string
@@ -289,7 +325,10 @@ export function getKingdomDailyTradeIncome(
   return (
     getKingdomDailySettlementTradeIncome(
       kingdomId
-    ) +
+    ) *
+      getWartimeTradeMultiplier(
+        kingdomId
+      ) +
     getKingdomTerritoryEconomy(
       kingdomId
     ).dailyTerritoryGold
