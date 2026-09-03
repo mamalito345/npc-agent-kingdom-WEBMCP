@@ -208,8 +208,14 @@ export function beginCampaign(
     speed:
       1,
 
+    /*
+     * Start paused. Time is fully in the player's hands: review the
+     * opening situation, issue your first orders, then press Resume
+     * when you're ready for the world clock (and every GM/Actor LLM
+     * kingdom) to actually start moving.
+     */
     running:
-      true,
+      false,
 
     gmEnabled:
       true,

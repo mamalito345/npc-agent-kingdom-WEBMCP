@@ -62,6 +62,11 @@ export default function KingdomHud() {
       getDemoConfig
     );
 
+  const isTimeRunning =
+    demo.running &&
+    !world.simulation
+      .paused;
+
   const player =
     world.session.players[
       world.session
@@ -280,26 +285,37 @@ export default function KingdomHud() {
           <div className="mt-1 flex gap-1">
             <button
               type="button"
+              title={
+                isTimeRunning
+                  ? "Pause the world clock"
+                  : "Resume the world clock (GM and Actor LLM kingdoms only act while it runs)"
+              }
               onClick={() => {
                 if (
-                  world.simulation
-                    .paused
+                  isTimeRunning
                 ) {
+                  pauseWorld();
+                  setDemoConfig({
+                    running:
+                      false,
+                  });
+                } else {
                   resumeWorld();
                   setDemoConfig({
                     running:
                       true,
                   });
-                } else {
-                  pauseWorld();
                 }
               }}
-              className="rounded border border-neutral-700 bg-neutral-900 px-2 py-0.5"
+              className={`rounded border px-2 py-0.5 ${
+                isTimeRunning
+                  ? "border-neutral-700 bg-neutral-900"
+                  : "border-amber-500 bg-amber-950/60 text-amber-200"
+              }`}
             >
-              {world.simulation
-                .paused
-                ? "▶"
-                : "⏸"}
+              {isTimeRunning
+                ? "⏸"
+                : "▶"}
             </button>
 
             {(
