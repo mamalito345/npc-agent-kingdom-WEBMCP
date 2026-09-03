@@ -138,17 +138,19 @@ export default function DemoRuntime() {
   }, []);
 
   useEffect(() => {
-    if (
-      !config.running ||
-      world.simulation
-        .paused
-    ) {
-      runningRef.current =
-        false;
-
-      return;
-    }
-
+    /*
+     * The loop itself now runs regardless of config.running / pause --
+     * see the comment on runWorldCatchUp's WORLD_PAUSED branch. Pausing
+     * must only freeze world TIME, not whose turn it is to command: a
+     * human who passes their command window while paused should still
+     * hand the turn to the next GM/Actor LLM player immediately rather
+     * than the game silently waiting for someone to press Resume.
+     * runWorldCatchUp() already refuses to advance time while paused
+     * (it stops the instant it would enter the "executing" phase), so
+     * calling it unconditionally here is safe. The GM event/proposal
+     * systems below stay gated on running+paused, since those are
+     * genuinely tied to world time passing.
+     */
     if (
       runningRef.current
     ) {
@@ -174,17 +176,11 @@ export default function DemoRuntime() {
       const liveConfig =
         getDemoConfig();
 
-      if (
-        !liveConfig.running ||
-        getWorldState()
+      const worldIsLive =
+        liveConfig.running &&
+        !getWorldState()
           .simulation
-          .paused
-      ) {
-        runningRef.current =
-          false;
-
-        return;
-      }
+          .paused;
 
       try {
         const beforeActivation =
@@ -244,7 +240,8 @@ export default function DemoRuntime() {
         }
 
         if (
-          liveConfig.gmEnabled
+          liveConfig.gmEnabled &&
+          worldIsLive
         ) {
           try {
             await runDueDirectorEvents(

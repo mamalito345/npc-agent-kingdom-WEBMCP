@@ -259,7 +259,8 @@ export type WorldCatchUpResult = {
   stoppedFor?:
     | "HUMAN_TURN"
     | "MODEL_ERROR"
-    | "LOOP_GUARD";
+    | "LOOP_GUARD"
+    | "WORLD_PAUSED";
 };
 
 export async function runWorldCatchUp(): Promise<WorldCatchUpResult> {
@@ -270,6 +271,29 @@ export async function runWorldCatchUp(): Promise<WorldCatchUpResult> {
     const cycle = getRuntimeWorldState().session.commandCycle;
 
     if (cycle.phase === "executing") {
+      /*
+       * The world clock being paused only ever means "do not advance
+       * time" -- it must not also freeze whose turn it is to command.
+       * Command-window turns (the branch below, for GM/Actor LLM
+       * players) are resolved regardless of pause state, so a human
+       * who passes their command window while paused still hands the
+       * turn to the next LLM player immediately instead of the game
+       * silently waiting for someone to press Resume. Only the
+       * "executing" phase -- which is specifically about moving world
+       * time forward -- respects pause.
+       */
+      if (
+        getRuntimeWorldState()
+          .simulation.paused
+      ) {
+        return {
+          advanced: getWorldTime() !== startTime,
+          currentTime: getWorldTime(),
+          activations,
+          stoppedFor: "WORLD_PAUSED",
+        };
+      }
+
       const result = advanceWorldUntil(
         getWorldTime() + CATCH_UP_HORIZON_MINUTES
       );
