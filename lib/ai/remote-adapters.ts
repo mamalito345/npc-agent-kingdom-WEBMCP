@@ -68,7 +68,10 @@ export class RemotePlayerLlmAdapter implements LlmPlayerModelAdapter {
     const result = await this.transport.post<{
       ok: true;
       decision: LlmPlayerDecision;
-    }>("/api/ai/player", context);
+    }>("/api/ai/player", {
+      playerContext: context,
+      worldSnapshot: buildGmWorldSnapshot(),
+    });
 
     return result.decision;
   }

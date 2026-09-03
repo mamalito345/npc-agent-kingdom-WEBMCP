@@ -8,6 +8,10 @@ import type {
   LlmPlayerDecision,
 } from "@/types/actors";
 
+import type {
+  GmWorldSnapshot,
+} from "@/types/director";
+
 const TOOL_NAMES = [
   "inspect_player_state",
   "inspect_known_world",
@@ -59,19 +63,52 @@ const TOOL_NAMES = [
   "pass_command_window",
 ] as const;
 
+interface PlayerLlmRequest {
+  playerContext: LlmPlayerContext;
+  worldSnapshot?: GmWorldSnapshot;
+}
+
+function isPlayerLlmRequest(
+  value: unknown
+): value is PlayerLlmRequest {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "playerContext" in value
+  );
+}
+
 export async function POST(request: Request): Promise<Response> {
   try {
-    const context = (await request.json()) as LlmPlayerContext;
+    const body = await request.json();
+
+    // Backward compatible: accept either the raw LlmPlayerContext (old shape)
+    // or the new { playerContext, worldSnapshot } envelope.
+    const context: LlmPlayerContext = isPlayerLlmRequest(body)
+      ? body.playerContext
+      : (body as LlmPlayerContext);
+
+    const worldSnapshot: GmWorldSnapshot | undefined = isPlayerLlmRequest(body)
+      ? body.worldSnapshot
+      : undefined;
 
     const decision = await requestStructuredOpenAI<LlmPlayerDecision>({
       model: playerModel(),
       schemaName: "player_llm_decision",
-      input: context,
+      input: worldSnapshot
+        ? { playerContext: context, worldSnapshot }
+        : context,
       system:
         "You are a strategic PLAYER LLM ruling one kingdom in a fictional persistent strategy game. " +
-        "You are not the GM. Use only the supplied player-safe information — your own state plus whatever your scouts, couriers and intelligence have actually delivered. " +
+        "You are not the GM. " +
+        (worldSnapshot
+          ? "You have been given a full worldSnapshot (every kingdom's armies, settlements, treasuries and positions) so you can plan competently and see the whole strategic picture, the way a genuinely well-informed ruler with a functioning intelligence service would. " +
+            "CRITICAL FAIRNESS LAW: use the worldSnapshot for situational awareness and long-term planning ONLY -- never justify an in-character action (an attack, an accusation, a broken promise) using a fact your own kingdom has no plausible way to know; ground concrete accusations and reactive moves in playerContext/your own delivered intelligence, not in omniscient knowledge. "
+          : "Use only the supplied player-safe information — your own state plus whatever your scouts, couriers and intelligence have actually delivered. ") +
         "Return bounded gameplay tool calls; never invent hidden information, direct state mutation, or nonexistent entities. " +
         "Use inspections when uncertain. Finish the command window when your useful actions are complete. " +
+        "LONG-TERM PLANNING: every activation, look at your existing plan (if any) in the context, and set planUpdate to keep pursuing it, complete it, or replace it with a better one given what changed -- do not reset to a random new goal each turn. A competent ruler pursues a goal (build up, defend a threatened border, besiege a specific target) over many turns, not one disconnected action at a time. " +
+        "TERRAIN REFERENCE for planning army movement and tactics: open plains favor cavalry and cavalry_flank tactics; dense forest, mountains and marsh block cavalry flanking entirely and favor infantry holding ground; narrow passes and bridges favor a small defending force (shield_wall) against a larger attacker; hills and high ground give the defender a real combat bonus. Position and terrain choice should be part of your strategy, not an afterthought. " +
         "STRATEGIC DOCTRINE — you must act like a cautious, self-interested ruler, not a passive spectator: " +
         "before committing to any aggression, compare your known military strength (inspect_armies, inspect_economy) against what you know of the target (inspect_known_enemy_forces); " +
         "never open a new war from a position of clear weakness — prioritize defense, fortify_settlement, recruit_units, or propose_agreement (NON_AGGRESSION or ALLIANCE) instead. " +
