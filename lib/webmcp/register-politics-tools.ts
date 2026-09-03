@@ -1,4 +1,7 @@
-import { getIdentityBoundWebMcpModelContext } from "@/lib/webmcp/identity-guard";
+import {
+  getIdentityBoundWebMcpModelContext,
+} from "@/lib/webmcp/identity-guard";
+
 import type {
   JsonSchemaForInference,
 } from "@mcp-b/webmcp-types";
@@ -24,13 +27,16 @@ import type {
 } from "@/types/politics";
 
 const baseReadSchema = {
-  type: "object",
+  type:
+    "object",
   properties: {
     session_id: {
-      type: "string",
+      type:
+        "string",
     },
     player_id: {
-      type: "string",
+      type:
+        "string",
     },
   },
   required: [
@@ -42,34 +48,43 @@ const baseReadSchema = {
 } as const satisfies JsonSchemaForInference;
 
 const proposeSchema = {
-  type: "object",
+  type:
+    "object",
   properties: {
     session_id: {
-      type: "string",
+      type:
+        "string",
     },
     player_id: {
-      type: "string",
+      type:
+        "string",
     },
     agreement_type: {
-      type: "string",
+      type:
+        "string",
       enum: [
         "ALLIANCE",
         "NON_AGGRESSION",
+        "MILITARY_ACCESS",
         "MILITARY_SUPPORT",
         "PEACE",
       ],
     },
     target_kingdom_id: {
-      type: "string",
+      type:
+        "string",
     },
     terms: {
-      type: "string",
+      type:
+        "string",
     },
     expires_at: {
-      type: "number",
+      type:
+        "number",
     },
     secret: {
-      type: "boolean",
+      type:
+        "boolean",
     },
   },
   required: [
@@ -83,19 +98,24 @@ const proposeSchema = {
 } as const satisfies JsonSchemaForInference;
 
 const respondSchema = {
-  type: "object",
+  type:
+    "object",
   properties: {
     session_id: {
-      type: "string",
+      type:
+        "string",
     },
     player_id: {
-      type: "string",
+      type:
+        "string",
     },
     agreement_id: {
-      type: "string",
+      type:
+        "string",
     },
     accept: {
-      type: "boolean",
+      type:
+        "boolean",
     },
   },
   required: [
@@ -109,22 +129,28 @@ const respondSchema = {
 } as const satisfies JsonSchemaForInference;
 
 const createPromiseSchema = {
-  type: "object",
+  type:
+    "object",
   properties: {
     session_id: {
-      type: "string",
+      type:
+        "string",
     },
     player_id: {
-      type: "string",
+      type:
+        "string",
     },
     promisee_character_id: {
-      type: "string",
+      type:
+        "string",
     },
     summary: {
-      type: "string",
+      type:
+        "string",
     },
     target_id: {
-      type: "string",
+      type:
+        "string",
     },
   },
   required: [
@@ -138,19 +164,24 @@ const createPromiseSchema = {
 } as const satisfies JsonSchemaForInference;
 
 const resolvePromiseSchema = {
-  type: "object",
+  type:
+    "object",
   properties: {
     session_id: {
-      type: "string",
+      type:
+        "string",
     },
     player_id: {
-      type: "string",
+      type:
+        "string",
     },
     promise_id: {
-      type: "string",
+      type:
+        "string",
     },
     status: {
-      type: "string",
+      type:
+        "string",
       enum: [
         "FULFILLED",
         "BROKEN",
@@ -170,7 +201,8 @@ const resolvePromiseSchema = {
 
 let registrationController:
   AbortController |
-  null = null;
+  null =
+  null;
 
 export async function registerPoliticsWebMCPTools():
   Promise<boolean> {
@@ -212,7 +244,7 @@ export async function registerPoliticsWebMCPTools():
       name:
         "inspect_agreements",
       description:
-        "Inspect agreements your kingdom is party to. Undelivered incoming proposals are hidden.",
+        "Inspect agreements involving your kingdom, including military access and peace/truce agreements.",
       execute:
         inspectAgreements,
     },
@@ -220,7 +252,7 @@ export async function registerPoliticsWebMCPTools():
       name:
         "inspect_diplomatic_proposals",
       description:
-        "Inspect diplomatic proposals visible to your kingdom.",
+        "Inspect delivered diplomatic proposals visible to your kingdom.",
       execute:
         inspectDiplomaticProposals,
     },
@@ -251,14 +283,15 @@ export async function registerPoliticsWebMCPTools():
             readOnlyHint:
               true,
           },
-          execute: async ({
-            session_id,
-            player_id,
-          }) =>
-            tool.execute(
+          execute:
+            async ({
               session_id,
-              player_id
-            ),
+              player_id,
+            }) =>
+              tool.execute(
+                session_id,
+                player_id
+              ),
         },
         {
           signal:
@@ -272,30 +305,32 @@ export async function registerPoliticsWebMCPTools():
         name:
           "propose_agreement",
         description:
-          "Send an alliance, non-aggression, military-support, or peace proposal through a physical diplomatic courier.",
+          "Send an alliance, non-aggression, military-access, military-support, or peace proposal by physical diplomatic courier. PEACE acts as a truce; expires_at may define its duration.",
         inputSchema:
           proposeSchema,
-        execute: async ({
-          session_id,
-          player_id,
-          agreement_type,
-          target_kingdom_id,
-          terms,
-          expires_at,
-          secret,
-        }) =>
-          proposeAgreement(
+        execute:
+          async ({
             session_id,
             player_id,
-            agreement_type as AgreementType,
+            agreement_type,
             target_kingdom_id,
-            {
-              terms,
-              expiresAt:
-                expires_at,
-              secret,
-            }
-          ),
+            terms,
+            expires_at,
+            secret,
+          }) =>
+            proposeAgreement(
+              session_id,
+              player_id,
+              agreement_type as
+                AgreementType,
+              target_kingdom_id,
+              {
+                terms,
+                expiresAt:
+                  expires_at,
+                secret,
+              }
+            ),
       },
       {
         signal:
@@ -311,18 +346,19 @@ export async function registerPoliticsWebMCPTools():
           "Accept or reject a delivered diplomatic proposal.",
         inputSchema:
           respondSchema,
-        execute: async ({
-          session_id,
-          player_id,
-          agreement_id,
-          accept,
-        }) =>
-          respondToAgreement(
+        execute:
+          async ({
             session_id,
             player_id,
             agreement_id,
-            accept
-          ),
+            accept,
+          }) =>
+            respondToAgreement(
+              session_id,
+              player_id,
+              agreement_id,
+              accept
+            ),
       },
       {
         signal:
@@ -335,23 +371,24 @@ export async function registerPoliticsWebMCPTools():
         name:
           "create_promise",
         description:
-          "Create an explicit political promise. Conversation text alone does not create promises.",
+          "Create an explicit political promise.",
         inputSchema:
           createPromiseSchema,
-        execute: async ({
-          session_id,
-          player_id,
-          promisee_character_id,
-          summary,
-          target_id,
-        }) =>
-          createPromise(
+        execute:
+          async ({
             session_id,
             player_id,
             promisee_character_id,
             summary,
-            target_id
-          ),
+            target_id,
+          }) =>
+            createPromise(
+              session_id,
+              player_id,
+              promisee_character_id,
+              summary,
+              target_id
+            ),
       },
       {
         signal:
@@ -367,21 +404,22 @@ export async function registerPoliticsWebMCPTools():
           "Mark your explicit promise as fulfilled, broken, or cancelled.",
         inputSchema:
           resolvePromiseSchema,
-        execute: async ({
-          session_id,
-          player_id,
-          promise_id,
-          status,
-        }) =>
-          resolvePromise(
+        execute:
+          async ({
             session_id,
             player_id,
             promise_id,
-            status as Exclude<
-              PromiseStatus,
-              "ACTIVE"
-            >
-          ),
+            status,
+          }) =>
+            resolvePromise(
+              session_id,
+              player_id,
+              promise_id,
+              status as Exclude<
+                PromiseStatus,
+                "ACTIVE"
+              >
+            ),
       },
       {
         signal:
@@ -389,12 +427,10 @@ export async function registerPoliticsWebMCPTools():
       }
     );
 
-    console.log(
-      "[WebMCP] politics tools registered"
-    );
-
     return true;
-  } catch (error) {
+  } catch (
+    error
+  ) {
     controller.abort();
     registrationController =
       null;
@@ -413,8 +449,4 @@ export function unregisterPoliticsWebMCPTools():
   registrationController.abort();
   registrationController =
     null;
-
-  console.log(
-    "[WebMCP] politics tools unregistered"
-  );
 }

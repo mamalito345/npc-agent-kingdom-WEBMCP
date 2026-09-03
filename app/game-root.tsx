@@ -12,12 +12,11 @@ import ObserverArena from "@/app/observer-arena";
 import GameShell from "@/app/game-shell";
 import KingdomHud from "@/app/kingdom-hud";
 import CourtPanel from "@/app/court-panel";
-import RealmMatters from "@/app/realm-matters";
 import GameDrawer from "@/app/game-drawer";
 import BattleBoard from "@/app/battle-board";
 import CampaignPanel from "@/app/campaign-panel";
 import GameAudio from "@/app/game-audio";
-import RealmCommandPanel from "@/app/realm-command-panel";
+import StrategicCommandCenter from "@/app/strategic-command-center";
 
 import {
   getDemoConfig,
@@ -62,10 +61,9 @@ export default function GameRoot() {
         "player" ? (
           <>
             <KingdomHud />
-            <RealmCommandPanel />
+            <StrategicCommandCenter />
             <OperationalPanel />
             <CourtPanel />
-            <RealmMatters />
             <CampaignPanel />
             <GameAudio />
             <ConversationPanel />

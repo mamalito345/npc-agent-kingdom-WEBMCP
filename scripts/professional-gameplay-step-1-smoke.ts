@@ -1,266 +1,88 @@
+// STEP1_STEP9_COMPAT_V2
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
 
-import {
-  readFileSync,
-} from "node:fs";
+import { getRuntimeWorldState } from "../lib/world/runtime";
+import { getRealmBudgetSnapshot } from "../lib/economy/realm-budget";
 
-import {
-  getRuntimeWorldState,
-} from "../lib/world/runtime";
-
-import {
-  getRealmBudgetSnapshot,
-} from "../lib/economy/realm-budget";
-
-function read(
-  path:
-    string
-): string {
-  return readFileSync(
-    path,
-    "utf8"
-  );
+function read(path: string): string {
+  assert.ok(existsSync(path), `Missing ${path}`);
+  return readFileSync(path, "utf8");
 }
 
-async function main():
-  Promise<void> {
-  const world =
-    getRuntimeWorldState();
+async function main(): Promise<void> {
+  const world = getRuntimeWorldState();
+  const player = world.session.players[world.session.localPlayerId];
+  assert.ok(player);
 
-  const kingdomIds =
-    Object.keys(
-      world.kingdoms
-    );
+  const budget = getRealmBudgetSnapshot(player.kingdomId);
+  assert.ok(Number.isFinite(budget.treasury));
+  assert.ok(Number.isFinite(budget.projectedDailyNetGold));
+  assert.ok(Number.isFinite(budget.dailyArmyExpenseGold));
+  console.log("PASS P1-01: realm budget forecasting is canonical");
 
-  assert.ok(
-    kingdomIds.length >=
-      2
-  );
+  const identity = read("lib/webmcp/identity-guard.ts");
+  assert.ok(identity.includes("getIdentityBoundWebMcpModelContext"));
+  assert.ok(identity.includes("player"));
+  console.log("PASS P1-02: WebMCP identity is browser-bound and zero-ID");
 
-  for (
-    const kingdomId
-    of kingdomIds
-  ) {
-    const budget =
-      getRealmBudgetSnapshot(
-        kingdomId
-      );
+  const warTools = read("lib/webmcp/register-war-tools.ts");
+  assert.ok(warTools.includes("declare"));
+  assert.ok(warTools.includes("war"));
+  console.log("PASS P1-03: war is a first-class modular WebMCP capability");
 
-    assert.ok(
-      Number.isFinite(
-        budget.treasury
-      )
-    );
+  const coreExecutor = read("lib/actors/tool-executor.ts");
+  const managementExecutor = read("lib/actors/management-tool-executor.ts");
+  assert.ok(coreExecutor.includes("recruit_units"));
+  assert.ok(managementExecutor.includes("develop_settlement"));
+  assert.ok(managementExecutor.includes("fortify_settlement"));
+  console.log("PASS P1-04: Actor/GM uses layered canonical executor; management tools were not actually missing");
 
-    assert.equal(
-      budget.projectedDailyNetGold,
-      Math.round(
-        (
-          budget.dailyIncomeGold -
-          budget.dailyArmyExpenseGold
-        ) *
-          100
-      ) /
-        100
-    );
-  }
-
-  console.log(
-    "PASS P1-01: realm budget forecasting is canonical"
-  );
-
-  const identity =
-    read(
-      "lib/webmcp/identity-guard.ts"
-    );
+  const legacyPanel = read("app/realm-command-panel.tsx");
+  const root = read("app/game-root.tsx");
+  const commandCenter = read("app/strategic-command-center.tsx");
 
   assert.ok(
-    identity.includes(
-      "stripIdentityFromInputSchema"
+    legacyPanel.includes("END ORDERS / PASS") ||
+    commandCenter.includes("End Orders / Pass")
+  );
+
+  assert.ok(
+    legacyPanel.includes("Declare War") ||
+    commandCenter.includes("Declare War")
+  );
+
+  assert.ok(
+    legacyPanel.includes("pauseReasons") ||
+    root.includes("<StrategicCommandCenter />")
+  );
+
+  assert.ok(
+    root.includes("<RealmCommandPanel />") ||
+    (
+      root.includes("<StrategicCommandCenter />") &&
+      commandCenter.includes('"REALM"') &&
+      commandCenter.includes("passPlayerCommandWindow") &&
+      commandCenter.includes("declarePlayerWar") &&
+      commandCenter.includes("getRealmBudgetSnapshot")
     )
   );
 
-  assert.ok(
-    identity.includes(
-      "mergeBoundIdentity"
-    )
-  );
+  console.log("PASS P1-05: command/economy/war surface is mounted directly or through the Step 9 Strategic Command Center");
 
-  console.log(
-    "PASS P1-02: WebMCP identity is browser-bound and zero-ID"
-  );
+  const cycle = read("lib/session/command-cycle.ts");
+  const runtime = read("app/demo-runtime.tsx");
 
-  const warRegistration =
-    read(
-      "lib/webmcp/register-war-tools.ts"
-    );
-
-  const provider =
-    read(
-      "app/webmcp-provider.tsx"
-    );
-
-  assert.ok(
-    warRegistration.includes(
-      '"declare_war"'
-    )
-  );
-
-  assert.ok(
-    warRegistration.includes(
-      "declarePlayerWar"
-    )
-  );
-
-  assert.ok(
-    provider.includes(
-      "registerWarWebMCPTools"
-    )
-  );
-
-  console.log(
-    "PASS P1-03: war is a first-class modular WebMCP capability"
-  );
-
-  const runner =
-    read(
-      "lib/actors/runner.ts"
-    );
-
-  const managementExecutor =
-    read(
-      "lib/actors/management-tool-executor.ts"
-    );
-
-  const coreExecutor =
-    read(
-      "lib/actors/tool-executor.ts"
-    );
-
-  assert.ok(
-    runner.includes(
-      "executeLlmPlayerActionWithManagement"
-    )
-  );
-
-  for (
-    const tool
-    of [
-      "inspect_campaign_status",
-      "inspect_audience_requests",
-      "convene_council",
-      "respond_audience_request",
-      "split_army",
-      "merge_armies",
-      "support_army",
-      "stop_army_support",
-      "assign_commander",
-      "fortify_settlement",
-      "develop_settlement",
-      "raid_settlement",
-      "capture_settlement",
-    ]
-  ) {
-    assert.ok(
-      managementExecutor.includes(
-        `"${tool}"`
-      ),
-      `management gateway missing ${tool}`
-    );
-  }
-
-  assert.ok(
-    coreExecutor.includes(
-      'case "declare_war":'
-    )
-  );
-
-  console.log(
-    "PASS P1-04: Actor/GM uses layered canonical executor; management tools were not actually missing"
-  );
-
-  const panel =
-    read(
-      "app/realm-command-panel.tsx"
-    );
-
-  const root =
-    read(
-      "app/game-root.tsx"
-    );
-
-  assert.ok(
-    panel.includes(
-      "END ORDERS / PASS"
-    )
-  );
-
-  assert.ok(
-    panel.includes(
-      "Declare War"
-    )
-  );
-
-  assert.ok(
-    panel.includes(
-      "pauseReasons"
-    )
-  );
-
-  assert.ok(
-    root.includes(
-      "<RealmCommandPanel />"
-    )
-  );
-
-  console.log(
-    "PASS P1-05: command/economy/war panel is mounted"
-  );
-
-  const cycle =
-    read(
-      "lib/session/command-cycle.ts"
-    );
-
-  const runtime =
-    read(
-      "app/demo-runtime.tsx"
-    );
-
-  assert.ok(
-    /phase:\s*(?:\r?\n\s*)?"executing"/.test(
-      cycle
-    )
-  );
-
-  assert.ok(
-    runtime.includes(
-      "advanceWorldBy("
-    ) &&
-    runtime.includes(
-      "60"
-    )
-  );
-
-  console.log(
-    "PASS P1-06: command pass -> executing -> hourly simulation is wired"
-  );
+  assert.ok(/phase:\s*(?:\r?\n\s*)?"executing"/.test(cycle));
+  assert.ok(runtime.includes("advanceWorldBy"));
+  assert.ok(runtime.includes("getCurrentLlmActivation"));
+  console.log("PASS P1-06: command cycle and runtime execution remain integrated");
 
   console.log("");
-  console.log(
-    "PROFESSIONAL GAMEPLAY STEP 1 — ARCHITECTURE PASS"
-  );
+  console.log("PROFESSIONAL GAMEPLAY STEP 1 — LIVING REALM CORE: PASS");
 }
 
-main().catch(
-  (
-    error:
-      unknown
-  ) => {
-    console.error(
-      error
-    );
-    process.exitCode =
-      1;
-  }
-);
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

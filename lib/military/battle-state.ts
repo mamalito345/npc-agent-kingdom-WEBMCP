@@ -5,17 +5,16 @@ import {
 } from "@/lib/world/runtime";
 
 import {
-  getBattleTerrainForEdge,
-  getBattleTerrainForNode,
-} from "@/data/battle-terrain";
-
-import {
   getMapEdge,
 } from "@/lib/map/graph";
 
 import {
   ensureActiveWarBetweenRealms,
 } from "@/lib/military/war";
+
+import {
+  resolveBattlefield,
+} from "@/lib/military/terrain-resolver";
 
 import type {
   PersistentBattle,
@@ -39,11 +38,6 @@ export interface StartBattleInput {
   contactId?:
     string;
 
-  /*
-   * When supplied, armies are allowed
-   * to start battle on an exact road
-   * position rather than a graph node.
-   */
   roadPosition?:
     RoadBattlePosition;
 }
@@ -234,13 +228,10 @@ export function startBattle(
         defender.id
       ];
 
-  let battleNodeId:
-    string;
-
-  let terrain =
-    getBattleTerrainForNode(
-      ""
-    );
+  let battlefield:
+    ReturnType<
+      typeof resolveBattlefield
+    >;
 
   if (
     input.roadPosition
@@ -301,17 +292,22 @@ export function startBattle(
       };
     }
 
-    battleNodeId =
-      input
-        .roadPosition
-        .progress <
-      0.5
-        ? edge.fromNodeId
-        : edge.toNodeId;
-
-    terrain =
-      getBattleTerrainForEdge(
-        edge.id
+    battlefield =
+      resolveBattlefield(
+        attacker.id,
+        defender.id,
+        {
+          kind:
+            "edge",
+          edgeId:
+            input
+              .roadPosition
+              .edgeId,
+          progress:
+            input
+              .roadPosition
+              .progress,
+        }
       );
   } else {
     if (
@@ -333,13 +329,17 @@ export function startBattle(
       };
     }
 
-    battleNodeId =
-      attackerPosition
-        .nodeId;
-
-    terrain =
-      getBattleTerrainForNode(
-        battleNodeId
+    battlefield =
+      resolveBattlefield(
+        attacker.id,
+        defender.id,
+        {
+          kind:
+            "node",
+          nodeId:
+            attackerPosition
+              .nodeId,
+        }
       );
   }
 
@@ -399,14 +399,53 @@ export function startBattle(
       )}-001`;
 
   const locationText =
-    input.roadPosition
-      ? `road ${input.roadPosition.edgeId} at ${(
-          input.roadPosition.progress *
+    battlefield
+      .roadEdgeId
+      ? `road ${battlefield.roadEdgeId} at ${(
+          (
+            battlefield
+              .roadProgress ??
+            0
+          ) *
           100
         ).toFixed(
           1
         )}%`
-      : battleNodeId;
+      : battlefield
+          .anchorNodeId;
+
+  const battlefieldSummary = [
+    battlefield.terrain,
+    battlefield.features
+      .length >
+    0
+      ? battlefield
+          .features
+          .join(
+            ", "
+          )
+      : "no special feature",
+    `frontage x${battlefield.frontageMultiplier.toFixed(
+      2
+    )}`,
+    battlefield.bridgehead
+      ? "bridgehead"
+      : undefined,
+    battlefield.chokepoint
+      ? "chokepoint"
+      : undefined,
+  ]
+    .filter(
+      (
+        value
+      ): value is string =>
+        Boolean(
+          value
+        )
+    )
+    .join(
+      "; "
+    );
 
   const battle:
     PersistentBattle = {
@@ -419,16 +458,9 @@ export function startBattle(
     contactId:
       input.contactId,
 
-    /*
-     * nodeId remains the operational
-     * anchor used by existing combat
-     * and retreat systems.
-     *
-     * Exact army physical positions
-     * remain in entityPositions.
-     */
     nodeId:
-      battleNodeId,
+      battlefield
+        .anchorNodeId,
 
     attackerArmyIds: [
       attacker.id,
@@ -476,10 +508,12 @@ export function startBattle(
       false,
 
     terrain:
-      terrain.terrain,
+      battlefield
+        .terrain,
 
     features: [
-      ...terrain.features,
+      ...battlefield
+        .features,
     ],
 
     rounds:
@@ -500,7 +534,7 @@ export function startBattle(
           "battle_started",
 
         summary:
-          `Battle started between ${attacker.id} and ${defender.id} at ${locationText} during war ${war.id}.`,
+          `Battle started between ${attacker.id} and ${defender.id} at ${locationText} during war ${war.id}. Battlefield: ${battlefieldSummary}.`,
       },
     ],
   };

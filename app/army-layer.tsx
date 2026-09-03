@@ -34,27 +34,16 @@ import {
 } from "@/lib/ui/map-interaction";
 
 const KINGDOM_LABELS:
-  Record<
-    string,
-    string
-  > = {
-  northreach:
-    "N",
-  eastvale:
-    "E",
-  westmoor:
-    "W",
-  southmark:
-    "S",
-  ironhollow:
-    "I",
+  Record<string, string> = {
+  northreach: "N",
+  eastvale: "E",
+  westmoor: "W",
+  southmark: "S",
+  ironhollow: "I",
 };
 
 const KINGDOM_CLASSES:
-  Record<
-    string,
-    string
-  > = {
+  Record<string, string> = {
   northreach:
     "border-sky-300 bg-sky-950/95",
   eastvale:
@@ -77,49 +66,75 @@ function knownEnemyPosition(
   }
 ) {
   if (
-    typeof fact
-      .data
+    typeof fact.data
       .nodeId ===
     "string"
   ) {
     return {
       kind:
         "node" as const,
-
       nodeId:
-        fact.data
-          .nodeId,
+        fact.data.nodeId,
     };
   }
 
   if (
-    typeof fact
-      .data
+    typeof fact.data
       .edgeId ===
       "string" &&
-    typeof fact
-      .data
+    typeof fact.data
       .edgeProgress ===
       "number"
   ) {
     return {
       kind:
         "edge" as const,
-
       edgeId:
-        fact.data
-          .edgeId,
-
+        fact.data.edgeId,
       progress:
         fact.data
           .edgeProgress,
-
       direction:
         "forward" as const,
     };
   }
 
   return undefined;
+}
+
+function formatAge(
+  minutes: number
+): string {
+  if (
+    minutes <
+    60
+  ) {
+    return `${Math.max(
+      1,
+      Math.round(
+        minutes
+      )
+    )}m`;
+  }
+
+  if (
+    minutes <
+    24 *
+      60
+  ) {
+    return `${Math.round(
+      minutes /
+        60
+    )}h`;
+  }
+
+  return `${Math.round(
+    minutes /
+      (
+        24 *
+        60
+      )
+  )}d`;
 }
 
 export default function ArmyLayer() {
@@ -148,8 +163,7 @@ export default function ArmyLayer() {
       ];
 
   const ownKingdomId =
-    player
-      ?.kingdomId;
+    player?.kingdomId;
 
   const lordArmyIds =
     useMemo(
@@ -195,7 +209,10 @@ export default function ArmyLayer() {
   const enemyView =
     getPlayerKnownEnemyForces(
       world.session.id,
-      playerId
+      playerId,
+      interaction
+        .selectedArmyId ??
+        undefined
     );
 
   const latestEnemyFacts =
@@ -216,17 +233,14 @@ export default function ArmyLayer() {
 
                 if (
                   !current ||
-                  fact
-                    .observedAt >
+                  fact.observedAt >
                     current
                       .observedAt ||
                   (
-                    fact
-                      .observedAt ===
+                    fact.observedAt ===
                       current
                         .observedAt &&
-                    fact
-                      .deliveredAt >
+                    fact.deliveredAt >
                       current
                         .deliveredAt
                   )
@@ -364,10 +378,8 @@ export default function ArmyLayer() {
                   : "⚔"}{" "}
                 {
                   KINGDOM_LABELS[
-                    army
-                      .ownerId
-                  ] ??
-                  "?"
+                    army.ownerId
+                  ] ?? "?"
                 }
               </span>
 
@@ -436,12 +448,34 @@ export default function ArmyLayer() {
               .targetArmyId ===
             fact.subjectId;
 
+          const targeting =
+            fact.targeting;
+
+          const age =
+            targeting
+              .ageMinutes;
+
+          const approximateSoldiers =
+            typeof fact.data
+              .approximateSoldiers ===
+            "number"
+              ? fact.data
+                  .approximateSoldiers
+              : undefined;
+
+          const canTarget =
+            targeting
+              .canTarget;
+
           return (
             <button
               key={`known-${fact.subjectId}`}
               type="button"
+              disabled={
+                !canTarget
+              }
               title={
-                fact.summary
+                `${fact.summary}\n${targeting.reason}`
               }
               onPointerDown={(
                 event
@@ -454,6 +488,12 @@ export default function ArmyLayer() {
               ) => {
                 event.stopPropagation();
 
+                if (
+                  !canTarget
+                ) {
+                  return;
+                }
+
                 targetMapArmy(
                   targeted
                     ? null
@@ -461,10 +501,12 @@ export default function ArmyLayer() {
                         .subjectId
                 );
               }}
-              className={`absolute z-35 grid h-12 w-12 place-items-center rounded-full border border-dashed bg-red-950/35 text-red-100 shadow-[0_6px_18px_rgba(0,0,0,0.45)] backdrop-blur-[1px] transition ${
+              className={`absolute z-35 grid min-h-14 min-w-14 place-items-center rounded-full border border-dashed px-1 text-red-100 shadow-[0_6px_18px_rgba(0,0,0,0.45)] backdrop-blur-[1px] transition ${
                 targeted
-                  ? "scale-110 border-yellow-200 ring-4 ring-yellow-300/30"
-                  : "border-red-300/70 opacity-70 hover:opacity-100"
+                  ? "scale-110 border-yellow-200 bg-red-950/70 ring-4 ring-yellow-300/30"
+                  : canTarget
+                    ? "border-red-300/70 bg-red-950/40 opacity-80 hover:opacity-100"
+                    : "cursor-not-allowed border-neutral-500/50 bg-neutral-900/45 opacity-45"
               }`}
               style={{
                 left:
@@ -479,9 +521,39 @@ export default function ArmyLayer() {
                 ◇
               </span>
 
-              <span className="absolute top-full mt-1 whitespace-nowrap rounded bg-black/75 px-1.5 py-0.5 text-[8px] text-red-100">
-                LAST KNOWN
+              <span className="text-[8px] font-bold uppercase">
+                {fact.confidence}
               </span>
+
+              {approximateSoldiers ? (
+                <span className="text-[8px]">
+                  ~{approximateSoldiers.toLocaleString()}
+                </span>
+              ) : null}
+
+              <span className="absolute top-full mt-1 whitespace-nowrap rounded bg-black/80 px-1.5 py-0.5 text-[8px] text-red-100">
+                LAST KNOWN · {formatAge(age)}
+                {targeting.stale
+                  ? " · STALE"
+                  : ""}
+              </span>
+
+              {interaction
+                .selectedArmyId ? (
+                <span
+                  className={`absolute -bottom-8 whitespace-nowrap rounded px-1.5 py-0.5 text-[8px] ${
+                    targeting
+                      .canInterceptWithSelectedArmy
+                      ? "bg-emerald-950 text-emerald-200"
+                      : "bg-neutral-900 text-neutral-400"
+                  }`}
+                >
+                  {targeting
+                    .canInterceptWithSelectedArmy
+                    ? `ROUTE ${targeting.routeDistanceKm ?? "?"} km`
+                    : "NO INTERCEPT"}
+                </span>
+              ) : null}
             </button>
           );
         }

@@ -11,6 +11,10 @@ import {
   getSettlementTradeState,
 } from "@/lib/economy/trade";
 
+import {
+  getKingdomTerritoryEconomy,
+} from "@/lib/economy/territory-economy";
+
 import type {
   KingdomStrategicEconomy,
   MobilizationLevel,
@@ -30,19 +34,22 @@ function getMobilizationLevel(
   ratio: number
 ): MobilizationLevel {
   if (
-    ratio < 0.35
+    ratio <
+    0.35
   ) {
     return "normal";
   }
 
   if (
-    ratio < 0.65
+    ratio <
+    0.65
   ) {
     return "major";
   }
 
   if (
-    ratio < 0.9
+    ratio <
+    0.9
   ) {
     return "full";
   }
@@ -152,10 +159,11 @@ export function getKingdomStrategicEconomy(
           settlement
             .controllerKingdomId ??
           settlement.kingdomId
-        ) === kingdomId
+        ) ===
+        kingdomId
     );
 
-  const theoreticalTrade =
+  const theoreticalSettlementTrade =
     controlledSettlements.reduce(
       (
         total,
@@ -171,7 +179,7 @@ export function getKingdomStrategicEconomy(
       0
     );
 
-  const actualTrade =
+  const actualSettlementTrade =
     controlledSettlements.reduce(
       (
         total,
@@ -183,6 +191,19 @@ export function getKingdomStrategicEconomy(
         ).dailyTradeGold,
       0
     );
+
+  const territory =
+    getKingdomTerritoryEconomy(
+      kingdomId
+    );
+
+  const theoreticalTrade =
+    theoreticalSettlementTrade +
+    territory.homePotentialGold;
+
+  const actualTrade =
+    actualSettlementTrade +
+    territory.dailyTerritoryGold;
 
   const tradeDisruptionRatio =
     theoreticalTrade <=
@@ -244,10 +265,6 @@ export function getKingdomStrategicEconomy(
       : dailyMilitaryGoldCost /
         dailyTradeIncome;
 
-  //
-  // Mobilization pressure combines
-  // fiscal burden and trade disruption.
-  //
   const mobilizationRatio =
     Math.max(
       0,
@@ -262,35 +279,25 @@ export function getKingdomStrategicEconomy(
 
   return {
     kingdomId,
-
     treasury:
       kingdom.treasury,
-
     dailyTradeIncome,
-
     dailyMilitaryGoldCost,
-
     treasuryDaysRemaining:
       finiteOrZero(
         treasuryDaysRemaining
       ),
-
     foodDaysRemaining:
       finiteOrZero(
         foodDaysRemaining
       ),
-
     armySupplyDays:
       finiteOrZero(
         armySupplyDays
       ),
-
     militaryCostIncomeRatio,
-
     tradeDisruptionRatio,
-
     mobilizationRatio,
-
     mobilizationLevel:
       getMobilizationLevel(
         mobilizationRatio

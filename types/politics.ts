@@ -14,6 +14,7 @@ export interface Relationship {
 export type AgreementType =
   | "ALLIANCE"
   | "NON_AGGRESSION"
+  | "MILITARY_ACCESS"
   | "MILITARY_SUPPORT"
   | "PEACE";
 
@@ -186,10 +187,6 @@ export interface PoliticsRuntimeState {
       PoliticalPromise
     >;
 
-  /**
-   * Optional for backward compatibility with saves created before the
-   * audience/council gameplay block.
-   */
   audienceRequests?:
     Record<
       string,

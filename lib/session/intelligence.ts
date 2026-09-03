@@ -3,10 +3,6 @@ import {
 } from "@/lib/world/runtime";
 
 import {
-  getMapEdge,
-} from "@/lib/map/graph";
-
-import {
   getActivePlayerSlots,
 } from "@/lib/session/players";
 
@@ -17,94 +13,49 @@ import {
 } from "@/lib/session/knowledge";
 
 import {
+  buildPlayerStrategicBriefing,
+  encodeStrategicBriefing,
+} from "@/lib/session/strategic-briefing";
+
+import {
   openCommandInterrupt,
 } from "@/lib/session/command-cycle";
 
 import type {
-  Position,
+  PlayerStrategicBriefing,
+} from "@/lib/session/strategic-briefing";
+
+import type {
   SimulationInterrupt,
   WorldMinute,
 } from "@/types/simulation";
 
-function describeCoarsePosition(
-  position:
-    Position | undefined
-): {
-  summary:
-    string;
-
-  data:
-    Record<
-      string,
-      string | number | boolean | null
-    >;
-} {
-  if (!position) {
-    return {
-      summary:
-        "location unknown",
-
-      data: {
-        locationKnown:
-          false,
-      },
-    };
-  }
-
+function briefingSummary(
+  briefing:
+    PlayerStrategicBriefing
+): string {
   if (
-    position.kind ===
-    "node"
+    briefing.items.length ===
+    0
   ) {
-    return {
-      summary:
-        `near ${position.nodeId}`,
-
-      data: {
-        locationKnown:
-          true,
-
-        nodeId:
-          position.nodeId,
-      },
-    };
+    return "Strategic briefing: no material new developments.";
   }
 
-  const edge =
-    getMapEdge(
-      position.edgeId
-    );
+  const top =
+    briefing.items
+      .slice(
+        0,
+        3
+      )
+      .map(
+        (item) =>
+          item.summary
+      )
+      .join(
+        " "
+      );
 
-  if (!edge) {
-    return {
-      summary:
-        "moving somewhere along an unknown road",
-
-      data: {
-        locationKnown:
-          false,
-      },
-    };
-  }
-
-  /*
-   * Strategic intelligence deliberately
-   * does NOT expose exact edge progress.
-   */
-  return {
-    summary:
-      `reported somewhere between ${edge.fromNodeId} and ${edge.toNodeId}`,
-
-    data: {
-      locationKnown:
-        true,
-
-      roadFrom:
-        edge.fromNodeId,
-
-      roadTo:
-        edge.toNodeId,
-    },
-  };
+  return `Strategic briefing (${briefing.severity}): ${top}`;
 }
 
 function createPlayerBriefing(
@@ -112,25 +63,22 @@ function createPlayerBriefing(
     string,
   worldTime:
     WorldMinute
-): void {
-  const world =
-    getRuntimeWorldState();
+): PlayerStrategicBriefing | undefined {
+  const briefing =
+    buildPlayerStrategicBriefing(
+      playerId,
+      worldTime
+    );
 
-  const player =
-    world.session
-      .players[
-        playerId
-      ];
-
-  if (!player) {
-    return;
+  if (!briefing) {
+    return undefined;
   }
 
   addPlayerKnowledge({
     playerId,
 
     subjectId:
-      `strategic-briefing-${worldTime}`,
+      `strategic-briefing-${playerId}-${worldTime}`,
 
     kind:
       "event",
@@ -148,88 +96,38 @@ function createPlayerBriefing(
       "confirmed",
 
     summary:
-      `Strategic intelligence briefing delivered at world minute ${worldTime}.`,
+      briefingSummary(
+        briefing
+      ),
 
     data: {
+      strategicBriefing:
+        true,
       briefingAt:
         worldTime,
+      since:
+        briefing.since,
+      severity:
+        briefing.severity,
+      meaningful:
+        briefing.meaningful,
+      newFactCount:
+        briefing.newFactCount,
+      itemCount:
+        briefing.items.length,
+      briefingJson:
+        encodeStrategicBriefing(
+          briefing
+        ),
     },
   });
-
-  const enemyArmies =
-    Object.values(
-      world.armies
-    )
-      .filter(
-        (army) =>
-          army.ownerId !==
-            player.kingdomId &&
-          army.status !==
-            "destroyed"
-      )
-      .sort(
-        (a, b) =>
-          a.id.localeCompare(
-            b.id
-          )
-      );
-
-  for (
-    const enemyArmy
-    of enemyArmies
-  ) {
-    const position =
-      world.simulation
-        .entityPositions[
-          enemyArmy.id
-        ];
-
-    const coarse =
-      describeCoarsePosition(
-        position
-      );
-
-    addPlayerKnowledge({
-      playerId,
-
-      subjectId:
-        enemyArmy.id,
-
-      kind:
-        "army",
-
-      observedAt:
-        worldTime,
-
-      deliveredAt:
-        worldTime,
-
-      source:
-        "strategic_briefing",
-
-      confidence:
-        "medium",
-
-      summary:
-        `Realm intelligence reports ${enemyArmy.id} ${coarse.summary}.`,
-
-      data: {
-        ...coarse.data,
-
-        /*
-         * Status is a strategic-level
-         * estimate, not tactical detail.
-         */
-        reportedStatus:
-          enemyArmy.status,
-      },
-    });
-  }
 
   markStrategicBriefingDelivered(
     playerId,
     worldTime
   );
+
+  return briefing;
 }
 
 export function getNextStrategicBriefingBoundary():
@@ -283,28 +181,57 @@ export function processStrategicBriefings(
     return undefined;
   }
 
+  const meaningfulPlayerIds:
+    string[] = [];
+
+  const meaningfulSummaries:
+    string[] = [];
+
   for (
     const player
     of duePlayers
   ) {
-    createPlayerBriefing(
-      player.id,
-      worldTime
-    );
+    const briefing =
+      createPlayerBriefing(
+        player.id,
+        worldTime
+      );
+
+    if (
+      briefing
+        ?.meaningful
+    ) {
+      meaningfulPlayerIds.push(
+        player.id
+      );
+
+      const top =
+        briefing.items[
+          0
+        ];
+
+      if (top) {
+        meaningfulSummaries.push(
+          `${player.id}: ${top.summary}`
+        );
+      }
+    }
   }
 
-  const affectedPlayerIds =
-    duePlayers.map(
-      (player) =>
-        player.id
-    );
-
-  const message =
-    `Strategic intelligence briefing available for ${affectedPlayerIds.join(", ")}.`;
+  /*
+   * Quiet scheduled briefings are recorded but do not stop simulation and do
+   * not wake an Actor/GM realm. This is the main LLM-call reduction rule.
+   */
+  if (
+    meaningfulPlayerIds.length ===
+    0
+  ) {
+    return undefined;
+  }
 
   /*
-   * Don't overwrite an already more
-   * urgent battle/contact interrupt.
+   * Never replace a more urgent battle/contact/message interrupt already open.
+   * The briefing remains delivered and visible through player knowledge.
    */
   if (
     getRuntimeWorldState()
@@ -316,12 +243,26 @@ export function processStrategicBriefings(
     return undefined;
   }
 
+  const message =
+    meaningfulSummaries.length >
+    0
+      ? `Strategic briefing requires attention. ${meaningfulSummaries
+          .slice(
+            0,
+            3
+          )
+          .join(
+            " "
+          )}`
+      : "Strategic briefing contains material developments requiring command attention.";
+
   const interrupt =
     openCommandInterrupt({
       type:
         "STRATEGIC_BRIEFING",
 
-      affectedPlayerIds,
+      affectedPlayerIds:
+        meaningfulPlayerIds,
 
       message,
     });
@@ -335,6 +276,7 @@ export function processStrategicBriefings(
 
     message,
 
-    affectedPlayerIds,
+    affectedPlayerIds:
+      meaningfulPlayerIds,
   };
 }

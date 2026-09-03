@@ -8,6 +8,10 @@ import {
   STRATEGIC_BRIEFING_INTERVAL_MINUTES,
 } from "@/data/session";
 
+import {
+  getInitialStrategicIntelligenceFacts,
+} from "@/lib/intelligence/strategic-intelligence";
+
 import type {
   KnowledgeConfidence,
   KnowledgeSource,
@@ -19,32 +23,22 @@ import type {
 } from "@/types/simulation";
 
 export interface AddKnowledgeInput {
-  playerId:
-    string;
-
-  subjectId:
-    string;
-
+  playerId: string;
+  subjectId: string;
   kind:
     KnownWorldFact[
       "kind"
     ];
-
   observedAt:
     WorldMinute;
-
   deliveredAt?:
     WorldMinute;
-
   source:
     KnowledgeSource;
-
   confidence:
     KnowledgeConfidence;
-
   summary:
     string;
-
   data?:
     KnownWorldFact[
       "data"
@@ -85,29 +79,21 @@ export function addPlayerKnowledge(
           6,
           "0"
         )}`,
-
     subjectId:
       input.subjectId,
-
     kind:
       input.kind,
-
     observedAt:
       input.observedAt,
-
     deliveredAt:
       input.deliveredAt ??
       now,
-
     source:
       input.source,
-
     confidence:
       input.confidence,
-
     summary:
       input.summary,
-
     data:
       input.data ??
       {},
@@ -127,18 +113,14 @@ export function addPlayerKnowledge(
 
       return {
         ...current,
-
         session: {
           ...current.session,
-
           knowledge: {
             ...current
               .session
               .knowledge,
-
             [input.playerId]: {
               ...existing,
-
               facts: [
                 ...existing.facts,
                 fact,
@@ -153,9 +135,114 @@ export function addPlayerKnowledge(
   return fact;
 }
 
+function agedConfidence(
+  fact:
+    KnownWorldFact,
+  ageMinutes:
+    number
+): KnowledgeConfidence {
+  if (
+    fact.kind !==
+    "army"
+  ) {
+    return fact.confidence;
+  }
+
+  if (
+    fact.source ===
+      "direct_observation" &&
+    ageMinutes <=
+      120
+  ) {
+    return "confirmed";
+  }
+
+  if (
+    ageMinutes <=
+    6 *
+      60
+  ) {
+    return fact.confidence ===
+      "confirmed"
+      ? "high"
+      : fact.confidence;
+  }
+
+  if (
+    ageMinutes <=
+    24 *
+      60
+  ) {
+    return fact.confidence ===
+        "rumor" ||
+      fact.confidence ===
+        "low"
+      ? fact.confidence
+      : "medium";
+  }
+
+  if (
+    ageMinutes <=
+    3 *
+      24 *
+      60
+  ) {
+    return fact.confidence ===
+      "rumor"
+      ? "rumor"
+      : "low";
+  }
+
+  return "rumor";
+}
+
+function ageFact(
+  fact:
+    KnownWorldFact,
+  now:
+    number
+):
+  KnownWorldFact {
+  if (
+    fact.kind !==
+    "army"
+  ) {
+    return fact;
+  }
+
+  const ageMinutes =
+    Math.max(
+      0,
+      now -
+        fact.observedAt
+    );
+
+  return {
+    ...fact,
+    confidence:
+      agedConfidence(
+        fact,
+        ageMinutes
+      ),
+    data: {
+      ...fact.data,
+      ageMinutes,
+      visibility:
+        ageMinutes <=
+            120 &&
+          fact.source ===
+            "direct_observation"
+          ? "observed"
+          : "ghost",
+      stale:
+        ageMinutes >
+        120,
+    },
+  };
+}
+
 export function getDeliveredPlayerKnowledge(
-  playerId:
-    string
+  playerId: string
 ): KnownWorldFact[] {
   const world =
     getRuntimeWorldState();
@@ -174,12 +261,33 @@ export function getDeliveredPlayerKnowledge(
     world.simulation
       .worldTimeMinutes;
 
-  return knowledge
-    .facts
+  const bootstrap =
+    knowledge.facts.some(
+      (fact) =>
+        fact.data
+          .bootstrapIntel ===
+        true
+    )
+      ? []
+      : getInitialStrategicIntelligenceFacts(
+          playerId
+        );
+
+  return [
+    ...knowledge.facts,
+    ...bootstrap,
+  ]
     .filter(
       (fact) =>
         fact.deliveredAt <=
         now
+    )
+    .map(
+      (fact) =>
+        ageFact(
+          fact,
+          now
+        )
     )
     .sort(
       (a, b) =>
@@ -235,21 +343,16 @@ export function markStrategicBriefingDelivered(
 
       return {
         ...current,
-
         session: {
           ...current.session,
-
           knowledge: {
             ...current
               .session
               .knowledge,
-
             [playerId]: {
               ...knowledge,
-
               lastStrategicBriefingAt:
                 worldTime,
-
               nextStrategicBriefingAt:
                 worldTime +
                 STRATEGIC_BRIEFING_INTERVAL_MINUTES,

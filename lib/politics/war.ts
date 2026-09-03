@@ -4,6 +4,11 @@ import {
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
 
+import {
+  getDiplomaticPairStatus,
+  getActiveAgreementsBetween,
+} from "@/lib/politics/diplomatic-law";
+
 export type WarReason =
   | "BORDER_VIOLATION"
   | "DEFENSE_OF_ALLY"
@@ -19,57 +24,28 @@ export type DeclareWarResult =
       defenderKingdomId: string;
       reason: WarReason;
       brokenAgreementIds: string[];
+      nonAggressionBreach:
+        boolean;
     }
   | {
       ok: false;
       error:
         | "KINGDOM_NOT_FOUND"
         | "CANNOT_DECLARE_WAR_ON_SELF"
-        | "ALREADY_AT_WAR";
+        | "ALREADY_AT_WAR"
+        | "ACTIVE_PEACE_TRUCE";
+      truceExpiresAt?:
+        number;
     };
 
 export function areKingdomsAtWar(
   kingdomAId: string,
   kingdomBId: string
 ): boolean {
-  return Object.values(
-    getRuntimeWorldState()
-      .wars
-  ).some(
-    (war) => {
-      if (
-        war.status !==
-        "active"
-      ) {
-        return false;
-      }
-
-      const aAttacksB =
-        war.attackerRealmIds
-          .includes(
-            kingdomAId
-          ) &&
-        war.defenderRealmIds
-          .includes(
-            kingdomBId
-          );
-
-      const bAttacksA =
-        war.attackerRealmIds
-          .includes(
-            kingdomBId
-          ) &&
-        war.defenderRealmIds
-          .includes(
-            kingdomAId
-          );
-
-      return (
-        aAttacksB ||
-        bAttacksA
-      );
-    }
-  );
+  return getDiplomaticPairStatus(
+    kingdomAId,
+    kingdomBId
+  ).atWar;
 }
 
 export function declareWar(
@@ -109,16 +85,32 @@ export function declareWar(
     };
   }
 
-  if (
-    areKingdomsAtWar(
+  const pair =
+    getDiplomaticPairStatus(
       attackerKingdomId,
       defenderKingdomId
-    )
+    );
+
+  if (
+    pair.atWar
   ) {
     return {
       ok: false,
       error:
         "ALREADY_AT_WAR",
+    };
+  }
+
+  if (
+    pair.peaceProtected
+  ) {
+    return {
+      ok: false,
+      error:
+        "ACTIVE_PEACE_TRUCE",
+      truceExpiresAt:
+        pair
+          .peaceProtectedUntil,
     };
   }
 
@@ -138,42 +130,31 @@ export function declareWar(
         "0"
       )}`;
 
-  const latest =
-    getRuntimeWorldState();
+  const activeAgreements =
+    getActiveAgreementsBetween(
+      attackerKingdomId,
+      defenderKingdomId
+    );
 
-  const agreements =
-    latest.session
-      .politics
-      .agreements;
+  const nonAggressionBreach =
+    activeAgreements.some(
+      (agreement) =>
+        agreement.type ===
+        "NON_AGGRESSION"
+    );
 
   const brokenAgreementIds =
-    Object.values(
-      agreements
-    )
+    activeAgreements
       .filter(
         (agreement) =>
-          agreement.status ===
-            "ACTIVE" &&
-          agreement
-            .partyKingdomIds
-            .includes(
-              attackerKingdomId
-            ) &&
-          agreement
-            .partyKingdomIds
-            .includes(
-              defenderKingdomId
-            ) &&
-          (
-            agreement.type ===
-              "NON_AGGRESSION" ||
-            agreement.type ===
-              "PEACE" ||
-            agreement.type ===
-              "ALLIANCE" ||
-            agreement.type ===
-              "MILITARY_SUPPORT"
-          )
+          agreement.type ===
+            "NON_AGGRESSION" ||
+          agreement.type ===
+            "ALLIANCE" ||
+          agreement.type ===
+            "MILITARY_ACCESS" ||
+          agreement.type ===
+            "MILITARY_SUPPORT"
       )
       .map(
         (agreement) =>
@@ -192,12 +173,11 @@ export function declareWar(
           defenderKingdomId
         ];
 
-      const updatedAgreements =
-        {
-          ...current.session
-            .politics
-            .agreements,
-        };
+      const updatedAgreements = {
+        ...current.session
+          .politics
+          .agreements,
+      };
 
       for (
         const agreementId
@@ -220,6 +200,16 @@ export function declareWar(
             "BROKEN",
         };
       }
+
+      const attackerPenalty =
+        nonAggressionBreach
+          ? 50
+          : 35;
+
+      const defenderPenalty =
+        nonAggressionBreach
+          ? 65
+          : 45;
 
       return {
         ...current,
@@ -261,7 +251,7 @@ export function declareWar(
                       ] ??
                     0
                   ) -
-                    35
+                    attackerPenalty
                 ),
             },
           },
@@ -281,7 +271,7 @@ export function declareWar(
                       ] ??
                     0
                   ) -
-                    45
+                    defenderPenalty
                 ),
             },
           },
@@ -307,5 +297,6 @@ export function declareWar(
     defenderKingdomId,
     reason,
     brokenAgreementIds,
+    nonAggressionBreach,
   };
 }

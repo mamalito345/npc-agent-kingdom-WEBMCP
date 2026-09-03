@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -50,8 +49,7 @@ export default function RealmCommandPanel() {
 
   const player =
     world.session.players[
-      world.session
-        .localPlayerId
+      world.session.localPlayerId
     ];
 
   const kingdom =
@@ -62,22 +60,11 @@ export default function RealmCommandPanel() {
       : undefined;
 
   const budget =
-    useMemo(
-      () =>
-        kingdom
-          ? getRealmBudgetSnapshot(
-              kingdom.id
-            )
-          : null,
-      [
-        kingdom?.id,
-        kingdom?.treasury,
-        world.simulation
-          .worldTimeMinutes,
-        world.armies,
-        world.settlements,
-      ]
-    );
+    kingdom
+      ? getRealmBudgetSnapshot(
+          kingdom.id
+        )
+      : null;
 
   if (
     demo.mode !==
@@ -145,7 +132,8 @@ export default function RealmCommandPanel() {
   }
 
   function declare(
-    targetKingdomId: string
+    targetKingdomId:
+      string
   ) {
     const result =
       declarePlayerWar(
@@ -163,7 +151,7 @@ export default function RealmCommandPanel() {
   }
 
   return (
-    <aside className="fixed right-4 top-[84px] z-[85] w-[330px] rounded-xl border border-neutral-700/80 bg-black/85 p-3 text-neutral-100 shadow-2xl backdrop-blur">
+    <aside className="fixed right-4 top-[84px] z-[85] w-[350px] rounded-xl border border-neutral-700/80 bg-black/85 p-3 text-neutral-100 shadow-2xl backdrop-blur">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
@@ -175,13 +163,17 @@ export default function RealmCommandPanel() {
           </div>
         </div>
 
-        <div className={`rounded px-2 py-1 text-[10px] font-bold ${
-          cycle.phase === "executing"
-            ? "bg-emerald-950 text-emerald-200"
-            : cycle.phase === "interrupted"
-              ? "bg-red-950 text-red-200"
-              : "bg-amber-950 text-amber-200"
-        }`}>
+        <div
+          className={`rounded px-2 py-1 text-[10px] font-bold ${
+            cycle.phase ===
+            "executing"
+              ? "bg-emerald-950 text-emerald-200"
+              : cycle.phase ===
+                  "interrupted"
+                ? "bg-red-950 text-red-200"
+                : "bg-amber-950 text-amber-200"
+          }`}
+        >
           {cycle.phase.toUpperCase()}
         </div>
       </div>
@@ -200,15 +192,43 @@ export default function RealmCommandPanel() {
           <div className="text-neutral-400">
             Daily Net
           </div>
-          <div className={budget.projectedDailyNetGold >= 0 ? "font-bold text-emerald-300" : "font-bold text-red-300"}>
-            {budget.projectedDailyNetGold >= 0 ? "+" : ""}
+          <div
+            className={
+              budget.projectedDailyNetGold >=
+              0
+                ? "font-bold text-emerald-300"
+                : "font-bold text-red-300"
+            }
+          >
+            {budget.projectedDailyNetGold >=
+            0
+              ? "+"
+              : ""}
             {budget.projectedDailyNetGold.toFixed(1)}
           </div>
         </div>
 
         <div className="rounded-lg bg-white/5 p-2">
           <div className="text-neutral-400">
-            Income
+            Settlement Income
+          </div>
+          <div className="font-semibold">
+            +{budget.dailySettlementIncomeGold.toFixed(1)}
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white/5 p-2">
+          <div className="text-neutral-400">
+            Territory Income
+          </div>
+          <div className="font-semibold">
+            +{budget.dailyTerritoryIncomeGold.toFixed(1)}
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white/5 p-2">
+          <div className="text-neutral-400">
+            Total Income
           </div>
           <div className="font-semibold">
             +{budget.dailyIncomeGold.toFixed(1)}/day
@@ -222,6 +242,43 @@ export default function RealmCommandPanel() {
           <div className="font-semibold">
             -{budget.dailyArmyExpenseGold.toFixed(1)}/day
           </div>
+        </div>
+      </div>
+
+      <div className="mt-2 rounded-lg border border-white/10 bg-white/5 p-2 text-[11px]">
+        <div className="flex justify-between">
+          <span className="text-neutral-400">
+            Strategic nodes
+          </span>
+          <span>
+            {budget.territoryNodeCount}
+          </span>
+        </div>
+
+        <div className="mt-1 flex justify-between">
+          <span className="text-neutral-400">
+            Territory disruption
+          </span>
+          <span
+            className={
+              budget.territoryDisruptedGold >
+              0
+                ? "text-red-300"
+                : ""
+            }
+          >
+            -{budget.territoryDisruptedGold.toFixed(1)}
+          </span>
+        </div>
+
+        <div className="mt-1 flex justify-between">
+          <span className="text-neutral-400">
+            Contested / occupied
+          </span>
+          <span>
+            {budget.contestedTerritoryNodeCount} /{" "}
+            {budget.occupiedHomeTerritoryNodeCount}
+          </span>
         </div>
       </div>
 
@@ -249,7 +306,8 @@ export default function RealmCommandPanel() {
             Army-cost coverage
           </span>
           <span>
-            {budget.reserveCoverageDays >= 999
+            {budget.reserveCoverageDays >=
+            999
               ? "∞"
               : `${budget.reserveCoverageDays.toFixed(1)} days`}
           </span>
@@ -258,18 +316,24 @@ export default function RealmCommandPanel() {
 
       {world.simulation.paused ? (
         <div className="mt-2 rounded-lg border border-red-500/40 bg-red-950/40 p-2 text-[10px] text-red-100">
-          PAUSED: {world.simulation.pauseReasons.join(", ") || "unknown reason"}
+          PAUSED:{" "}
+          {world.simulation.pauseReasons.join(", ") ||
+            "unknown reason"}
         </div>
       ) : null}
 
-      {cycle.phase !== "executing" ? (
+      {cycle.phase !==
+      "executing" ? (
         <div className="mt-3">
           <div className="text-[10px] uppercase tracking-wide text-neutral-400">
             Current command player
           </div>
           <div className="text-xs">
             {cycle.currentPlayerId
-              ? world.session.players[cycle.currentPlayerId]?.displayName ?? cycle.currentPlayerId
+              ? world.session.players[
+                  cycle.currentPlayerId
+                ]?.displayName ??
+                cycle.currentPlayerId
               : "None"}
           </div>
 
@@ -302,15 +366,24 @@ export default function RealmCommandPanel() {
                   world.wars
                 ).some(
                   (war) =>
-                    war.status === "active" &&
+                    war.status ===
+                      "active" &&
                     (
                       (
-                        war.attackerRealmIds.includes(kingdom.id) &&
-                        war.defenderRealmIds.includes(target.id)
+                        war.attackerRealmIds.includes(
+                          kingdom.id
+                        ) &&
+                        war.defenderRealmIds.includes(
+                          target.id
+                        )
                       ) ||
                       (
-                        war.attackerRealmIds.includes(target.id) &&
-                        war.defenderRealmIds.includes(kingdom.id)
+                        war.attackerRealmIds.includes(
+                          target.id
+                        ) &&
+                        war.defenderRealmIds.includes(
+                          kingdom.id
+                        )
                       )
                     )
                 );
@@ -325,24 +398,29 @@ export default function RealmCommandPanel() {
                       {target.name}
                     </div>
                     <div className="text-[9px] text-neutral-400">
-                      Relations {kingdom.relations[target.id] ?? 0}
+                      Relations{" "}
+                      {kingdom.relations[
+                        target.id
+                      ] ?? 0}
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    disabled={!isMyTurn || alreadyAtWar}
-                    onClick={() => declare(target.id)}
-                    className="rounded border border-red-500/50 bg-red-950/60 px-2 py-1 text-[10px] font-bold text-red-100 disabled:cursor-not-allowed disabled:opacity-30"
-                    title={
+                    disabled={
+                      !isMyTurn ||
                       alreadyAtWar
-                        ? "Already at war"
-                        : !isMyTurn
-                          ? "War can be declared during your command window"
-                          : "Declare canonical war"
                     }
+                    onClick={() =>
+                      declare(
+                        target.id
+                      )
+                    }
+                    className="rounded border border-red-500/50 bg-red-950/60 px-2 py-1 text-[10px] font-bold text-red-100 disabled:cursor-not-allowed disabled:opacity-30"
                   >
-                    {alreadyAtWar ? "AT WAR" : "WAR"}
+                    {alreadyAtWar
+                      ? "AT WAR"
+                      : "WAR"}
                   </button>
                 </div>
               );

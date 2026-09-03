@@ -3,8 +3,13 @@ import {
 } from "@/lib/world/runtime";
 
 import {
+  getKingdomDailySettlementTradeIncome,
   getKingdomDailyTradeIncome,
 } from "@/lib/economy/trade";
+
+import {
+  getKingdomTerritoryEconomy,
+} from "@/lib/economy/territory-economy";
 
 import {
   getArmyDailyCosts,
@@ -13,7 +18,14 @@ import {
 export interface RealmBudgetSnapshot {
   kingdomId: string;
   treasury: number;
+  dailySettlementIncomeGold: number;
+  dailyTerritoryIncomeGold: number;
   dailyIncomeGold: number;
+  territoryPotentialGold: number;
+  territoryDisruptedGold: number;
+  territoryNodeCount: number;
+  contestedTerritoryNodeCount: number;
+  occupiedHomeTerritoryNodeCount: number;
   dailyArmyExpenseGold: number;
   projectedDailyNetGold: number;
   recommendedReserveGold: number;
@@ -70,10 +82,6 @@ export function getRecommendedRealmReserve(
       0
     );
 
-  /*
-   * Reserve is advisory, never a spending lock.
-   * It prevents AI from treating every coin in treasury as disposable.
-   */
   return Math.max(
     150,
     Math.round(
@@ -144,6 +152,19 @@ export function getRealmBudgetSnapshot(
       0
     );
 
+  const territory =
+    getKingdomTerritoryEconomy(
+      kingdomId
+    );
+
+  const dailySettlementIncomeGold =
+    getKingdomDailySettlementTradeIncome(
+      kingdomId
+    );
+
+  const dailyTerritoryIncomeGold =
+    territory.dailyTerritoryGold;
+
   const dailyIncomeGold =
     getKingdomDailyTradeIncome(
       kingdomId
@@ -166,7 +187,8 @@ export function getRealmBudgetSnapshot(
     );
 
   const reserveCoverageDays =
-    dailyArmyExpenseGold <= 0
+    dailyArmyExpenseGold <=
+    0
       ? 999
       : kingdom.treasury /
         dailyArmyExpenseGold;
@@ -177,10 +199,32 @@ export function getRealmBudgetSnapshot(
       round2(
         kingdom.treasury
       ),
+    dailySettlementIncomeGold:
+      round2(
+        dailySettlementIncomeGold
+      ),
+    dailyTerritoryIncomeGold:
+      round2(
+        dailyTerritoryIncomeGold
+      ),
     dailyIncomeGold:
       round2(
         dailyIncomeGold
       ),
+    territoryPotentialGold:
+      round2(
+        territory.homePotentialGold
+      ),
+    territoryDisruptedGold:
+      round2(
+        territory.disruptedGold
+      ),
+    territoryNodeCount:
+      territory.homeNodeCount,
+    contestedTerritoryNodeCount:
+      territory.contestedNodeCount,
+    occupiedHomeTerritoryNodeCount:
+      territory.occupiedHomeNodeCount,
     dailyArmyExpenseGold:
       round2(
         dailyArmyExpenseGold

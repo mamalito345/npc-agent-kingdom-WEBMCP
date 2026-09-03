@@ -1,4 +1,7 @@
-import { getIdentityBoundWebMcpModelContext } from "@/lib/webmcp/identity-guard";
+import {
+  getIdentityBoundWebMcpModelContext,
+} from "@/lib/webmcp/identity-guard";
+
 import type {
   JsonSchemaForInference,
 } from "@mcp-b/webmcp-types";
@@ -12,41 +15,54 @@ import {
   issueCharacterOrder,
 } from "@/lib/lords/service";
 
+import {
+  inspectKingdomMilitaryPolitics,
+} from "@/lib/lords/military-politics";
+
 import type {
   LordOrderType,
 } from "@/types/lords";
 
 const inspectSchema = {
-  type: "object",
+  type:
+    "object",
   properties: {
     session_id: {
-      type: "string",
+      type:
+        "string",
     },
     player_id: {
-      type: "string",
+      type:
+        "string",
     },
   },
   required: [
     "session_id",
     "player_id",
   ],
-  additionalProperties: false,
+  additionalProperties:
+    false,
 } as const satisfies JsonSchemaForInference;
 
 const issueOrderSchema = {
-  type: "object",
+  type:
+    "object",
   properties: {
     session_id: {
-      type: "string",
+      type:
+        "string",
     },
     player_id: {
-      type: "string",
+      type:
+        "string",
     },
     lord_character_id: {
-      type: "string",
+      type:
+        "string",
     },
     order_type: {
-      type: "string",
+      type:
+        "string",
       enum: [
         "REINFORCE",
         "DEFEND_SETTLEMENT",
@@ -56,16 +72,20 @@ const issueOrderSchema = {
       ],
     },
     target_node_id: {
-      type: "string",
+      type:
+        "string",
     },
     target_settlement_id: {
-      type: "string",
+      type:
+        "string",
     },
     risk: {
-      type: "number",
+      type:
+        "number",
     },
     note: {
-      type: "string",
+      type:
+        "string",
     },
   },
   required: [
@@ -74,14 +94,17 @@ const issueOrderSchema = {
     "lord_character_id",
     "order_type",
   ],
-  additionalProperties: false,
+  additionalProperties:
+    false,
 } as const satisfies JsonSchemaForInference;
 
 let registrationController:
   AbortController |
-  null = null;
+  null =
+  null;
 
-export async function registerLordWebMCPTools(): Promise<boolean> {
+export async function registerLordWebMCPTools():
+  Promise<boolean> {
   if (
     !isWebMCPAvailable()
   ) {
@@ -117,16 +140,46 @@ export async function registerLordWebMCPTools(): Promise<boolean> {
         inputSchema:
           inspectSchema,
         annotations: {
-          readOnlyHint: true,
+          readOnlyHint:
+            true,
         },
-        execute: async ({
-          session_id,
-          player_id,
-        }) =>
-          inspectKingdomLords(
+        execute:
+          async ({
             session_id,
-            player_id
-          ),
+            player_id,
+          }) =>
+            inspectKingdomLords(
+              session_id,
+              player_id
+            ),
+      },
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "inspect_lord_military_politics",
+        description:
+          "Inspect military authority and political risk among your own major lords. Returns commander suitability, obedience forecast, controlled soldiers, readiness and political-risk indicators without exposing hidden enemy information.",
+        inputSchema:
+          inspectSchema,
+        annotations: {
+          readOnlyHint:
+            true,
+        },
+        execute:
+          async ({
+            session_id,
+            player_id,
+          }) =>
+            inspectKingdomMilitaryPolitics(
+              session_id,
+              player_id
+            ),
       },
       {
         signal:
@@ -139,34 +192,36 @@ export async function registerLordWebMCPTools(): Promise<boolean> {
         name:
           "issue_character_order",
         description:
-          "Issue a direct order to one of your own major NPC lords. Direct orders require physical/council presence. Distant lords require courier messaging.",
+          "Issue a military/political order to one of your own major NPC lords. The lord may accept, partially comply, delay, negotiate or refuse based on loyalty, ruler relationship, traits and risk. Canonical effects still use movement/recruitment services.",
         inputSchema:
           issueOrderSchema,
-        execute: async ({
-          session_id,
-          player_id,
-          lord_character_id,
-          order_type,
-          target_node_id,
-          target_settlement_id,
-          risk,
-          note,
-        }) =>
-          issueCharacterOrder(
+        execute:
+          async ({
             session_id,
             player_id,
             lord_character_id,
-            {
-              type:
-                order_type as LordOrderType,
-              targetNodeId:
-                target_node_id,
-              targetSettlementId:
-                target_settlement_id,
-              risk,
-              note,
-            }
-          ),
+            order_type,
+            target_node_id,
+            target_settlement_id,
+            risk,
+            note,
+          }) =>
+            issueCharacterOrder(
+              session_id,
+              player_id,
+              lord_character_id,
+              {
+                type:
+                  order_type as
+                    LordOrderType,
+                targetNodeId:
+                  target_node_id,
+                targetSettlementId:
+                  target_settlement_id,
+                risk,
+                note,
+              }
+            ),
       },
       {
         signal:
@@ -179,7 +234,9 @@ export async function registerLordWebMCPTools(): Promise<boolean> {
     );
 
     return true;
-  } catch (error) {
+  } catch (
+    error
+  ) {
     controller.abort();
     registrationController =
       null;
@@ -188,7 +245,8 @@ export async function registerLordWebMCPTools(): Promise<boolean> {
   }
 }
 
-export function unregisterLordWebMCPTools(): void {
+export function unregisterLordWebMCPTools():
+  void {
   if (
     !registrationController
   ) {

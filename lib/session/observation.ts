@@ -1,4 +1,15 @@
-import { getRealmBudgetSnapshot } from "@/lib/economy/realm-budget";
+import {
+  getRealmBudgetSnapshot,
+} from "@/lib/economy/realm-budget";
+
+import {
+  getSettlementInvestmentPlan,
+} from "@/lib/economy/settlement-investment";
+
+import {
+  getKingdomTerritoryEconomy,
+} from "@/lib/economy/territory-economy";
+
 import {
   getRuntimeWorldState,
 } from "@/lib/world/runtime";
@@ -12,14 +23,21 @@ import {
 } from "@/lib/session/orders";
 
 import {
+  assessEnemyTargeting,
+} from "@/lib/session/targeting";
+
+import {
+  evaluateKnownEngagement,
+  getBattlefieldPositionProfile,
+} from "@/lib/military/terrain-position-evaluator";
+
+import {
   validatePlayerAccess,
 } from "@/lib/session/access";
 
 export function getPlayerKnownWorld(
-  sessionId:
-    string,
-  playerId:
-    string
+  sessionId: string,
+  playerId: string
 ) {
   const access =
     validatePlayerAccess(
@@ -28,21 +46,17 @@ export function getPlayerKnownWorld(
     );
 
   if (
-    access.ok ===
-    false
+    access.ok === false
   ) {
     return access;
   }
 
   return {
-    ok:
-      true as const,
-
+    ok: true as const,
     worldTimeMinutes:
       getRuntimeWorldState()
         .simulation
         .worldTimeMinutes,
-
     facts:
       getDeliveredPlayerKnowledge(
         playerId
@@ -51,9 +65,9 @@ export function getPlayerKnownWorld(
 }
 
 export function getPlayerKnownEnemyForces(
-  sessionId:
-    string,
-  playerId:
+  sessionId: string,
+  playerId: string,
+  selectedArmyId?:
     string
 ) {
   const access =
@@ -63,8 +77,7 @@ export function getPlayerKnownEnemyForces(
     );
 
   if (
-    access.ok ===
-    false
+    access.ok === false
   ) {
     return access;
   }
@@ -72,7 +85,7 @@ export function getPlayerKnownEnemyForces(
   const world =
     getRuntimeWorldState();
 
-  const facts =
+  const forces =
     getDeliveredPlayerKnowledge(
       playerId
     )
@@ -88,39 +101,72 @@ export function getPlayerKnownEnemyForces(
               fact.subjectId
             ];
 
-          /*
-           * Canonical lookup here is used
-           * only to determine ownership.
-           *
-           * We DO NOT add canonical position,
-           * composition or movement data to
-           * the returned fact.
-           */
           return (
             canonicalArmy ===
               undefined ||
             canonicalArmy.ownerId !==
-              access
-                .player
+              access.player
                 .kingdomId
           );
+        }
+      )
+      .map(
+        (fact) => {
+          const targeting =
+            assessEnemyTargeting(
+              playerId,
+              fact,
+              selectedArmyId
+            );
+
+          const approximateSoldiers =
+            typeof fact.data
+              .approximateSoldiers ===
+            "number"
+              ? fact.data
+                  .approximateSoldiers
+              : undefined;
+
+          const battlefield =
+            targeting
+              .knownNodeId
+              ? getBattlefieldPositionProfile(
+                  targeting
+                    .knownNodeId
+                )
+              : undefined;
+
+          const battlefieldEstimate =
+            selectedArmyId &&
+            targeting
+              .knownNodeId
+              ? evaluateKnownEngagement(
+                  selectedArmyId,
+                  fact.subjectId,
+                  targeting
+                    .knownNodeId,
+                  approximateSoldiers
+                )
+              : undefined;
+
+          return {
+            ...fact,
+            targeting,
+            battlefield,
+            battlefieldEstimate,
+          };
         }
       );
 
   return {
-    ok:
-      true as const,
-
-    forces:
-      facts,
+    ok: true as const,
+    forces,
   };
 }
 
 export function getPlayerMessages(
-  sessionId:
-    string,
-  playerId:
-    string
+  sessionId: string,
+  playerId: string
 ) {
   const access =
     validatePlayerAccess(
@@ -129,8 +175,7 @@ export function getPlayerMessages(
     );
 
   if (
-    access.ok ===
-    false
+    access.ok === false
   ) {
     return access;
   }
@@ -139,8 +184,7 @@ export function getPlayerMessages(
     getRuntimeWorldState();
 
   const characterId =
-    access
-      .player
+    access.player
       .characterId;
 
   const now =
@@ -153,10 +197,6 @@ export function getPlayerMessages(
     )
       .filter(
         (message) => {
-          /*
-           * Sender may inspect its own
-           * outgoing dispatch immediately.
-           */
           if (
             message.senderId ===
             characterId
@@ -164,10 +204,6 @@ export function getPlayerMessages(
             return true;
           }
 
-          /*
-           * Recipient does not know the
-           * message until courier delivery.
-           */
           return (
             message.recipientId ===
               characterId &&
@@ -188,18 +224,14 @@ export function getPlayerMessages(
       );
 
   return {
-    ok:
-      true as const,
-
+    ok: true as const,
     messages,
   };
 }
 
 export function getPlayerBattlesView(
-  sessionId:
-    string,
-  playerId:
-    string
+  sessionId: string,
+  playerId: string
 ) {
   const access =
     validatePlayerAccess(
@@ -208,8 +240,7 @@ export function getPlayerBattlesView(
     );
 
   if (
-    access.ok ===
-    false
+    access.ok === false
   ) {
     return access;
   }
@@ -225,8 +256,7 @@ export function getPlayerBattlesView(
         .filter(
           (army) =>
             army.ownerId ===
-            access
-              .player
+            access.player
               .kingdomId
         )
         .map(
@@ -241,16 +271,14 @@ export function getPlayerBattlesView(
     )
       .filter(
         (battle) =>
-          battle
-            .attackerArmyIds
+          battle.attackerArmyIds
             .some(
               (armyId) =>
                 ownArmyIds.has(
                   armyId
                 )
             ) ||
-          battle
-            .defenderArmyIds
+          battle.defenderArmyIds
             .some(
               (armyId) =>
                 ownArmyIds.has(
@@ -277,21 +305,16 @@ export function getPlayerBattlesView(
     );
 
   return {
-    ok:
-      true as const,
-
+    ok: true as const,
     ownBattles:
       battles,
-
     knownRemoteBattles,
   };
 }
 
 export function getPlayerSettlementsView(
-  sessionId:
-    string,
-  playerId:
-    string
+  sessionId: string,
+  playerId: string
 ) {
   const access =
     validatePlayerAccess(
@@ -300,8 +323,7 @@ export function getPlayerSettlementsView(
     );
 
   if (
-    access.ok ===
-    false
+    access.ok === false
   ) {
     return access;
   }
@@ -320,41 +342,57 @@ export function getPlayerSettlementsView(
               .controllerKingdomId ??
             settlement.kingdomId
           ) ===
-          access
-            .player
+          access.player
             .kingdomId
       )
       .map(
         (settlement) => ({
           id:
             settlement.id,
-
           locationId:
             settlement.locationId,
-
           type:
             settlement.type,
-
           kingdomId:
             settlement.kingdomId,
-
           controllerKingdomId:
             settlement
               .controllerKingdomId ??
             settlement.kingdomId,
-
           ownerId:
             settlement.ownerId,
-
           fortificationLevel:
             settlement
               .fortificationLevel ??
             0,
-
           fortificationIntegrity:
             settlement
               .fortificationIntegrity ??
             0,
+          resources:
+            settlement.resources,
+          dailyProduction:
+            settlement
+              .dailyProduction,
+          developmentLevel:
+            settlement
+              .developmentLevel ??
+            0,
+          developmentFocus:
+            settlement
+              .developmentFocus ??
+            null,
+          productionDamage:
+            settlement
+              .productionDamage ??
+            null,
+
+          investmentPlan:
+            getSettlementInvestmentPlan(
+              settlement.id,
+              access.player
+                .kingdomId
+            ),
         })
       );
 
@@ -368,20 +406,15 @@ export function getPlayerSettlementsView(
     );
 
   return {
-    ok:
-      true as const,
-
+    ok: true as const,
     ownSettlements,
-
     knownForeignSettlements,
   };
 }
 
 export function getPlayerEconomyView(
-  sessionId:
-    string,
-  playerId:
-    string
+  sessionId: string,
+  playerId: string
 ) {
   const access =
     validatePlayerAccess(
@@ -390,8 +423,7 @@ export function getPlayerEconomyView(
     );
 
   if (
-    access.ok ===
-    false
+    access.ok === false
   ) {
     return access;
   }
@@ -401,16 +433,13 @@ export function getPlayerEconomyView(
 
   const kingdom =
     world.kingdoms[
-      access
-        .player
+      access.player
         .kingdomId
     ];
 
   if (!kingdom) {
     return {
-      ok:
-        false as const,
-
+      ok: false as const,
       error:
         "KINGDOM_NOT_FOUND",
     };
@@ -421,45 +450,80 @@ export function getPlayerEconomyView(
       kingdom.id
     );
 
+  const territory =
+    getKingdomTerritoryEconomy(
+      kingdom.id
+    );
+
   return {
-    ok:
-      true as const,
+    ok: true as const,
 
     kingdom: {
       id:
         kingdom.id,
-
       name:
         kingdom.name,
-
       treasury:
         kingdom.treasury,
-
       food:
         kingdom.food,
-
       stability:
         kingdom.stability,
     },
 
     budget,
 
+    territory: {
+      homeNodeCount:
+        territory.homeNodeCount,
+      secureNodeCount:
+        territory.secureNodeCount,
+      threatenedNodeCount:
+        territory.threatenedNodeCount,
+      contestedNodeCount:
+        territory.contestedNodeCount,
+      occupiedHomeNodeCount:
+        territory.occupiedHomeNodeCount,
+      dailyTerritoryGold:
+        territory.dailyTerritoryGold,
+      potentialGold:
+        territory.homePotentialGold,
+      disruptedGold:
+        territory.disruptedGold,
+      ownNodes:
+        territory.nodes
+          .filter(
+            (node) =>
+              node.homeKingdomId ===
+              kingdom.id
+          )
+          .map(
+            (node) => ({
+              nodeId:
+                node.nodeId,
+              status:
+                node.status,
+              grossGold:
+                node.grossGold,
+              homeIncomeGold:
+                node.homeIncomeGold,
+            })
+          ),
+    },
+
     guidance: {
       reserveIsAdvisory:
         true,
-
       maySpendBelowReserve:
         true,
-
       note:
-        "Recommended reserve is planning guidance, not a hard spending restriction.",
+        "Recommended reserve is guidance, not a hard lock. Territory income changes with road security, hostile presence and occupation.",
     },
   };
 }
 
 export function getPlayerObservation(
-  playerId:
-    string
+  playerId: string
 ) {
   const world =
     getRuntimeWorldState();
@@ -498,37 +562,26 @@ export function getPlayerObservation(
         (army) => ({
           id:
             army.id,
-
           status:
             army.status,
-
           morale:
             army.morale,
-
           supplyState:
-            army
-              .supply
+            army.supply
               .state,
-
           fundingState:
-            army
-              .funding
+            army.funding
               .state,
-
           commanderId:
             army.commanderId,
-
           position:
-            world
-              .simulation
+            world.simulation
               .entityPositions[
                 army.id
               ] ??
             null,
-
           movement:
-            world
-              .simulation
+            world.simulation
               .activeMovements[
                 army.id
               ] ??
@@ -544,31 +597,21 @@ export function getPlayerObservation(
   return {
     sessionId:
       world.session.id,
-
     worldTimeMinutes:
-      world
-        .simulation
+      world.simulation
         .worldTimeMinutes,
 
     player: {
       id:
         player.id,
-
       displayName:
-        player
-          .displayName,
-
+        player.displayName,
       controllerType:
-        player
-          .controllerType,
-
+        player.controllerType,
       characterId:
-        player
-          .characterId,
-
+        player.characterId,
       kingdomId:
-        player
-          .kingdomId,
+        player.kingdomId,
     },
 
     commandWindow: {
@@ -576,34 +619,25 @@ export function getPlayerObservation(
         world.session
           .commandCycle
           .phase,
-
       currentPlayerId:
         world.session
           .commandCycle
           .currentPlayerId,
-
       yourTurn:
         world.session
           .commandCycle
           .currentPlayerId ===
         playerId,
-
-      requiredPlayerIds:
-        [
-          ...world
-            .session
-            .commandCycle
-            .requiredPlayerIds,
-        ],
-
-      readyPlayerIds:
-        [
-          ...world
-            .session
-            .commandCycle
-            .readyPlayerIds,
-        ],
-
+      requiredPlayerIds: [
+        ...world.session
+          .commandCycle
+          .requiredPlayerIds,
+      ],
+      readyPlayerIds: [
+        ...world.session
+          .commandCycle
+          .readyPlayerIds,
+      ],
       interrupt:
         world.session
           .commandCycle
@@ -616,20 +650,15 @@ export function getPlayerObservation(
         ? {
             id:
               character.id,
-
             name:
               character.name,
-
             rank:
               character.rank,
-
             position:
               characterPosition ??
               null,
-
             treasury:
-              character
-                .treasury,
+              character.treasury,
           }
         : null,
 
@@ -638,21 +667,22 @@ export function getPlayerObservation(
         ? {
             id:
               kingdom.id,
-
             name:
               kingdom.name,
-
             treasury:
-              kingdom
-                .treasury,
-
+              kingdom.treasury,
             stability:
-              kingdom
-                .stability,
-
+              kingdom.stability,
             food:
               kingdom.food,
           }
+        : null,
+
+    economy:
+      kingdom
+        ? getRealmBudgetSnapshot(
+            kingdom.id
+          )
         : null,
 
     ownArmies,

@@ -7,6 +7,11 @@ import {
   getArmyTotalSoldiers,
 } from "@/lib/military/calculations";
 
+import {
+  getMapEdge,
+  getNodeTerritory,
+} from "@/lib/map/graph";
+
 import type {
   Army,
   UnitBlock,
@@ -63,6 +68,57 @@ export function getArmySoldierCount(
   );
 }
 
+function getArmyTerritoryKingdomId(
+  armyId: string
+): string | undefined {
+  const world =
+    getRuntimeWorldState();
+
+  const position =
+    world.simulation
+      .entityPositions[
+        armyId
+      ];
+
+  if (!position) {
+    return undefined;
+  }
+
+  if (
+    position.kind ===
+    "node"
+  ) {
+    return getNodeTerritory(
+      position.nodeId
+    );
+  }
+
+  if (
+    position.kind ===
+    "edge"
+  ) {
+    const edge =
+      getMapEdge(
+        position.edgeId
+      );
+
+    if (
+      edge?.territoryKingdomId
+    ) {
+      return edge
+        .territoryKingdomId;
+    }
+
+    if (
+      edge?.borderCrossing
+    ) {
+      return undefined;
+    }
+  }
+
+  return undefined;
+}
+
 export function getArmyCampaignCostMultiplier(
   armyId: string
 ): number {
@@ -85,30 +141,49 @@ export function getArmyCampaignCostMultiplier(
     return 1;
   }
 
-  if (
-    army.status ===
-      "siege"
-  ) {
-    return 1.35;
-  }
+  let multiplier =
+    1;
 
   if (
     army.status ===
-      "battle"
+    "siege"
   ) {
-    return 1.2;
-  }
-
-  if (
+    multiplier *=
+      1.35;
+  } else if (
+    army.status ===
+    "battle"
+  ) {
+    multiplier *=
+      1.2;
+  } else if (
     world.simulation
       .activeMovements[
         armyId
       ]
   ) {
-    return 1.15;
+    multiplier *=
+      1.15;
   }
 
-  return 1;
+  const territoryKingdomId =
+    getArmyTerritoryKingdomId(
+      armyId
+    );
+
+  if (
+    territoryKingdomId &&
+    territoryKingdomId !==
+      army.ownerId
+  ) {
+    multiplier *=
+      1.15;
+  }
+
+  return Math.min(
+    1.6,
+    multiplier
+  );
 }
 
 export function getArmyDailyCosts(

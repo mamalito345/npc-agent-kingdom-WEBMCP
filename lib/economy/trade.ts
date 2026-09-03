@@ -7,6 +7,10 @@ import {
 } from "@/lib/economy/road-security";
 
 import {
+  getKingdomTerritoryEconomy,
+} from "@/lib/economy/territory-economy";
+
+import {
   getRuntimeWorldState,
   updateRuntimeWorldState,
 } from "@/lib/world/runtime";
@@ -156,15 +160,6 @@ export function getSettlementTradeState(
         occupationMultiplier
     );
 
-  //
-  // Current economic model has
-  // settlement.dailyProduction.gold
-  // as the baseline productive value.
-  //
-  // Block E interprets that gold value
-  // as the settlement's maximum
-  // daily taxable/trade contribution.
-  //
   const dailyTradeGold =
     Math.max(
       0,
@@ -174,21 +169,16 @@ export function getSettlementTradeState(
 
   return {
     settlementId,
-
     connectedRoadCount:
       edges.length,
-
     averageRoadMultiplier,
-
     occupationMultiplier,
-
     tradeMultiplier,
-
     dailyTradeGold,
   };
 }
 
-export function getKingdomDailyTradeIncome(
+export function getKingdomDailySettlementTradeIncome(
   kingdomId: string
 ): number {
   const world =
@@ -198,16 +188,12 @@ export function getKingdomDailyTradeIncome(
     world.settlements
   )
     .filter(
-      (settlement) => {
-        const controller =
+      (settlement) =>
+        (
           settlement.controllerKingdomId ??
-          settlement.kingdomId;
-
-        return (
-          controller ===
-          kingdomId
-        );
-      }
+          settlement.kingdomId
+        ) ===
+        kingdomId
     )
     .reduce(
       (
@@ -220,6 +206,19 @@ export function getKingdomDailyTradeIncome(
         ).dailyTradeGold,
       0
     );
+}
+
+export function getKingdomDailyTradeIncome(
+  kingdomId: string
+): number {
+  return (
+    getKingdomDailySettlementTradeIncome(
+      kingdomId
+    ) +
+    getKingdomTerritoryEconomy(
+      kingdomId
+    ).dailyTerritoryGold
+  );
 }
 
 export function processDailyTradeIncome():
@@ -273,7 +272,6 @@ export function processDailyTradeIncome():
           kingdomId
         ] = {
           ...kingdom,
-
           treasury:
             Math.max(
               0,
@@ -290,7 +288,6 @@ export function processDailyTradeIncome():
 
       return {
         ...current,
-
         kingdoms,
       };
     }
