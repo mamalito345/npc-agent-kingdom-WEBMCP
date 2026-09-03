@@ -489,10 +489,24 @@ export default function StrategyMap() {
 
     beginMapDrag();
 
-    event.currentTarget
-      .setPointerCapture(
-        event.pointerId
-      );
+    // Only capture the pointer when the gesture starts on the map's
+    // own background. If it starts on a settlement/node icon, capturing
+    // here would redirect every later pointer event (including the
+    // pointerup the browser uses to decide the click target) away from
+    // that button and onto this container -- which silently breaks the
+    // icon's onClick entirely, even for a simple tap with no drag.
+    // Skipping capture in that case still lets panning-from-an-icon
+    // work via plain event bubbling, as long as the cursor stays over
+    // the viewport while dragging.
+    if (
+      event.target ===
+      event.currentTarget
+    ) {
+      event.currentTarget
+        .setPointerCapture(
+          event.pointerId
+        );
+    }
   }
 
   function handlePointerMove(
