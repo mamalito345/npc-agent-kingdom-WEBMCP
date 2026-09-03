@@ -18,16 +18,31 @@ interface ForceDefinition {
   foodSupply: number;
 }
 
+/*
+ * Royal (capital-guard) forces, sized and composed to reflect each
+ * kingdom's fifty-year history (see data/lore.ts) instead of being
+ * five identical armies:
+ *  - Northreach: marcher-lord tradition, balanced but war-ready --
+ *    fifty-two years of an unresolved claim on the Ironhollow passes.
+ *  - Eastvale: wealthy trade kingdom, invests in siege engines and
+ *    city defense over field cavalry.
+ *  - Westmoor: poorest realm, marshland unsuited to heavy cavalry --
+ *    smallest royal force of the Five Kingdoms.
+ *  - Southmark: open plains and horse culture -- cavalry-heavy, light
+ *    on infantry and siege.
+ *  - Ironhollow: rebuilt into a fortress-realm after the Iron Marches
+ *    War -- the largest, most infantry-heavy standing royal force.
+ */
 const royalForces: ForceDefinition[] = [
   {
     armyId: "army-northreach-edwyn",
     kingdomId: "northreach",
     commanderId: "lord_edwyn",
     nodeId: "stoneford",
-    infantryBlocks: 2,
+    infantryBlocks: 3,
     cavalryBlocks: 1,
     siegeBlocks: 1,
-    foodSupply: 1800,
+    foodSupply: 2000,
   },
   {
     armyId: "army-eastvale-roderic",
@@ -36,8 +51,8 @@ const royalForces: ForceDefinition[] = [
     nodeId: "eastkeep",
     infantryBlocks: 2,
     cavalryBlocks: 1,
-    siegeBlocks: 1,
-    foodSupply: 1800,
+    siegeBlocks: 2,
+    foodSupply: 1900,
   },
   {
     armyId: "army-westmoor-garran",
@@ -47,27 +62,27 @@ const royalForces: ForceDefinition[] = [
     infantryBlocks: 2,
     cavalryBlocks: 1,
     siegeBlocks: 1,
-    foodSupply: 1800,
+    foodSupply: 1500,
   },
   {
     armyId: "army-southmark-osric",
     kingdomId: "southmark",
     commanderId: "king_osric",
     nodeId: "sunspire",
-    infantryBlocks: 2,
-    cavalryBlocks: 1,
+    infantryBlocks: 1,
+    cavalryBlocks: 2,
     siegeBlocks: 1,
-    foodSupply: 1800,
+    foodSupply: 1700,
   },
   {
     armyId: "army-ironhollow-varren",
     kingdomId: "ironhollow",
     commanderId: "king_varren",
     nodeId: "ironhold",
-    infantryBlocks: 2,
+    infantryBlocks: 4,
     cavalryBlocks: 1,
     siegeBlocks: 1,
-    foodSupply: 1800,
+    foodSupply: 2200,
   },
 ];
 

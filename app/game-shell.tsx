@@ -28,6 +28,12 @@ import {
   loadDemoFromBrowser,
 } from "@/lib/demo/persistence";
 
+import {
+  getKingdomLore,
+  worldTimeline,
+  worldTimelineTitle,
+} from "@/data/lore";
+
 type Screen =
   | "menu"
   | "new"
@@ -42,24 +48,18 @@ export interface GameShellProps {
 function kingdomSubtitle(
   kingdomId: string
 ): string {
-  const labels:
-    Record<string, string> = {
-    northreach:
-      "Northern marches and mountain roads",
-    eastvale:
-      "Trade roads, coast and eastern wealth",
-    westmoor:
-      "Marshlands and guarded western crossings",
-    southmark:
-      "Open plains and fortified southern approaches",
-    ironhollow:
-      "Mountain holds and hard frontier country",
-  };
-
   return (
-    labels[kingdomId] ??
+    getKingdomLore(kingdomId)
+      ?.summary ??
     "Realm of the Five Kingdoms"
   );
+}
+
+function kingdomPosture(
+  kingdomId: string
+): string | undefined {
+  return getKingdomLore(kingdomId)
+    ?.posture;
 }
 
 export default function GameShell({
@@ -172,11 +172,29 @@ export default function GameShell({
         actorPlayerId
       ];
 
+    const humanKingdomId =
+      human?.kingdomId ??
+      "";
+
+    const actorKingdomId =
+      actor?.kingdomId ??
+      "";
+
+    const humanLore =
+      getKingdomLore(
+        humanKingdomId
+      );
+
+    const openingLine =
+      humanLore
+        ? `${world.kingdoms[humanKingdomId]?.name ?? "Your realm"}: ${humanLore.posture}`
+        : `${world.kingdoms[humanKingdomId]?.name ?? "Your realm"} begins its reign.`;
+
     setIntroText({
       title:
-        "YEAR 417 — SPRING",
+        "YEAR 417 — SPRING, FIFTY YEARS AFTER THE IRON MARCHES WAR",
       body:
-        `${world.kingdoms[human?.kingdomId ?? ""]?.name ?? "Your realm"} begins its reign while ${world.kingdoms[actor?.kingdomId ?? ""]?.name ?? "a rival kingdom"} is controlled by a Player LLM. The remaining world is governed by the GM systems.`,
+        `${openingLine} ${world.kingdoms[actorKingdomId]?.name ?? "A rival kingdom"} is ruled by a Player LLM. The remaining world is governed by the GM systems, each realm acting on its own fifty-year history of wars, alliances and grudges.`,
     });
 
     setScreen(
@@ -309,6 +327,28 @@ export default function GameShell({
               </p>
             </div>
 
+            <details className="mb-8 rounded-xl border border-neutral-800 bg-neutral-950/60 p-4">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.22em] text-amber-500">
+                {worldTimelineTitle}
+              </summary>
+
+              <ol className="mt-4 space-y-3 border-l border-neutral-800 pl-4">
+                {worldTimeline.map((entry) => (
+                  <li key={entry.title}>
+                    <div className="text-[11px] uppercase tracking-wide text-neutral-600">
+                      {entry.yearsAgo} years ago
+                    </div>
+                    <div className="text-sm font-semibold text-neutral-200">
+                      {entry.title}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-neutral-500">
+                      {entry.summary}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </details>
+
             <div className="grid gap-4 lg:grid-cols-5">
               {players.map((player) => {
                 const kingdom =
@@ -346,6 +386,12 @@ export default function GameShell({
                     <p className="mt-2 min-h-12 text-xs leading-5 text-neutral-500">
                       {kingdomSubtitle(player.kingdomId)}
                     </p>
+
+                    {kingdomPosture(player.kingdomId) ? (
+                      <p className="mt-2 text-[11px] leading-4 text-amber-500/70">
+                        {kingdomPosture(player.kingdomId)}
+                      </p>
+                    ) : null}
 
                     <div className="mt-5 grid gap-2">
                       <button

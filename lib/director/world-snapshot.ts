@@ -7,6 +7,10 @@ import {
   getArmySoldierCount,
 } from "@/lib/military/army-queries";
 
+import {
+  getKingdomLore,
+} from "@/data/lore";
+
 import type {
   GmWorldSnapshot,
 } from "@/types/director";
@@ -111,6 +115,10 @@ export function buildGmWorldSnapshot():
           relations: {
             ...kingdom.relations,
           },
+          history:
+            getKingdomLore(
+              kingdom.id
+            )?.aiHistory,
           settlementIds: [
             ...kingdom
               .settlementIds,

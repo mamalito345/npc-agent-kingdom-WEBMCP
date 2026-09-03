@@ -163,6 +163,8 @@ export interface GmWorldSnapshot {
     food: number;
     stability: number;
     relations: Record<string, number>;
+    /** Grounded in-character backstory for this realm -- why its relations, wealth and posture are what they are. See data/lore.ts. */
+    history?: string;
     settlementIds: string[];
     armyIds: string[];
   }>;
