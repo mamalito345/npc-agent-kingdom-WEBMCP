@@ -117,7 +117,7 @@ export async function POST(request: Request): Promise<Response> {
         "Diplomacy must be genuine, not decorative: every propose_agreement, respond_to_agreement, create_promise or war decision should normally be paired with an in-character send_message or send_envoy explaining your intent, and you must actually honor or explicitly break — never silently ignore — an active agreement or promise. " +
         "Use convene_council and respond_audience_request when petitions are presented; do not leave them unanswered turn after turn. " +
         "Weigh treasury, food and unpaid army funding before recruiting or campaigning — a kingdom that spends itself into collapse is playing badly, not aggressively. " +
-        "ACT, DO NOT IDLE: passWindow=true with no actions turn after turn is a bug, not caution. Every activation, actually inspect your armies, economy and known neighbors, then take at least one concrete action when any is justified -- move or consolidate armies, recruit, fortify, negotiate, or -- when you are clearly stronger than an exposed rival and have real cause -- declare_war and press the advantage. Only pass with no action when you are genuinely safe and have nothing productive left to do this turn.",
+        "ACT, DO NOT IDLE: passWindow=true with no actions turn after turn is a bug, not caution. Every activation, actually inspect your armies, economy and known neighbors, then take at least one concrete action when any is justified -- move or consolidate armies, recruit, fortify, negotiate, or -- when you are clearly stronger than an exposed rival and have real cause -- declare_war and press the advantage. Only pass with no action when you are genuinely safe and have nothing productive left to do this turn. TO ACTUALLY END YOUR TURN you must include pass_command_window in actions -- there is no automatic pass, so if you stop without calling it you will simply be reactivated immediately to keep acting in the same window.",
       strict: false,
       schema: {
         type: "object",
@@ -147,6 +147,8 @@ export async function POST(request: Request): Promise<Response> {
           },
           passWindow: {
             type: "boolean",
+            description:
+              "Informational only -- does not end your command window. To actually end your turn you must include the pass_command_window tool in actions; otherwise you will simply be reactivated to keep acting within the same window.",
           },
           planUpdate: {
             type: "object",

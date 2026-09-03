@@ -9,10 +9,6 @@ import {
 } from "@/lib/session/access";
 
 import {
-  passPlayerCommandWindow,
-} from "@/lib/session/player-actions";
-
-import {
   buildLlmPlayerContext,
 } from "@/lib/actors/context";
 
@@ -452,31 +448,38 @@ export async function runLlmPlayerActivation(
   const sequence =
     allocateSimulationSequence();
 
-  let passedWindow =
-    false;
-
-  const cycleBeforeAutoPass =
+  /*
+   * The command window ends ONLY when the model explicitly includes
+   * the pass_command_window tool in its actions -- that case is
+   * already handled above by the ordinary action-execution loop
+   * (tool-executor.ts's "pass_command_window" case calls
+   * passPlayerCommandWindow itself), which also correctly breaks the
+   * loop the moment currentPlayerId changes.
+   *
+   * There used to also be a second, automatic mechanism here that
+   * passed the window right after ANY activation unless the model
+   * explicitly set passWindow:false -- which meant a single normal
+   * action (move an army, recruit troops, ...) with no explicit
+   * pass_command_window call would still silently end the turn, by
+   * default, every time. That made "the actor LLM used a tool and its
+   * turn just ended" the normal case instead of the exception. It is
+   * removed: passedWindow now only reports whether the turn already
+   * ended as a real consequence of the model's own actions, never as
+   * an unrequested side effect of returning here. If the model does
+   * not call pass_command_window, runWorldCatchUp's own loop simply
+   * reactivates the same player again (bounded by its 40-iteration
+   * guard) so it can keep acting within the same window.
+   */
+  const cycleAfterActions =
     getRuntimeWorldState()
       .session
       .commandCycle;
 
-  if (
-    decision.passWindow !==
-      false &&
-    cycleBeforeAutoPass.phase !==
-      "executing" &&
-    cycleBeforeAutoPass.currentPlayerId ===
-      playerId
-  ) {
-    const pass =
-      passPlayerCommandWindow(
-        world.session.id,
-        playerId
-      );
-
-    passedWindow =
-      pass.ok;
-  }
+  const passedWindow =
+    cycleAfterActions.currentPlayerId !==
+      playerId ||
+    cycleAfterActions.phase ===
+      "executing";
 
   const record:
     LlmDecisionRecord = {
