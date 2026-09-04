@@ -11,6 +11,15 @@ import {
   getKingdomLore,
 } from "@/data/lore";
 
+import {
+  getMapNode,
+} from "@/lib/map/graph";
+
+import {
+  getBattleTerrainDefense,
+  getTerrainModifier,
+} from "@/lib/military/battle-modifiers";
+
 import type {
   GmWorldSnapshot,
 } from "@/types/director";
@@ -45,6 +54,46 @@ function unitSoldiers(
         unit.currentSoldiers,
       0
     );
+}
+
+
+/*
+ * Turns a map node's terrain into the same readable defense info the
+ * GM/actor system prompts vaguely reference in prose ("hills give the
+ * defender a bonus") but were never actually given as data. Previously
+ * this modifier only existed inside battle-resolution math, applied
+ * silently after a fight started -- invisible to strategic planning.
+ */
+function terrainInfoForNode(
+  nodeId: string
+): {
+  terrain: string;
+  terrainDefenseTier: string;
+  terrainDefenseModifier: number;
+} {
+  const node =
+    getMapNode(
+      nodeId
+    );
+
+  const terrain =
+    node?.terrain ??
+    "plains";
+
+  const tier =
+    getBattleTerrainDefense(
+      terrain
+    );
+
+  return {
+    terrain,
+    terrainDefenseTier:
+      tier,
+    terrainDefenseModifier:
+      getTerrainModifier(
+        tier
+      ),
+  };
 }
 
 export function buildGmWorldSnapshot():
@@ -171,6 +220,9 @@ export function buildGmWorldSnapshot():
             ...settlement
               .dailyProduction,
           },
+          ...terrainInfoForNode(
+            settlement.id
+          ),
         })
       ),
 
@@ -256,6 +308,36 @@ export function buildGmWorldSnapshot():
                 lordArmyIds.has(
                   army.id
                 ),
+              ...(() => {
+                const armyPosition =
+                  world.simulation
+                    .entityPositions[
+                      army.id
+                    ];
+
+                if (
+                  !armyPosition ||
+                  armyPosition.kind !==
+                    "node"
+                ) {
+                  return {};
+                }
+
+                const info =
+                  terrainInfoForNode(
+                    armyPosition.nodeId
+                  );
+
+                return {
+                  positionTerrain:
+                    info.terrain,
+                  positionTerrainDefenseTier:
+                    info.terrainDefenseTier,
+                  positionTerrainDefenseModifier:
+                    info
+                      .terrainDefenseModifier,
+                };
+              })(),
             };
           }
         ),

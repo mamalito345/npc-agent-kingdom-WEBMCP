@@ -191,6 +191,17 @@ export interface GmWorldSnapshot {
       stone: number;
       metal: number;
     };
+    /**
+     * Real, readable military terrain data for this node -- previously
+     * this modifier only existed inside battle-resolution math, applied
+     * silently after a fight started, invisible to strategic planning.
+     * terrainDefenseModifier is the actual flat bonus (0/+1/+2) a
+     * defender fighting here receives; use it BEFORE committing to a
+     * battle or a defensive position, not just to explain one after.
+     */
+    terrain: string;
+    terrainDefenseTier: string;
+    terrainDefenseModifier: number;
   }>;
 
   armies: Array<{
@@ -212,6 +223,15 @@ export interface GmWorldSnapshot {
     movementDestination?: string;
     movementEta?: number;
     independentLordArmy: boolean;
+    /**
+     * Terrain of the node this army currently occupies, and the real
+     * defense modifier it would receive if it fought there right now
+     * (undefined while the army is mid-transit on an edge, not at a
+     * node). Same readable-before-combat rationale as settlements[].
+     */
+    positionTerrain?: string;
+    positionTerrainDefenseTier?: string;
+    positionTerrainDefenseModifier?: number;
   }>;
 
   lords: Array<{
