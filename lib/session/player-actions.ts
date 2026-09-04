@@ -515,12 +515,47 @@ export function declarePlayerWar(
   );
 }
 
+/*
+ * The exact confirmation phrase a caller (human, actor LLM, or a
+ * WebMCP-connected external agent) must deliberately type into
+ * pass_command_window's confirmation field for the turn to actually
+ * end. This exists because turns were observed ending on their own
+ * the instant an actor activated -- whether from a stray/default tool
+ * invocation by an external MCP client, or a model that stalls/never
+ * responds -- with no real decision behind the pass. A plain boolean
+ * flag can be defaulted to true by accident; a specific phrase that
+ * has to be deliberately written cannot.
+ */
+export const PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE =
+  "turumu geçtim";
+
+function normalizeConfirmationText(
+  value: string | undefined | null
+): string {
+  return (value ?? "")
+    .trim()
+    .toLocaleLowerCase("tr");
+}
+
 export function passPlayerCommandWindow(
   sessionId: string,
-  playerId: string
+  playerId: string,
+  confirmationText?: string
 ) {
   const access = validatePlayerCommandAccess(sessionId, playerId);
   if (!access.ok) return access;
+
+  if (
+    normalizeConfirmationText(confirmationText) !==
+    PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE
+  ) {
+    return {
+      ok: false as const,
+      error: "CONFIRMATION_REQUIRED",
+      message:
+        `The command window was NOT passed. To actually end your turn, call pass_command_window again with confirmation set to the exact phrase "${PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE}". An empty or missing confirmation is treated as no decision at all, not as a pass.`,
+    };
+  }
 
   return passCommandWindow(playerId);
 }

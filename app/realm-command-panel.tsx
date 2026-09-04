@@ -22,6 +22,7 @@ import {
 import {
   declarePlayerWar,
   passPlayerCommandWindow,
+  PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE,
 } from "@/lib/session/player-actions";
 
 import {
@@ -143,7 +144,13 @@ export default function RealmCommandPanel() {
     const result =
       passPlayerCommandWindow(
         world.session.id,
-        player.id
+        player.id,
+        // A human deliberately clicking "end orders" IS the
+        // confirmation -- pass_command_window now requires an
+        // explicit confirmation phrase so a turn can never end from a
+        // stray/default tool call or an unresponsive model, but that
+        // gate is not meant to make the human retype anything.
+        PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE
       );
 
     setMessage(

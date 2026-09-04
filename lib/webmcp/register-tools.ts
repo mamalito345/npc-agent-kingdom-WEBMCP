@@ -37,6 +37,7 @@ import {
   sendPlayerMessage,
   sendPlayerEnvoy,
   passPlayerCommandWindow,
+  PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE,
 } from "@/lib/session/player-actions";
 
 import type {
@@ -74,6 +75,32 @@ const playerSchema = {
   required: [
     "session_id",
     "player_id",
+  ],
+
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const passCommandWindowSchema = {
+  type:
+    "object",
+
+  properties: {
+    ...playerInputProperties,
+
+    confirmation: {
+      type:
+        "string",
+
+      description:
+        `Must be exactly the phrase "${PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE}" for the turn to actually end. Leave it empty/omit it if you did not deliberately decide to end your turn -- an empty or wrong confirmation is a safe no-op, not a pass.`,
+    },
+  },
+
+  required: [
+    "session_id",
+    "player_id",
+    "confirmation",
   ],
 
   additionalProperties:
@@ -1186,19 +1213,21 @@ export async function registerWebMCPTools():
           "pass_command_window",
 
         description:
-          "Finish issuing commands for this player's current command window. This does not advance one hour; execution begins only after all required players pass.",
+          `Finish issuing commands for this player's current command window. This does not advance one hour; execution begins only after all required players pass. Requires the confirmation field to be exactly the phrase "${PASS_COMMAND_WINDOW_CONFIRMATION_PHRASE}" -- if it is missing or does not match exactly, nothing happens and your turn does NOT end. This exists to prevent the turn ending by accident (a stray tool call, an unresponsive model, a default/empty argument) instead of a genuine decision.`,
 
         inputSchema:
-          playerSchema,
+          passCommandWindowSchema,
 
         execute:
           async ({
             session_id,
             player_id,
+            confirmation,
           }) =>
             passPlayerCommandWindow(
               session_id,
-              player_id
+              player_id,
+              confirmation
             ),
       },
 

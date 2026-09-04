@@ -892,7 +892,11 @@ export async function executeLlmPlayerAction(
         result =
           passPlayerCommandWindow(
             sessionId,
-            playerId
+            playerId,
+            stringArg(
+              action,
+              "confirmation"
+            )
           );
         break;
     }
