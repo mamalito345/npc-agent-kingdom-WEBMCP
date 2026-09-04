@@ -1,10 +1,14 @@
 import {
+  addWorldPauseReason,
   getRuntimeWorldState,
+  hasWorldPauseReason,
 } from "@/lib/world/runtime";
 
 import {
   validatePlayerAccess,
 } from "@/lib/session/access";
+
+export const CAMPAIGN_ENDED_PAUSE_REASON = "campaign-ended";
 
 export type CampaignOutcome =
   | "ONGOING"
@@ -397,4 +401,57 @@ export function getCampaignStatus(
             : `${capitalsControlled}/${capitals.length} capitals under control.`,
     },
   };
+}
+
+
+/*
+ * Victory/defeat used to be purely informational: getCampaignStatus()
+ * computed an outcome that the UI/audio could read, but nothing ever
+ * acted on it, so the simulation kept advancing turns and time forever
+ * after the campaign was effectively over. This checks the local human
+ * player's outcome and, once it resolves to VICTORY or DEFEAT, pauses
+ * the world clock so the campaign actually ends instead of continuing
+ * to run in the background. Idempotent: once the pause reason is set it
+ * is never re-applied, and it is never auto-removed here (a human can
+ * still resume manually, e.g. to keep playing past a "soft" ending).
+ */
+export function checkAndApplyCampaignEnd(): void {
+  if (
+    hasWorldPauseReason(
+      CAMPAIGN_ENDED_PAUSE_REASON
+    )
+  ) {
+    return;
+  }
+
+  const world =
+    getRuntimeWorldState();
+
+  const localPlayerId =
+    world.session
+      .localPlayerId;
+
+  if (!localPlayerId) {
+    return;
+  }
+
+  const result =
+    getCampaignStatus(
+      world.session.id,
+      localPlayerId
+    );
+
+  if (!result.ok) {
+    return;
+  }
+
+  if (
+    result.status
+      .outcome !==
+    "ONGOING"
+  ) {
+    addWorldPauseReason(
+      CAMPAIGN_ENDED_PAUSE_REASON
+    );
+  }
 }

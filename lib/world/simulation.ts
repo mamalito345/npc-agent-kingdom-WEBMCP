@@ -83,6 +83,10 @@ import {
   processBorderIncidentsAt,
 } from "@/lib/world/border-incidents";
 
+import {
+  checkAndApplyCampaignEnd,
+} from "@/lib/campaign/objectives";
+
 import type {
   AdvanceWorldResult,
   SimulationInterrupt,
@@ -346,6 +350,8 @@ function processSimulationMoment(
     interrupt =
       briefingInterrupt;
   }
+
+  checkAndApplyCampaignEnd();
 
   return {
     interrupt,
