@@ -11,6 +11,7 @@ import {
 } from "@/lib/webmcp/support";
 
 import {
+  breakAgreement,
   createPromise,
   inspectAgreements,
   inspectDiplomaticProposals,
@@ -123,6 +124,32 @@ const respondSchema = {
     "player_id",
     "agreement_id",
     "accept",
+  ],
+  additionalProperties:
+    false,
+} as const satisfies JsonSchemaForInference;
+
+const breakAgreementSchema = {
+  type:
+    "object",
+  properties: {
+    session_id: {
+      type:
+        "string",
+    },
+    player_id: {
+      type:
+        "string",
+    },
+    agreement_id: {
+      type:
+        "string",
+    },
+  },
+  required: [
+    "session_id",
+    "player_id",
+    "agreement_id",
   ],
   additionalProperties:
     false,
@@ -358,6 +385,32 @@ export async function registerPoliticsWebMCPTools():
               player_id,
               agreement_id,
               accept
+            ),
+      },
+      {
+        signal:
+          controller.signal,
+      }
+    );
+
+    await modelContext.registerTool(
+      {
+        name:
+          "break_agreement",
+        description:
+          "Formally break an active agreement your kingdom is party to (alliance, non-aggression, military-access, military-support, or a peace truce). This has real consequences: every other party's kingdom takes a lasting relations penalty against yours.",
+        inputSchema:
+          breakAgreementSchema,
+        execute:
+          async ({
+            session_id,
+            player_id,
+            agreement_id,
+          }) =>
+            breakAgreement(
+              session_id,
+              player_id,
+              agreement_id
             ),
       },
       {

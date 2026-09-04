@@ -640,24 +640,112 @@ export function breakAgreement(
       "BROKEN",
   };
 
+  const breakingKingdomId =
+    access.player
+      .kingdomId;
+
+  /*
+   * Breaking a treaty used to be purely a status flip -- no relations
+   * consequence at all, which made "breaking" an agreement free. Every
+   * other party's kingdom now takes a real, symmetric relations hit
+   * against the kingdom that broke it, the same way declaring war does
+   * in lib/politics/war.ts.
+   */
+  const AGREEMENT_BREAK_RELATION_PENALTY = 20;
+
   updateRuntimeWorldState(
-    (current) => ({
-      ...current,
-      session: {
-        ...current.session,
-        politics: {
-          ...current.session
-            .politics,
-          agreements: {
+    (current) => {
+      const kingdoms = {
+        ...current.kingdoms,
+      };
+
+      for (
+        const otherKingdomId of agreement.partyKingdomIds
+      ) {
+        if (
+          otherKingdomId ===
+          breakingKingdomId
+        ) {
+          continue;
+        }
+
+        const breaker =
+          kingdoms[
+            breakingKingdomId
+          ];
+
+        const other =
+          kingdoms[
+            otherKingdomId
+          ];
+
+        if (
+          !breaker ||
+          !other
+        ) {
+          continue;
+        }
+
+        kingdoms[
+          breakingKingdomId
+        ] = {
+          ...breaker,
+          relations: {
+            ...breaker.relations,
+            [otherKingdomId]:
+              Math.max(
+                -100,
+                (
+                  breaker
+                    .relations[
+                      otherKingdomId
+                    ] ?? 0
+                ) -
+                  AGREEMENT_BREAK_RELATION_PENALTY
+              ),
+          },
+        };
+
+        kingdoms[
+          otherKingdomId
+        ] = {
+          ...other,
+          relations: {
+            ...other.relations,
+            [breakingKingdomId]:
+              Math.max(
+                -100,
+                (
+                  other
+                    .relations[
+                      breakingKingdomId
+                    ] ?? 0
+                ) -
+                  AGREEMENT_BREAK_RELATION_PENALTY
+              ),
+          },
+        };
+      }
+
+      return {
+        ...current,
+        kingdoms,
+        session: {
+          ...current.session,
+          politics: {
             ...current.session
-              .politics
-              .agreements,
-            [agreementId]:
-              broken,
+              .politics,
+            agreements: {
+              ...current.session
+                .politics
+                .agreements,
+              [agreementId]:
+                broken,
+            },
           },
         },
-      },
-    })
+      };
+    }
   );
 
   return {
