@@ -242,19 +242,12 @@ export default function BattleBoard() {
         world.armies[
           armyId
         ]?.ownerId ===
-          player.kingdomId &&
-        !Object.values(
-          world.session
-            .lords
-            .profiles
-        ).some(
-          (lord) =>
-            lord
-              .controlledArmyIds
-              .includes(
-                armyId
-              )
-        )
+          player.kingdomId
+      // Armies owned by the player's own kingdom are directly
+      // controllable regardless of lord-control status -- only a
+      // lord army belonging to ANOTHER kingdom is GM-only. Since
+      // ownerId already scopes this to the player's kingdom, no
+      // further lord-control exclusion is needed here.
     );
 
   const lastRound =

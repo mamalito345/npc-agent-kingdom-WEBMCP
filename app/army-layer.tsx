@@ -376,14 +376,19 @@ export default function ArmyLayer() {
                 ]
             );
 
-          const isLordArmy =
+          // This army belongs to the player's own kingdom (ownArmies is
+          // already filtered to ownKingdomId), so even when it is a lord's
+          // household force it is directly orderable -- it must never be
+          // labeled/styled as GM-only here. That badge is reserved for
+          // truly foreign lord armies in the otherArmies loop below.
+          const isOwnLordArmy =
             lordArmyIds.has(
               army.id
             );
 
           const controlLabel =
-            isLordArmy
-              ? "GM CHARACTER · LORD"
+            isOwnLordArmy
+              ? "YOUR LORD"
               : getRealmControlLabel(
                   army.ownerId
                 );
@@ -614,7 +619,7 @@ export default function ArmyLayer() {
               }}
             >
               <span className="text-sm font-black">
-                {isLordArmy
+                {isOwnLordArmy
                   ? "♜"
                   : "⚔"}{" "}
                 {
@@ -642,8 +647,8 @@ export default function ArmyLayer() {
 
               <span
                 className={`absolute -right-2 -top-2 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[8px] ${
-                  isLordArmy
-                    ? "border-violet-300 bg-violet-950 text-violet-100"
+                  isOwnLordArmy
+                    ? "border-amber-300 bg-amber-950 text-amber-100"
                     : controlLabel ===
                         "ACTOR LLM"
                       ? "border-cyan-300 bg-cyan-950 text-cyan-100"
@@ -653,9 +658,7 @@ export default function ArmyLayer() {
                         : "border-amber-300 bg-amber-950 text-amber-100"
                 }`}
               >
-                {isLordArmy
-                  ? "LORD · GM"
-                  : controlLabel}
+                {controlLabel}
               </span>
             </button>
           );

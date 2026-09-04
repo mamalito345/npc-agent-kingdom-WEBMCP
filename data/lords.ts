@@ -10,6 +10,26 @@ function armyId(
 }
 
 export const initialLordProfiles: Record<string, LordProfile> = {
+  lord_edwyn: {
+    characterId: "lord_edwyn",
+    kingdomId: "northreach",
+    title: "Lord of Stoneford",
+    homeSettlementId: "stoneford",
+    controlledSettlementIds: ["stoneford"],
+    controlledArmyIds: ["army-northreach-edwyn"],
+    loyalty: 74,
+    politicalPower: 70,
+    relationshipToRuler: 35,
+    basicTraits: {
+      ambition: 60,
+      honor: 65,
+      aggression: 60,
+      caution: 55,
+      diplomacy: 58,
+      intrigue: 40,
+    },
+  },
+
   lord_merek: {
     characterId: "lord_merek",
     kingdomId: "northreach",
