@@ -284,14 +284,32 @@ export default function OperationalPanel() {
         )
       : false;
 
+  /*
+   * A lord-controlled army used to always be excluded from direct
+   * player control here, with a message telling the ruler to use a
+   * character order instead because "the GM Character decides
+   * compliance". That stopped being true for the player's own kingdom:
+   * lords in a HUMAN-controlled realm now obey directly, with no GM
+   * refusal (see lib/lords/service.ts's resolveReceivedLordOrder), so
+   * blocking direct map control of their armies here was leftover
+   * behavior contradicting that change -- it is exactly why "I can't
+   * send my own lord's army across the border" was happening: the
+   * whole move/border-confirm panel was hidden for any lord army,
+   * including the player's own. Foreign lords' armies are still not
+   * orderable here (selectedArmy.ownerId !== player.kingdomId already
+   * excludes them on its own).
+   */
   const canPlayerOrderSelectedArmy =
     Boolean(
       selectedArmy &&
       player &&
       selectedArmy.ownerId ===
-        player.kingdomId &&
-      !isIndependentLordArmy
+        player.kingdomId
     );
+
+  const isForeignLordArmy =
+    isIndependentLordArmy &&
+    !canPlayerOrderSelectedArmy;
 
   const armyMovement =
     selectedArmy
@@ -357,11 +375,13 @@ export default function OperationalPanel() {
 
   const controlLabel =
     selectedArmy
-      ? isIndependentLordArmy
+      ? isForeignLordArmy
         ? "GM CHARACTER · LORD"
-        : getRealmControlLabel(
-            selectedArmy.ownerId
-          )
+        : isIndependentLordArmy
+          ? "YOUR LORD"
+          : getRealmControlLabel(
+              selectedArmy.ownerId
+            )
       : undefined;
 
   const soldierCount =
@@ -1524,9 +1544,16 @@ export default function OperationalPanel() {
             </div>
           ) : null}
 
-          {isIndependentLordArmy ? (
+          {isForeignLordArmy ? (
             <div className="mt-4 rounded-lg border border-violet-900 bg-violet-950/20 p-3 text-xs leading-5 text-violet-200">
               This force belongs to an independent major lord. The ruler cannot directly puppet it. Use a character order; the GM Character decides compliance.
+            </div>
+          ) : null}
+
+          {isIndependentLordArmy &&
+          !isForeignLordArmy ? (
+            <div className="mt-4 rounded-lg border border-amber-900 bg-amber-950/20 p-3 text-xs leading-5 text-amber-200">
+              This is one of your own lord&apos;s household forces. As ruler you command it directly, the same as your royal army -- no petition needed.
             </div>
           ) : null}
 
