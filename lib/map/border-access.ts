@@ -87,12 +87,15 @@ export function findFirstUnauthorizedBorderCrossing(
             .fromKingdomId;
 
     /*
-     * Only leaving the moving realm into a foreign realm is an access check.
-     * Returning home never requires a treaty.
+     * Any hop that ENTERS a kingdom other than the mover's own requires
+     * access into that kingdom -- not just the first hop out of the
+     * mover's home territory. A multi-kingdom route (A -> B -> C) used
+     * to only check the A -> B leg (fromKingdomId === movingKingdomId),
+     * silently skipping the B -> C leg even though the army still needs
+     * authorization to be in C. Returning home (toKingdomId ===
+     * movingKingdomId) never requires a treaty.
      */
     if (
-      fromKingdomId ===
-        movingKingdomId &&
       toKingdomId !==
         movingKingdomId &&
       !hasCanonicalMilitaryAccess(

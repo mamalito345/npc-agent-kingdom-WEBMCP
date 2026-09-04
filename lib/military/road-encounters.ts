@@ -22,6 +22,10 @@ import {
 } from "@/lib/session/players";
 
 import {
+  areKingdomsAtWar,
+} from "@/lib/politics/war";
+
+import {
   addPlayerKnowledge,
 } from "@/lib/session/knowledge";
 
@@ -117,13 +121,22 @@ function armiesAreHostile(
   }
 
   /*
-   * Current canonical hostility baseline.
-   *
-   * War/diplomacy rules can replace this
-   * later without changing encounter math.
+   * Real war model (mirrors lib/military/contact.ts): two armies only
+   * count as a hostile road encounter if their kingdoms are actually
+   * at war. Different-kingdom armies that are at peace or allied can
+   * share a road/node without triggering an ambush -- this used to
+   * only check differing ownerId, which made roads hostile to
+   * everyone regardless of diplomatic status.
    */
-  return (
-    armyA.ownerId !==
+  if (
+    armyA.ownerId ===
+    armyB.ownerId
+  ) {
+    return false;
+  }
+
+  return areKingdomsAtWar(
+    armyA.ownerId,
     armyB.ownerId
   );
 }
