@@ -19,6 +19,10 @@ import {
 } from "@/lib/politics/audience";
 
 import {
+  runDailyLordDefectionSweep,
+} from "@/lib/politics/defection";
+
+import {
   getActivePlayerSlots,
 } from "@/lib/session/players";
 
@@ -87,6 +91,13 @@ export function processDailyBoundary(
   //    a well-governed one may go long stretches with none at all.
   //
   refreshDailyAudienceRequests();
+
+  //
+  // 4b. Disloyal lords with a live foreign offer and a real grievance
+  //     may negotiate, quietly turn, or defect outright. Previously
+  //     built but never invoked -- now runs on the same daily cadence.
+  //
+  runDailyLordDefectionSweep();
 
   //
   // 5. Guaranteed daily planning window.
