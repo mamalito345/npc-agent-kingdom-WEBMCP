@@ -240,13 +240,6 @@ export async function requestStructuredOpenAI<T>(
  * being used. This prevents a build that appears healthy but fails at runtime
  * because a hard-coded model identifier is stale or nonexistent.
  */
-export function playerModel():
-  string {
-  return requiredEnv(
-    "PLAYER_LLM_MODEL"
-  );
-}
-
 export function gmCharacterModel():
   string {
   return requiredEnv(

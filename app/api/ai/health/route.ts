@@ -21,11 +21,6 @@ export async function GET() {
           "OPENAI_API_KEY"
         ),
 
-      playerModelConfigured:
-        configured(
-          "PLAYER_LLM_MODEL"
-        ),
-
       gmCharacterModelConfigured:
         configured(
           "GM_CHARACTER_MODEL"

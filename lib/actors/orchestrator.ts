@@ -17,7 +17,6 @@ import {
 
 import {
   RemoteGmRealmAdapter,
-  RemotePlayerLlmAdapter,
 } from "@/lib/ai/remote-adapters";
 
 import {
@@ -249,7 +248,6 @@ export async function advanceAutonomousWorldBy(
 const CATCH_UP_ITERATION_GUARD = 40;
 const CATCH_UP_HORIZON_MINUTES = 60 * 24 * 30;
 
-const catchUpPlayerAdapter = new RemotePlayerLlmAdapter();
 const catchUpGmRealmAdapter = new RemoteGmRealmAdapter();
 
 export type WorldCatchUpResult = {
@@ -260,7 +258,8 @@ export type WorldCatchUpResult = {
     | "HUMAN_TURN"
     | "MODEL_ERROR"
     | "LOOP_GUARD"
-    | "WORLD_PAUSED";
+    | "WORLD_PAUSED"
+    | "WAITING_FOR_EXTERNAL_ACTOR";
 };
 
 export async function runWorldCatchUp(): Promise<WorldCatchUpResult> {
@@ -325,15 +324,35 @@ export async function runWorldCatchUp(): Promise<WorldCatchUpResult> {
 
     const role = getPlayerControlRole(activation.playerId);
 
-    const adapter =
-      role === "GM"
-        ? catchUpGmRealmAdapter
-        : catchUpPlayerAdapter;
+    /*
+     * ACTOR_LLM kingdoms used to ALSO be resolved automatically here by
+     * an internal OpenAI call (PLAYER_LLM_MODEL via RemotePlayerLlmAdapter),
+     * racing an actual external WebMCP-connected agent (e.g. a ChatGPT
+     * desktop session) with no claim/lock between them -- whichever
+     * fired first won, and the internal call almost always won because
+     * this loop runs on every mutating WebMCP tool call AND on a
+     * ~250-1800ms client timer regardless of whether an external agent
+     * was live. That internal system has been removed entirely: an
+     * ACTOR_LLM kingdom's command window is now driven exclusively by
+     * real WebMCP tool calls from whatever client is actually connected
+     * as that player, exactly like a human turn -- this loop simply
+     * waits for one, indefinitely, rather than resolving it itself.
+     * GM-controlled realms are unaffected; they still use the GM
+     * adapter below.
+     */
+    if (role !== "GM") {
+      return {
+        advanced: getWorldTime() !== startTime,
+        currentTime: getWorldTime(),
+        activations,
+        stoppedFor: "WAITING_FOR_EXTERNAL_ACTOR",
+      };
+    }
 
     const result = await runLlmPlayerActivation(
       activation.playerId,
       activation.reason,
-      adapter
+      catchUpGmRealmAdapter
     );
 
     activations += 1;

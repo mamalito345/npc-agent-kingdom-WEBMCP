@@ -59,25 +59,16 @@ const browserTransport: JsonTransport = {
   },
 };
 
-export class RemotePlayerLlmAdapter implements LlmPlayerModelAdapter {
-  constructor(private readonly transport: JsonTransport = browserTransport) {}
-
-  async generateDecision(
-    context: LlmPlayerContext
-  ): Promise<LlmPlayerDecision> {
-    const result = await this.transport.post<{
-      ok: true;
-      decision: LlmPlayerDecision;
-    }>("/api/ai/player", {
-      playerContext: context,
-      worldSnapshot: buildGmWorldSnapshot(),
-    });
-
-    return result.decision;
-  }
-}
-
-
+/*
+ * RemotePlayerLlmAdapter (an internal PLAYER_LLM_MODEL-driven adapter
+ * for ACTOR_LLM kingdoms, POSTing to /api/ai/player) has been removed
+ * entirely. It used to race real external WebMCP-connected agents
+ * (e.g. a ChatGPT desktop session) for control of the same kingdom,
+ * with no claim/lock between them -- see lib/actors/orchestrator.ts.
+ * ACTOR_LLM kingdoms are now driven exclusively by whatever WebMCP
+ * client is actually connected as that player; GM-controlled realms
+ * still use RemoteGmRealmAdapter below.
+ */
 export class RemoteGmRealmAdapter implements LlmPlayerModelAdapter {
   constructor(private readonly transport: JsonTransport = browserTransport) {}
 
