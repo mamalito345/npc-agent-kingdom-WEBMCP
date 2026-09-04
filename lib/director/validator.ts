@@ -2,6 +2,10 @@ import {
   getRuntimeWorldState,
 } from "@/lib/world/runtime";
 
+import {
+  getMapNode,
+} from "@/lib/map/graph";
+
 import type {
   DirectorProposalDraft,
 } from "@/types/director";
@@ -157,11 +161,20 @@ export function validateDirectorProposal(
         };
       }
 
+      /*
+       * BUG FIX: this used to require the destination to exist in
+       * world.locations, a settlements-only table -- rejecting every
+       * GM/director-issued move to a non-settlement map node (road
+       * junctions, mountain passes, bridges, ...) with
+       * DESTINATION_NOT_FOUND even though those nodes are perfectly
+       * real in the map graph. getMapNode() is the correct check for
+       * "does this destination exist at all".
+       */
       if (
-        !world.locations[
+        !getMapNode(
           draft.payload
             .destinationNodeId
-        ]
+        )
       ) {
         return {
           ok:
@@ -226,11 +239,20 @@ export function validateDirectorProposal(
         };
       }
 
+      /*
+       * BUG FIX: this used to require the destination to exist in
+       * world.locations, a settlements-only table -- rejecting every
+       * GM/director-issued move to a non-settlement map node (road
+       * junctions, mountain passes, bridges, ...) with
+       * DESTINATION_NOT_FOUND even though those nodes are perfectly
+       * real in the map graph. getMapNode() is the correct check for
+       * "does this destination exist at all".
+       */
       if (
-        !world.locations[
+        !getMapNode(
           draft.payload
             .destinationNodeId
-        ]
+        )
       ) {
         return {
           ok:

@@ -88,18 +88,38 @@ export function buildArmyRoutePreview(
     };
   }
 
-  const destination =
-    world.locations[
+  /*
+   * BUG FIX: this used to look up destinationNodeId in world.locations
+   * -- a settlements-only table (57 entries: capital/city/castle/town/
+   * village). The 38 transit nodes in the map graph (road junctions,
+   * mountain passes, bridges, ...) have no entry there at all, so
+   * every attempt to move an army to a non-settlement node returned
+   * DESTINATION_NOT_FOUND here and the "Confirm Move" UI never
+   * rendered -- even though the destination-picking UI, the order
+   * pipeline, and findRoute/getMapNode all handle transit nodes fine.
+   * The map GRAPH (getMapNode) is the real source of truth for "does
+   * this node exist", not the settlements table.
+   */
+  const destinationNode =
+    getMapNode(
       destinationNodeId
-    ];
+    );
 
-  if (!destination) {
+  if (!destinationNode) {
     return {
       ok: false,
       error:
         "DESTINATION_NOT_FOUND",
     };
   }
+
+  const destinationName =
+    destinationNode
+      .displayName ??
+    world.locations[
+      destinationNodeId
+    ]?.name ??
+    destinationNodeId;
 
   if (
     position.nodeId ===
@@ -159,18 +179,12 @@ export function buildArmyRoutePreview(
         })
       );
 
-  const destinationNode =
-    getMapNode(
-      destinationNodeId
-    );
-
   return {
     ok: true,
     preview: {
       armyId,
       destinationNodeId,
-      destinationName:
-        destination.name,
+      destinationName,
       destinationTerrain:
         destinationNode?.terrain,
       destinationFeatures:
