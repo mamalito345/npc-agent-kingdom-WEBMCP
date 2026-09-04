@@ -301,10 +301,17 @@ export function changeQueuedPlayerArmyOrder(
   }
 
   const armyId = existing.payload.armyId;
-  const cancelled = cancelStrategicOrder(playerId, orderId);
-  if (!cancelled.ok) return cancelled;
 
-  return issueStrategicOrder({
+  /*
+   * Issue the replacement order BEFORE cancelling the original. This
+   * used to cancel first, so a rejected replacement (e.g. a border
+   * violation) left the army with no order at all instead of keeping
+   * its original route -- the player's order would just silently
+   * vanish. issueStrategicOrder does not reject on an army already
+   * having a queued order, so this is safe: only once the new order
+   * is confirmed do we retire the old one.
+   */
+  const reissued = issueStrategicOrder({
     playerId,
     type: "move_army",
     payload: {
@@ -312,6 +319,13 @@ export function changeQueuedPlayerArmyOrder(
       destinationNodeId,
     },
   });
+
+  if (!reissued.ok) return reissued;
+
+  const cancelled = cancelStrategicOrder(playerId, orderId);
+  if (!cancelled.ok) return cancelled;
+
+  return reissued;
 }
 
 export function setPlayerBattleTactic(
