@@ -390,6 +390,18 @@ export function applyProgressiveBattleCasualties(
           [battleId]: {
             ...latest,
 
+            attackerCasualtiesTotal:
+              (latest
+                .attackerCasualtiesTotal ??
+                0) +
+              attackerLost,
+
+            defenderCasualtiesTotal:
+              (latest
+                .defenderCasualtiesTotal ??
+                0) +
+              defenderLost,
+
             history: [
               ...latest.history,
 
@@ -479,7 +491,7 @@ function buildAggregateSideResult(
   const leadArmyId =
     armyIds[0];
 
-  const soldiersBefore =
+  const soldiersAfter =
     armyIds.reduce(
       (
         total,
@@ -491,6 +503,38 @@ function buildAggregateSideResult(
         ),
       0
     );
+
+  /*
+   * Real cumulative losses, tracked phase-by-phase on the battle object
+   * by applyProgressiveBattleCasualties (attacker/defenderCasualtiesTotal).
+   * Previously this whole result hardcoded casualtyPercent/soldiersLost
+   * to 0 even when the battle had genuinely inflicted casualties, making
+   * the final post-battle report misleading.
+   */
+  const soldiersLost =
+    Math.max(
+      0,
+      side ===
+        "attacker"
+        ? battle
+            .attackerCasualtiesTotal ??
+          0
+        : battle
+            .defenderCasualtiesTotal ??
+          0
+    );
+
+  const soldiersBefore =
+    soldiersAfter +
+    soldiersLost;
+
+  const casualtyPercent =
+    soldiersBefore >
+    0
+      ? (soldiersLost /
+          soldiersBefore) *
+        100
+      : 0;
 
   return {
     armyId:
@@ -525,16 +569,13 @@ function buildAggregateSideResult(
 
     totalPower,
 
-    casualtyPercent:
-      0,
+    casualtyPercent,
 
     soldiersBefore,
 
-    soldiersLost:
-      0,
+    soldiersLost,
 
-    soldiersAfter:
-      soldiersBefore,
+    soldiersAfter,
   };
 }
 

@@ -533,6 +533,17 @@ export interface PersistentBattle {
     BattleHistoryEntry[];
 
   finalBattleResultId?: string;
+
+  /*
+   * Cumulative soldiers lost across every processed phase of this
+   * battle so far, per side. Optional/undefined (treated as 0) so
+   * existing battle literals built before this field existed (e.g. in
+   * scripts) keep compiling. Used to report real casualty numbers in
+   * the final BattleResult instead of always reporting 0.
+   */
+  attackerCasualtiesTotal?: number;
+
+  defenderCasualtiesTotal?: number;
 }
 
 export type SiegePhase =
