@@ -6,6 +6,10 @@ import {
   runWorldCatchUp,
 } from "@/lib/actors/orchestrator";
 
+import {
+  isLlmPlayer,
+} from "@/lib/actors/controller";
+
 export type WebMcpIdentityValidation =
   | {
       ok: true;
@@ -18,7 +22,8 @@ export type WebMcpIdentityValidation =
         | "WEBMCP_IDENTITY_REQUIRED"
         | "WEBMCP_SESSION_IDENTITY_MISMATCH"
         | "WEBMCP_PLAYER_IDENTITY_MISMATCH"
-        | "WEBMCP_BOUND_PLAYER_NOT_ACTIVE";
+        | "WEBMCP_BOUND_PLAYER_NOT_ACTIVE"
+        | "WEBMCP_NO_ACTOR_TURN_OPEN";
     };
 
 export type WebMcpGuardInstallResult =
@@ -47,8 +52,33 @@ function getBoundIdentity():
   const sessionId =
     world.session.id;
 
+  /*
+   * WebMCP represents whichever ACTOR_LLM (webmcp_llm-controlled) kingdom
+   * currently has its command window open -- NOT a single fixed
+   * session.localPlayerId. The command cycle only ever opens one player's
+   * window at a time (session.commandCycle.currentPlayerId), so binding to
+   * that turn's player, when it is an LLM/webmcp-controlled player, lets one
+   * external WebMCP host (e.g. a ChatGPT desktop session) correctly drive
+   * ANY number of ACTOR_LLM kingdoms in sequence, in turn order, instead of
+   * being permanently wired to only one hardcoded player.
+   *
+   * If the currently open window belongs to a human player (or nothing is
+   * open), there is no ACTOR_LLM turn for WebMCP to act on right now.
+   */
   const playerId =
-    world.session.localPlayerId;
+    world.session.commandCycle
+      .currentPlayerId;
+
+  if (
+    !playerId ||
+    !isLlmPlayer(playerId)
+  ) {
+    return {
+      ok: false,
+      error:
+        "WEBMCP_NO_ACTOR_TURN_OPEN",
+    };
+  }
 
   const player =
     world.session.players[
