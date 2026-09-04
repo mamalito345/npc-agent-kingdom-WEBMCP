@@ -24,14 +24,32 @@ import type {
   GmWorldSnapshot,
 } from "@/types/director";
 
+import type {
+  PersistentBattle,
+} from "@/types/military";
+
+/*
+ * Cost control: every one of these arrays is resent, unfiltered, on
+ * EVERY single GM/actor LLM activation (no diffing/caching), and a
+ * single command window can reactivate the same player many times
+ * (lib/actors/orchestrator.ts's 40-iteration catch-up guard) if it
+ * never calls pass_command_window. 30 trailing entries per array,
+ * across 5 kingdoms' worth of activity, was a real, unnecessary
+ * multiplier on API cost with little strategic value past the last
+ * handful of events -- an LLM planning THIS turn rarely needs the 25th
+ * most recent message. Lowered from 30 to 8.
+ */
 const RECENT_MESSAGE_LIMIT =
-  30;
+  8;
 
 const RECENT_EVENT_LIMIT =
-  30;
+  8;
 
 const REALM_FACT_LIMIT =
-  30;
+  8;
+
+const RECENT_LORD_ORDER_LIMIT =
+  8;
 
 function unitSoldiers(
   armyId: string,
@@ -93,6 +111,101 @@ function terrainInfoForNode(
       getTerrainModifier(
         tier
       ),
+  };
+}
+
+
+const RECENT_ENDED_CONFLICT_LIMIT =
+  3;
+
+const RECENT_BATTLE_DETAIL_LIMIT =
+  2;
+
+/*
+ * Every active item is kept (the GM/actor genuinely needs full detail
+ * on what's happening right now); ended items are capped to the most
+ * recent few by start time, dropping older resolved conflicts that
+ * are no longer strategically relevant to THIS activation.
+ */
+function recentWithActiveFirst<
+  T
+>(
+  items: T[],
+  isActive: (
+    item: T
+  ) => boolean,
+  startedAt: (
+    item: T
+  ) => number
+): T[] {
+  const active =
+    items.filter(
+      isActive
+    );
+
+  const ended =
+    items
+      .filter(
+        (item) =>
+          !isActive(
+            item
+          )
+      )
+      .sort(
+        (a, b) =>
+          startedAt(
+            b
+          ) -
+          startedAt(
+            a
+          )
+      )
+      .slice(
+        0,
+        RECENT_ENDED_CONFLICT_LIMIT
+      );
+
+  return [
+    ...active,
+    ...ended,
+  ];
+}
+
+/*
+ * A PersistentBattle's `rounds` and `history` arrays grow one entry
+ * per phase/round for the battle's entire duration -- the single
+ * biggest per-item cost in the whole snapshot for a long or
+ * multi-round fight. lastRound and pendingDecision (the fields a
+ * crisis-order decision actually depends on) are untouched; only the
+ * full historical tail is trimmed.
+ */
+function trimBattleDetail(
+  battle: PersistentBattle
+): PersistentBattle {
+  const rounds =
+    battle.rounds;
+
+  const history =
+    battle.history;
+
+  return {
+    ...battle,
+    rounds:
+      Array.isArray(
+        rounds
+      )
+        ? rounds.slice(
+            -RECENT_BATTLE_DETAIL_LIMIT
+          )
+        : rounds,
+    history:
+      Array.isArray(
+        history
+      )
+        ? history.slice(
+            -RECENT_BATTLE_DETAIL_LIMIT
+          )
+        : history,
   };
 }
 
@@ -400,22 +513,56 @@ export function buildGmWorldSnapshot():
         )
         .slice(
           0,
-          30
+          RECENT_LORD_ORDER_LIMIT
         ),
 
+    /*
+     * Cost control: wars/battles/sieges never got cleaned up or
+     * bounded -- every war, battle and siege that ever happened in the
+     * session stayed in world state forever and was resent in FULL
+     * (including a PersistentBattle's entire round-by-round `rounds`
+     * and `history` arrays) on every single GM/actor activation. An
+     * active conflict still needs real detail to reason about; a
+     * conflict that ended an hour of game-time ago mostly does not.
+     * Active ones keep full detail; ended ones are capped to the most
+     * recent few, with round-by-round detail trimmed to a short tail.
+     */
     wars:
-      Object.values(
-        world.wars
+      recentWithActiveFirst(
+        Object.values(
+          world.wars
+        ),
+        (war) =>
+          war.status ===
+          "active",
+        (war) =>
+          war.startedAt
       ),
 
     battles:
-      Object.values(
-        world.battles
+      recentWithActiveFirst(
+        Object.values(
+          world.battles
+        ),
+        (battle) =>
+          battle.status ===
+          "active",
+        (battle) =>
+          battle.startedAt
+      ).map(
+        trimBattleDetail
       ),
 
     sieges:
-      Object.values(
-        world.sieges
+      recentWithActiveFirst(
+        Object.values(
+          world.sieges
+        ),
+        (siege) =>
+          siege.status ===
+          "active",
+        (siege) =>
+          siege.startedAt
       ),
 
     diplomacy: {
